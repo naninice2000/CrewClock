@@ -102,3 +102,23 @@ Each shift is recorded as a single row:
 python3 -m http.server 8000
 ```
 Open `http://localhost:8000` in your web browser.
+
+---
+
+## 📱 Native Mobile Apps
+
+Native wrappers for iOS and Android are available in this directory:
+
+### 🍎 Native iOS App
+* **Xcode Project**: [`ios/CrewClock.xcodeproj`](ios/CrewClock.xcodeproj)
+* **Features**: Embedded `WKWebView`, GPS Geolocation permissions, Google Sign-In popup handling, pull-to-refresh, and offline support.
+* **Auto-Updating**: Directly loads `https://naninice2000.github.io/CrewClock/iGrill/` so web updates reflect immediately without App Store re-submission.
+* **Setup Guide**: See the [iOS App Guide](ios/README.md).
+
+### 🤖 Native Android App
+* **Android Project**: [`android/`](android/)
+* **Features**: Embedded `WebView`, GPS Geolocation bridge, Google Sign-In 403 User-Agent fix, `SwipeRefreshLayout` pull-to-refresh, and offline fallback.
+* **Auto-Updating**: Directly loads `https://naninice2000.github.io/CrewClock/iGrill/` so web updates reflect immediately without Play Store updates.
+* **Setup & Build Guide**: See the [Android App Guide](android/README.md).
+
+
