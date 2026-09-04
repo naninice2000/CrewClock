@@ -31,6 +31,15 @@
   let tokenClient = null;
   let shiftTimerInterval = null;
 
+  // Server Time Synchronization State (locks time to Google Server Time)
+  let serverTimeOffsetMs = 0;
+  let isServerTimeSynced = false;
+  let serverTimeZone = '';
+
+  function getNow() {
+    return new Date(Date.now() + serverTimeOffsetMs);
+  }
+
   // DOM Elements
   const el = {
     // Brand
@@ -97,6 +106,7 @@
   // --- INITIALIZATION ---
   function init() {
     applyBrandSettings();
+    syncServerTime();
     startLiveClock();
     checkLocationCapability();
     updateSetupWarningVisibility();
@@ -108,6 +118,32 @@
       showActiveShiftScreen(activeShift);
     } else {
       showClockInScreen();
+    }
+  }
+
+  // --- SERVER TIME SYNCHRONIZATION ---
+  async function syncServerTime() {
+    if (!settings.scriptUrl || settings.scriptUrl.trim().length === 0) return;
+    try {
+      const startTime = Date.now();
+      const res = await fetch(settings.scriptUrl, {
+        method: 'GET',
+        cache: 'no-cache'
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && data.serverTimeIso) {
+        const endTime = Date.now();
+        const roundTripLatency = Math.max(0, endTime - startTime);
+        const serverNowMs = new Date(data.serverTimeIso).getTime() + Math.round(roundTripLatency / 2);
+        serverTimeOffsetMs = serverNowMs - endTime;
+        isServerTimeSynced = true;
+        if (data.timeZone) serverTimeZone = data.timeZone;
+        console.log(`[TimeSync] Synchronized with Google Server Time (Offset: ${serverTimeOffsetMs}ms, TZ: ${serverTimeZone})`);
+        updateSyncBadgeUI();
+      }
+    } catch (err) {
+      console.warn('[TimeSync] Google Apps Script ping unavailable, falling back to local clock:', err);
     }
   }
 
@@ -137,7 +173,7 @@
   // --- LIVE CLOCK & DATE ---
   function startLiveClock() {
     function update() {
-      const now = new Date();
+      const now = getNow();
       el.liveClock.textContent = now.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
@@ -266,17 +302,27 @@
 
   async function executeClockIn(user) {
     try {
+      // If not yet synced, attempt a quick time sync
+      if (!isServerTimeSynced && settings.scriptUrl) {
+        try {
+          await Promise.race([
+            syncServerTime(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500))
+          ]);
+        } catch (e) {}
+      }
+
       // 1. Capture exact GPS Geolocation
       const location = await getDeviceLocation();
 
-      // 2. Prepare timestamp & coordinates
-      const now = new Date();
+      // 2. Prepare timestamp & coordinates using server-synchronized time
+      const now = getNow();
       const timestampStr = formatDateTime(now);
       const mapsUrl = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
 
-      // 3. Send payload to Google Apps Script Webhook
+      // 3. Send payload to Google Apps Script Webhook (Server generates authoritative timestamp)
       if (settings.scriptUrl && settings.scriptUrl.trim().length > 0) {
-        showLoading('Updating Google Sheet', 'Recording clock-in to spreadsheet via Apps Script...');
+        showLoading('Updating Google Sheet', 'Recording clock-in with Google Server Time...');
         try {
           await postToGoogleAppsScript({
             action: 'clockin',
@@ -285,7 +331,8 @@
             latitude: location.latitude.toFixed(5),
             longitude: location.longitude.toFixed(5),
             accuracy: Math.round(location.accuracy),
-            timestamp: timestampStr
+            timestamp: timestampStr,
+            clockInIso: now.toISOString()
           });
         } catch (err) {
           console.warn('Google Sheet submission note:', err);
@@ -306,7 +353,8 @@
         longitude: location.longitude.toFixed(5),
         accuracy: Math.round(location.accuracy),
         mapsUrl: mapsUrl,
-        status: 'Clocked In'
+        status: 'Clocked In',
+        serverSynced: isServerTimeSynced
       };
 
       activeShift = shiftData;
@@ -326,15 +374,15 @@
   async function triggerClockOut() {
     if (!activeShift) return;
 
-    const confirmOut = confirm(`Clock out now, ${activeShift.name}?\nYour end time will be recorded in the Google Sheet and you will be signed out.`);
+    const confirmOut = confirm(`Clock out now, ${activeShift.name}?\nYour end time will be recorded in the Google Sheet using Google Server Time and you will be signed out.`);
     if (!confirmOut) return;
 
-    showLoading('Clocking Out', 'Updating Google Sheet with your clock-out time...');
+    showLoading('Clocking Out', 'Updating Google Sheet with server clock-out time...');
 
-    const now = new Date();
+    const now = getNow();
     const clockOutTimeStr = formatDateTime(now);
 
-    // Calculate shift duration accurately from epoch milliseconds
+    // Calculate shift duration accurately using server-calibrated clock
     let durationStr = '0m';
     if (activeShift.clockInIso) {
       const startMs = new Date(activeShift.clockInIso).getTime();
@@ -354,7 +402,7 @@
       }
     }
 
-    // Send clockout to Google Apps Script (updates same row)
+    // Send clockout to Google Apps Script (updates same row with official server timestamp)
     if (settings.scriptUrl && settings.scriptUrl.trim().length > 0) {
       try {
         await postToGoogleAppsScript({
@@ -448,18 +496,24 @@
     if (el.shiftMapsLink) el.shiftMapsLink.href = shift.mapsUrl || `https://www.google.com/maps?q=${shift.latitude},${shift.longitude}`;
 
     // Sync Status
+    updateSyncBadgeUI();
+
+    // Start Live Shift Duration Counter
+    startShiftDurationTimer(shift.clockInIso || getNow().toISOString());
+  }
+
+  function updateSyncBadgeUI() {
     if (el.syncStatusText && el.syncStatusBadge) {
       if (settings.scriptUrl) {
-        el.syncStatusText.textContent = 'Logged to Google Sheet via Google Apps Script';
+        el.syncStatusText.textContent = isServerTimeSynced
+          ? `Verified Google Server Time (${serverTimeZone || 'Tamper-Proof'})`
+          : 'Logged to Google Sheet via Google Apps Script (Server Time)';
         el.syncStatusBadge.className = 'flex items-center gap-1.5 text-[10px] sm:text-[11px] text-emerald-800 bg-emerald-50 rounded-lg p-2 border border-emerald-200';
       } else {
         el.syncStatusText.textContent = 'Stored locally (Add Google Apps Script URL in Settings to sync)';
         el.syncStatusBadge.className = 'flex items-center gap-1.5 text-[10px] sm:text-[11px] text-amber-800 bg-amber-50 rounded-lg p-2 border border-amber-200';
       }
     }
-
-    // Start Live Shift Duration Counter
-    startShiftDurationTimer(shift.clockInIso || new Date().toISOString());
   }
 
   function startShiftDurationTimer(isoStartTime) {
@@ -468,7 +522,7 @@
     const startTime = new Date(isoStartTime).getTime();
 
     function update() {
-      const now = Date.now();
+      const now = getNow().getTime();
       const diffMs = Math.max(0, now - startTime);
       const totalSecs = Math.floor(diffMs / 1000);
       const hours = Math.floor(totalSecs / 3600);
@@ -659,6 +713,7 @@
       applyBrandSettings();
       updateSetupWarningVisibility();
       initGoogleAuth();
+      syncServerTime();
       closeSettings();
       alert('Settings saved! Ready for Google Sign-In & Google Apps Script sync.');
     });

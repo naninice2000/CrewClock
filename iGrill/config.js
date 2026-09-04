@@ -18,5 +18,5 @@ const APP_CONFIG = {
 
   // Google Apps Script Web App URL (from Google Sheet > Extensions > Apps Script > Deploy)
   // e.g. "https://script.google.com/macros/s/AKfycbx.../exec"
-  googleScriptUrl: "https://script.google.com/macros/s/AKfycbzzGVPRyNFusb6xyVm2TnCgiNTSm9xPM1kKz8cUjAyZTUnpWHDVe1nmJxFobSGCksPT/exec"
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbxWH25K2PA2X2xDDTYvz28cnq09NslsGVgPBT1-SCJ0ID_wjzoP1BS_3QhNAYI8Psk-/exec"
 };

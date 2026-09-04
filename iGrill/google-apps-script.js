@@ -3,20 +3,23 @@
  * -------------------------------------------------------------
  * INSTRUCTIONS:
  * 1. Open your Google Sheet (create one at https://sheets.new).
- * 2. In the top menu, click Extensions > Apps Script.
- * 3. Delete any code in the editor and paste this entire script.
- * 4. Click "Deploy" (top right blue button) > "New deployment".
- * 5. Click the gear icon next to "Select type" and choose "Web app".
- * 6. Set Description: "Staff Clock-In Webhook".
- * 7. Set "Execute as": "Me (your email)".
- * 8. Set "Who has access": "Anyone" (allows the web app to submit clock-ins).
- * 9. Click "Deploy", authorize permissions, and copy the "Web app URL".
- * 10. Paste the Web app URL into config.js (or into Settings in the web app).
+ * 2. Set your restaurant's time zone: File > Settings > Time zone.
+ * 3. In the top menu, click Extensions > Apps Script.
+ * 4. Delete any code in the editor and paste this entire script.
+ * 5. Click "Deploy" (top right blue button) > "New deployment" (or "Manage deployments" > Edit > New version if updating).
+ * 6. Click the gear icon next to "Select type" and choose "Web app".
+ * 7. Set Description: "Staff Clock-In Webhook (Server Time)".
+ * 8. Set "Execute as": "Me (your email)".
+ * 9. Set "Who has access": "Anyone" (allows the web app to submit clock-ins).
+ * 10. Click "Deploy", authorize permissions, and copy the "Web app URL".
+ * 11. Paste the Web app URL into config.js (or into Settings in the web app).
  */
 
 function doPost(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = spreadsheet.getActiveSheet();
+    var timeZone = spreadsheet.getSpreadsheetTimeZone() || "America/Los_Angeles";
 
     // Automatically create and format headers if sheet is empty
     if (sheet.getLastRow() === 0) {
@@ -50,7 +53,11 @@ function doPost(e) {
     var action = data.action || "clockin";
     var email = (data.email || "").trim().toLowerCase();
     var name = data.name || "Staff Member";
-    var timestamp = data.timestamp || new Date().toLocaleString();
+
+    // Official Server Timestamp (tamper-proof, locked to spreadsheet timezone)
+    var serverNow = new Date();
+    var serverTimestampStr = Utilities.formatDate(serverNow, timeZone, "MMM dd, yyyy hh:mm:ss a");
+    var serverIso = serverNow.toISOString();
 
     if (!email) {
       return responseJSON({ success: false, error: "Email is required" });
@@ -64,17 +71,17 @@ function doPost(e) {
       var locationStr = (lat && lng) ? (lat + ", " + lng) : "Location Unavailable";
       var mapsUrl = (lat && lng) ? ("https://www.google.com/maps?q=" + lat + "," + lng) : "";
 
-      // Append new Clock-In row
+      // Append new Clock-In row with official Google Server Time
       sheet.appendRow([
         email,
         name,
-        timestamp,
+        serverTimestampStr, // Col 3: Official Server Clock-In Time
         locationStr,
         accuracy,
         mapsUrl,
-        "",              // Col 7: Clock-Out Time (blank initially)
-        "",              // Col 8: Duration (blank initially)
-        "Clocked In"     // Col 9: Status
+        "",                 // Col 7: Clock-Out Time (blank initially)
+        "",                 // Col 8: Duration (blank initially)
+        "Clocked In"        // Col 9: Status
       ]);
 
       var newRowIndex = sheet.getLastRow();
@@ -84,14 +91,16 @@ function doPost(e) {
         action: "clockin",
         row: newRowIndex,
         email: email,
-        timestamp: timestamp
+        timestamp: serverTimestampStr,
+        serverIso: serverIso,
+        timeZone: timeZone
       });
 
     // --- ACTION 2: CLOCK OUT (Same Row Update) ---
     } else if (action === "clockout") {
       var lastRow = sheet.getLastRow();
       var foundRow = -1;
-      var clockInTimeStr = "";
+      var clockInVal = "";
 
       // Search from the bottom up for the employee's active shift
       if (lastRow > 1) {
@@ -102,38 +111,47 @@ function doPost(e) {
           
           if (rowEmail === email && (!clockOutVal || clockOutVal.toString().trim() === "")) {
             foundRow = i + 2; // +2 for 1-based index and header row offset
-            clockInTimeStr = dataRange[i][2]; // Col C: Clock-In Time
+            clockInVal = dataRange[i][2]; // Col C: Clock-In Time
             break;
           }
         }
       }
 
-      var durationStr = data.duration || "";
-      if (!durationStr && foundRow !== -1) {
-        try {
-          var inTime = data.clockInIso ? new Date(data.clockInIso) : (clockInTimeStr instanceof Date ? clockInTimeStr : new Date(clockInTimeStr));
-          var outTime = data.clockOutIso ? new Date(data.clockOutIso) : new Date();
-          if (!isNaN(inTime) && !isNaN(outTime)) {
-            var diffMs = Math.max(0, outTime - inTime);
-            var totalSecs = Math.floor(diffMs / 1000);
-            var hours = Math.floor(totalSecs / 3600);
-            var mins = Math.floor((totalSecs % 3600) / 60);
-            var secs = totalSecs % 60;
-            if (hours > 0) {
-              durationStr = hours + "h " + mins + "m";
-            } else if (mins > 0) {
-              durationStr = mins + "m " + secs + "s";
-            } else {
-              durationStr = secs + "s";
-            }
-          }
-        } catch (err) {}
+      // Compute shift duration on Google's servers (tamper-proof)
+      var durationStr = "";
+      var inTime = null;
+      if (clockInVal instanceof Date) {
+        inTime = clockInVal;
+      } else if (clockInVal && clockInVal.toString().trim() !== "") {
+        inTime = new Date(clockInVal);
+      }
+
+      // Fallback to client ISO timestamp if cell date parsing fails
+      if ((!inTime || isNaN(inTime.getTime())) && data.clockInIso) {
+        inTime = new Date(data.clockInIso);
+      }
+
+      if (inTime && !isNaN(inTime.getTime())) {
+        var diffMs = Math.max(0, serverNow.getTime() - inTime.getTime());
+        var totalSecs = Math.floor(diffMs / 1000);
+        var hours = Math.floor(totalSecs / 3600);
+        var mins = Math.floor((totalSecs % 3600) / 60);
+        var secs = totalSecs % 60;
+        if (hours > 0) {
+          durationStr = hours + "h " + mins + "m";
+        } else if (mins > 0) {
+          durationStr = mins + "m " + secs + "s";
+        } else {
+          durationStr = secs + "s";
+        }
+      } else {
+        durationStr = data.duration || "Recorded";
       }
       
       if (foundRow !== -1) {
         // Update Col 7 (Clock-Out Time), Col 8 (Duration), Col 9 (Status) in the EXACT same row
-        sheet.getRange(foundRow, 7).setValue(timestamp);
-        sheet.getRange(foundRow, 8).setValue(durationStr || "Recorded");
+        sheet.getRange(foundRow, 7).setValue(serverTimestampStr);
+        sheet.getRange(foundRow, 8).setValue(durationStr);
         sheet.getRange(foundRow, 9).setValue("Completed");
 
         return responseJSON({
@@ -141,7 +159,9 @@ function doPost(e) {
           action: "clockout",
           row: foundRow,
           duration: durationStr,
-          timestamp: timestamp
+          timestamp: serverTimestampStr,
+          serverIso: serverIso,
+          timeZone: timeZone
         });
       } else {
         // If no unclosed shift row found, append a standalone clock-out row
@@ -152,13 +172,15 @@ function doPost(e) {
           "N/A",
           "N/A",
           "",
-          timestamp,
+          serverTimestampStr,
           "N/A",
           "Completed"
         ]);
         return responseJSON({
           success: true,
           action: "clockout",
+          timestamp: serverTimestampStr,
+          serverIso: serverIso,
           warning: "No open clock-in found, recorded standalone clock-out."
         });
       }
@@ -171,14 +193,22 @@ function doPost(e) {
   }
 }
 
-// Handle GET requests (connection ping test)
+// Handle GET requests (connection ping test & server time synchronization)
 function doGet(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = spreadsheet.getActiveSheet();
+    var timeZone = spreadsheet.getSpreadsheetTimeZone() || "America/Los_Angeles";
+    var serverNow = new Date();
+    var serverTimestampStr = Utilities.formatDate(serverNow, timeZone, "MMM dd, yyyy hh:mm:ss a");
+
     return responseJSON({
       success: true,
       message: "Google Apps Script Webhook is active and connected!",
       sheetName: sheet.getName(),
+      timeZone: timeZone,
+      serverTimeIso: serverNow.toISOString(),
+      serverTimestamp: serverTimestampStr,
       totalRows: Math.max(0, sheet.getLastRow() - 1)
     });
   } catch (err) {

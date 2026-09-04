@@ -25,9 +25,10 @@ A 100% serverless Employee Clock-In & Attendance Web App hosted directly on **Gi
 ```
 
 ### Key Advantages:
-1. **Generous Quotas**: Google Apps Script provides **20,000+ executions per day** for free (no daily API limits to worry about).
-2. **Employee Privacy**: Staff only verify their identity (Gmail address and name). They are never asked to give permission to edit files in their personal Google Drive.
-3. **Tamper-Proof**: Employees do not have edit access to your spreadsheet. The script runs as the owner and securely appends/updates records.
+1. **Tamper-Proof Google Server Time**: Clock-in and clock-out timestamps, along with shift durations, are computed directly on Google's cloud servers in your restaurant's time zone. Employees cannot manipulate hours by modifying device clocks.
+2. **Generous Quotas**: Google Apps Script provides **20,000+ executions per day** for free (no daily API limits to worry about).
+3. **Employee Privacy**: Staff only verify their identity (Gmail address and name). They are never asked to give permission to edit files in their personal Google Drive.
+4. **Protected Spreadsheet**: Employees do not have edit access to your spreadsheet. The script runs as the owner and securely appends/updates records.
 
 ---
 
@@ -44,15 +45,16 @@ Each shift is recorded as a single row:
 ## 2-Minute Google Sheet & Apps Script Setup
 
 1. Open [sheets.new](https://sheets.new) to create a new Google Sheet.
-2. In the top menu, click **Extensions > Apps Script**.
-3. Delete any code in the editor and paste the entire contents of [`google-apps-script.js`](google-apps-script.js).
-4. Click the blue **Deploy** button (top right) > **New deployment**.
-5. Click the gear icon next to "Select type" and choose **Web app**:
-   - **Description**: `Employee Clock-In Webhook`
+2. Ensure your sheet is set to your restaurant's local time zone: **File > Settings > Time zone**.
+3. In the top menu, click **Extensions > Apps Script**.
+4. Delete any code in the editor and paste the entire contents of [`google-apps-script.js`](google-apps-script.js).
+5. Click the blue **Deploy** button (top right) > **New deployment** (or **Manage deployments** > Edit > New version if updating).
+6. Click the gear icon next to "Select type" and choose **Web app**:
+   - **Description**: `Employee Clock-In Webhook (Server Time)`
    - **Execute as**: `Me (your email)`
    - **Who has access**: `Anyone` *(required so the web app can submit clock-ins)*
-6. Click **Deploy**, click **Authorize access**, and copy your **Web app URL** (looks like `https://script.google.com/macros/s/.../exec`).
-7. Paste this URL into [`config.js`](config.js) under `googleScriptUrl` (or in the in-app **⚙️ Settings**).
+7. Click **Deploy**, click **Authorize access**, and copy your **Web app URL** (looks like `https://script.google.com/macros/s/.../exec`).
+8. Paste this URL into [`config.js`](config.js) under `googleScriptUrl` (or in the in-app **⚙️ Settings**).
 
 ---
 
