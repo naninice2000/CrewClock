@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Main App Theme -->
+    <style name="Theme.CrewClock" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/brand_amber_600</item>
+        <item name="colorPrimaryVariant">@color/brand_amber_700</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="android:statusBarColor">@color/brand_amber_600</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+    </style>
+
+    <!-- Splash Screen Theme (Android 12+ and Compat) -->
+    <style name="Theme.CrewClock.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_amber_600</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_clock</item>
+        <item name="postSplashScreenTheme">@style/Theme.CrewClock</item>
+    </style>
+</resources>

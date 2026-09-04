@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Amber / Restaurant Palette -->
+    <color name="brand_amber_50">#FFFBEB</color>
+    <color name="brand_amber_100">#FEF3C7</color>
+    <color name="brand_amber_200">#FDE68A</color>
+    <color name="brand_amber_500">#F59E0B</color>
+    <color name="brand_amber_600">#D97706</color>
+    <color name="brand_amber_700">#B45309</color>
+    <color name="brand_amber_800">#92400E</color>
+    <color name="brand_amber_900">#78350F</color>
+
+    <color name="warmgray_50">#FAFAF9</color>
+    <color name="warmgray_100">#F5F5F4</color>
+    <color name="warmgray_700">#44403C</color>
+    <color name="warmgray_900">#1C1917</color>
+
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+</resources>
