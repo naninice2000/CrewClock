@@ -36,7 +36,24 @@
   let currentUser = null;
   let activeShift = JSON.parse(localStorage.getItem(STORAGE_KEYS.ACTIVE_SHIFT) || 'null');
   let tokenClient = null;
+  let currentAccessToken = null;
   let shiftTimerInterval = null;
+  let platformServiceEmail = '';
+
+  // Standard Attendance Sheet Columns (11 columns)
+  const SHEET_HEADERS = [
+    'Date',
+    'Employee Name',
+    'Email',
+    'Clock In Time',
+    'Clock In Coordinates',
+    'Clock In Map',
+    'Clock Out Time',
+    'Shift Duration',
+    'Clock Out Coordinates',
+    'Clock Out Map',
+    'Status'
+  ];
 
   // Auth & Multi-Tenancy State
   let authMode = 'signin'; // 'signin' | 'signup'
@@ -190,6 +207,9 @@
         clearUserSession(true);
         return null;
       }
+      if (session.accessToken && (!session.tokenExpiresAt || Date.now() < session.tokenExpiresAt)) {
+        currentAccessToken = session.accessToken;
+      }
       return session;
     } catch (e) {
       console.warn('[Session] Error reading user session:', e);
@@ -207,10 +227,15 @@
       restaurantName: user.restaurantName || settings.restaurantName,
       restaurantLogo: user.restaurantLogo !== undefined ? user.restaurantLogo : settings.restaurantLogo,
       attendanceScriptUrl: user.attendanceScriptUrl || settings.scriptUrl,
+      accessToken: user.accessToken || currentAccessToken || '',
+      tokenExpiresAt: user.tokenExpiresAt || (currentAccessToken ? Date.now() + 3500 * 1000 : 0),
       loginTime: Date.now(),
       expiresAt: Date.now() + SESSION_DURATION_MS
     };
     currentUser = session;
+    if (session.accessToken) {
+      currentAccessToken = session.accessToken;
+    }
     localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
     applyBrandSettings();
     updateHeaderUserUI();
@@ -220,6 +245,7 @@
 
   function clearUserSession(isExpired) {
     currentUser = null;
+    currentAccessToken = null;
     localStorage.removeItem(STORAGE_KEYS.SESSION);
     applyBrandSettings();
     updateHeaderUserUI();
@@ -411,11 +437,12 @@
 
   // --- SERVER TIME SYNCHRONIZATION ---
   async function syncServerTime() {
-    const targetScriptUrl = currentUser?.attendanceScriptUrl || settings.scriptUrl;
-    if (!targetScriptUrl || targetScriptUrl.trim().length === 0) return;
+    const rawTarget = currentUser?.attendanceScriptUrl || settings.scriptUrl;
+    const syncUrl = (isGoogleAppsScriptUrl(rawTarget) ? rawTarget : null) || settings.tenancyScriptUrl;
+    if (!syncUrl || syncUrl.trim().length === 0) return;
     try {
       const startTime = Date.now();
-      const res = await fetch(targetScriptUrl, {
+      const res = await fetch(syncUrl, {
         method: 'GET',
         cache: 'no-cache'
       });
@@ -428,11 +455,27 @@
         serverTimeOffsetMs = serverNowMs - endTime;
         isServerTimeSynced = true;
         if (data.timeZone) serverTimeZone = data.timeZone;
-        console.log(`[TimeSync] Synchronized with Google Server Time (Offset: ${serverTimeOffsetMs}ms, TZ: ${serverTimeZone})`);
+        if (data.serviceEmail) {
+          platformServiceEmail = data.serviceEmail;
+          updateServiceEmailInModals();
+        }
+        console.log(`[TimeSync] Synchronized with Google Server Time (Offset: ${serverTimeOffsetMs}ms, TZ: ${serverTimeZone}, Host: ${platformServiceEmail || 'Central'})`);
         updateSyncBadgeUI();
       }
     } catch (err) {
-      console.warn('[TimeSync] Google Apps Script ping unavailable, falling back to local clock:', err);
+      console.warn('[TimeSync] Google server ping unavailable, falling back to local clock:', err);
+    }
+  }
+
+  function updateServiceEmailInModals() {
+    if (!platformServiceEmail) return;
+    const onboardHint = document.getElementById('onboard-sheet-hint');
+    if (onboardHint) {
+      onboardHint.innerHTML = `Create a sheet at <a href="https://sheets.new" target="_blank" class="underline text-amber-700 font-bold">sheets.new</a>, copy its link/ID, and share it with <code class="bg-amber-100/90 text-amber-900 font-mono px-1 py-0.5 rounded font-bold select-all">${escapeHtml(platformServiceEmail)}</code> as <strong>Editor</strong>. Staff has zero direct access to tamper. Or paste a custom Apps Script URL.`;
+    }
+    const settingsHint = document.getElementById('settings-sheet-hint');
+    if (settingsHint) {
+      settingsHint.innerHTML = `Google Sheet ID or URL (Share with <code class="bg-amber-100/90 text-amber-900 font-mono px-1 py-0.5 rounded font-bold select-all">${escapeHtml(platformServiceEmail)}</code> as Editor). Staff members have 0 direct access. Alternatively, enter an Apps Script Web App URL.`;
     }
   }
 
@@ -541,6 +584,39 @@
     });
   }
 
+  // --- GOOGLE SPREADSHEET & APPS SCRIPT HELPERS ---
+  function extractSpreadsheetId(input) {
+    if (!input || typeof input !== 'string') return '';
+    const clean = input.trim();
+    // 1. Matches Google Sheet URL: https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/...
+    const urlMatch = clean.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (urlMatch && urlMatch[1]) {
+      return urlMatch[1];
+    }
+    // 2. Alphanumeric Sheet ID (~44 chars) that is not a script url
+    if (/^[a-zA-Z0-9-_]{20,}$/.test(clean) && !clean.includes('script.google.com')) {
+      return clean;
+    }
+    return clean;
+  }
+
+  function isGoogleAppsScriptUrl(str) {
+    return typeof str === 'string' && str.includes('script.google.com');
+  }
+
+  function isGoogleSpreadsheetTarget(target) {
+    if (!target) return false;
+    const clean = target.trim();
+    if (isGoogleAppsScriptUrl(clean)) return false;
+    const sheetId = extractSpreadsheetId(clean);
+    return /^[a-zA-Z0-9-_]{20,}$/.test(sheetId);
+  }
+
+  function formatDateOnly(date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[date.getMonth()]} ${String(date.getDate()).padStart(2, '0')}, ${date.getFullYear()}`;
+  }
+
   // --- GOOGLE IDENTITY SERVICES (GIS) AUTHENTICATION ---
   function initGoogleAuth() {
     if (window.google && window.google.accounts && window.google.accounts.oauth2 && settings.clientId) {
@@ -555,6 +631,309 @@
         console.warn('Google OAuth Token Client initialization error:', err);
       }
     }
+  }
+
+  // Get a valid Google OAuth access token, silently refreshing or prompting if needed
+  async function getValidAccessToken(forcePrompt = false) {
+    if (!forcePrompt && currentAccessToken) {
+      const expiresAt = currentUser?.tokenExpiresAt || 0;
+      if (expiresAt === 0 || Date.now() < expiresAt - 60000) {
+        return currentAccessToken;
+      }
+    }
+
+    if (!tokenClient) initGoogleAuth();
+    if (!tokenClient) {
+      throw new Error('Google OAuth client is not configured. Please enter your Google Client ID in Settings.');
+    }
+
+    return new Promise((resolve, reject) => {
+      let resolved = false;
+      const prevCallback = tokenClient.callback;
+
+      tokenClient.callback = (resp) => {
+        tokenClient.callback = prevCallback || handleGoogleAuthResponse;
+        resolved = true;
+        if (resp.error) {
+          reject(new Error(resp.error_description || resp.error || 'Failed to acquire Google access token.'));
+          return;
+        }
+        currentAccessToken = resp.access_token;
+        const expiresAt = Date.now() + (resp.expires_in ? Number(resp.expires_in) * 1000 : 3500 * 1000);
+        if (currentUser) {
+          currentUser.accessToken = currentAccessToken;
+          currentUser.tokenExpiresAt = expiresAt;
+          localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(currentUser));
+        }
+        resolve(currentAccessToken);
+      };
+
+      try {
+        tokenClient.requestAccessToken({ prompt: forcePrompt ? 'select_account' : '' });
+      } catch (err) {
+        tokenClient.callback = prevCallback || handleGoogleAuthResponse;
+        reject(err);
+      }
+
+      setTimeout(() => {
+        if (!resolved) {
+          tokenClient.callback = prevCallback || handleGoogleAuthResponse;
+          reject(new Error('Google access token request timed out. Please sign in again.'));
+        }
+      }, 15000);
+    });
+  }
+
+  async function ensureValidAccessToken() {
+    try {
+      return await getValidAccessToken(false);
+    } catch (err) {
+      console.log('Silent token refresh failed, requesting user interaction:', err);
+      return await getValidAccessToken(true);
+    }
+  }
+
+  // --- GOOGLE SHEETS REST API (v4) CLIENT ---
+  async function ensureSheetHeaders(sheetId, token) {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?includeGridData=false`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (res.status === 403) {
+      throw new Error(
+        'Google Sheet Access Denied (403):\n\n' +
+        'Please open your Google Sheet, click "Share", and ensure either:\n' +
+        '1. Your signed-in Google account is added as Editor, OR\n' +
+        '2. General access is set to "Anyone with the link can edit".'
+      );
+    }
+    if (res.status === 404) {
+      throw new Error(
+        'Google Sheet Not Found (404):\n\n' +
+        'Please verify that the Google Sheet ID or URL entered in Settings is correct.'
+      );
+    }
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`Google Sheets API Error (${res.status}): ${errBody || res.statusText}`);
+    }
+
+    const sheetMeta = await res.json();
+    const sheets = sheetMeta.sheets || [];
+    let hasAttendanceTab = sheets.some(s => s.properties && s.properties.title === 'Attendance');
+
+    // Auto-create Attendance tab if absent
+    if (!hasAttendanceTab) {
+      try {
+        const addSheetRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            requests: [
+              {
+                addSheet: {
+                  properties: { title: 'Attendance' }
+                }
+              }
+            ]
+          })
+        });
+        if (addSheetRes.ok) {
+          hasAttendanceTab = true;
+        }
+      } catch (e) {
+        console.warn('Could not auto-create Attendance tab:', e);
+      }
+    }
+
+    const targetTab = hasAttendanceTab ? 'Attendance' : (sheets[0]?.properties?.title || 'Sheet1');
+
+    // Check if row 1 has headers; if not, write standard headers
+    try {
+      const headerCheckRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(targetTab)}!A1:K1`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (headerCheckRes.ok) {
+        const headerData = await headerCheckRes.json();
+        if (!headerData.values || headerData.values.length === 0 || !headerData.values[0][0]) {
+          await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(targetTab)}!A1:K1?valueInputOption=USER_ENTERED`,
+            {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                range: `${targetTab}!A1:K1`,
+                majorDimension: 'ROWS',
+                values: [SHEET_HEADERS]
+              })
+            }
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('Header check/write warning:', e);
+    }
+
+    return targetTab;
+  }
+
+  async function appendClockInToSheet(sheetId, token, payload) {
+    const targetTab = await ensureSheetHeaders(sheetId, token);
+    const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(targetTab)}!A:K:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+
+    const rowData = [
+      payload.date || '',
+      payload.name || '',
+      payload.email || '',
+      payload.clockInTime || '',
+      `${payload.latitude}, ${payload.longitude}`,
+      payload.mapsUrl || '',
+      '', // Clock Out Time
+      '', // Duration
+      '', // Clock Out Coordinates
+      '', // Clock Out Map
+      'Clocked In' // Status
+    ];
+
+    const res = await fetch(appendUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        range: `${targetTab}!A:K`,
+        majorDimension: 'ROWS',
+        values: [rowData]
+      })
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`Google Sheets Append Failed (${res.status}): ${errBody || res.statusText}`);
+    }
+
+    const data = await res.json();
+    let rowNumber = null;
+    const updatedRange = data.updates?.updatedRange || '';
+    const match = updatedRange.match(/!A(\d+):/i);
+    if (match && match[1]) {
+      rowNumber = parseInt(match[1], 10);
+    }
+
+    return {
+      success: true,
+      tabName: targetTab,
+      rowNumber: rowNumber,
+      updatedRange: updatedRange
+    };
+  }
+
+  async function updateClockOutOnSheet(sheetId, token, rowNumber, tabName = 'Attendance', payload) {
+    let targetRow = rowNumber;
+
+    if (!targetRow || targetRow < 2) {
+      targetRow = await findOpenShiftRow(sheetId, token, tabName, payload.email);
+    }
+
+    if (!targetRow || targetRow < 2) {
+      // Fallback: append completed row
+      const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName)}!A:K:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+      const fallbackRow = [
+        payload.date || '',
+        payload.name || '',
+        payload.email || '',
+        payload.clockInTime || '',
+        payload.inCoords || '',
+        payload.inMapsUrl || '',
+        payload.clockOutTime || '',
+        payload.duration || '',
+        `${payload.latitude}, ${payload.longitude}`,
+        payload.mapsUrl || '',
+        'Completed'
+      ];
+      await fetch(appendUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          range: `${tabName}!A:K`,
+          majorDimension: 'ROWS',
+          values: [fallbackRow]
+        })
+      });
+      return { success: true, rowNumber: null };
+    }
+
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName)}!G${targetRow}:K${targetRow}?valueInputOption=USER_ENTERED`;
+    const outValues = [
+      payload.clockOutTime || '',
+      payload.duration || '',
+      `${payload.latitude}, ${payload.longitude}`,
+      payload.mapsUrl || '',
+      'Completed'
+    ];
+
+    const res = await fetch(updateUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        range: `${tabName}!G${targetRow}:K${targetRow}`,
+        majorDimension: 'ROWS',
+        values: [outValues]
+      })
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`Google Sheets Update Failed (${res.status}): ${errBody || res.statusText}`);
+    }
+
+    return { success: true, rowNumber: targetRow };
+  }
+
+  async function findOpenShiftRow(sheetId, token, tabName, userEmail) {
+    try {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName)}!A:K`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const rows = data.values || [];
+      const targetEmail = (userEmail || '').trim().toLowerCase();
+
+      // Search bottom to top for active shift
+      for (let i = rows.length - 1; i >= 1; i--) {
+        const row = rows[i];
+        const rowEmail = (row[2] || '').trim().toLowerCase();
+        const rowClockOut = (row[6] || '').trim();
+        const rowStatus = (row[10] || '').trim();
+
+        if (rowEmail === targetEmail && (!rowClockOut || rowStatus === 'Clocked In')) {
+          return i + 1; // 1-indexed row number
+        }
+      }
+    } catch (e) {
+      console.warn('findOpenShiftRow scan warning:', e);
+    }
+    return null;
   }
 
   // Trigger Google Login or Signup
@@ -583,6 +962,9 @@
       alert('Google Sign-In Error: ' + tokenResponse.error);
       return;
     }
+
+    currentAccessToken = tokenResponse.access_token;
+    const tokenExpiresAt = Date.now() + (tokenResponse.expires_in ? Number(tokenResponse.expires_in) * 1000 : 3500 * 1000);
 
     try {
       showLoading('Verifying Gmail Account', 'Checking authenticated Google credentials...');
@@ -616,7 +998,9 @@
                 tenantId: tenancyRes.user.tenantId,
                 restaurantName: tenant.restaurantName || settings.restaurantName,
                 restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.restaurantLogo,
-                attendanceScriptUrl: tenant.attendanceScriptUrl || settings.scriptUrl
+                attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || settings.scriptUrl,
+                accessToken: currentAccessToken,
+                tokenExpiresAt: tokenExpiresAt
               });
 
               if (el.sessionExpiredAlert) el.sessionExpiredAlert.classList.add('hidden');
@@ -649,7 +1033,9 @@
                   tenantId: tenancyRes.user.tenantId,
                   restaurantName: tenant.restaurantName || settings.restaurantName,
                   restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.restaurantLogo,
-                  attendanceScriptUrl: tenant.attendanceScriptUrl || settings.scriptUrl
+                  attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || settings.scriptUrl,
+                  accessToken: currentAccessToken,
+                  tokenExpiresAt: tokenExpiresAt
                 });
                 syncServerTime();
                 refreshScreenState();
@@ -681,7 +1067,9 @@
         role: 'admin', // Full access in standalone fallback
         restaurantName: settings.restaurantName,
         restaurantLogo: settings.restaurantLogo,
-        attendanceScriptUrl: settings.scriptUrl
+        attendanceScriptUrl: settings.scriptUrl,
+        accessToken: currentAccessToken,
+        tokenExpiresAt: tokenExpiresAt
       };
 
       saveUserSession(user);
@@ -724,7 +1112,8 @@
 
     const restaurantName = (el.inputOnboardName?.value || '').trim();
     const logoUrl = (el.inputOnboardLogo?.value || '').trim();
-    const attendanceScriptUrl = (el.inputOnboardAttendanceUrl?.value || '').trim();
+    const rawAttendanceInput = (el.inputOnboardAttendanceUrl?.value || '').trim();
+    const attendanceTarget = extractSpreadsheetId(rawAttendanceInput);
     const timeZone = el.inputOnboardTimezone?.value || 'America/Los_Angeles';
 
     if (!restaurantName) {
@@ -733,8 +1122,8 @@
       return;
     }
 
-    if (!attendanceScriptUrl) {
-      alert('Please enter your Attendance Google Apps Script URL where employee clock-ins will be logged.');
+    if (!attendanceTarget) {
+      alert('Please enter your Attendance Google Sheet ID (or URL) where employee clock-ins will be logged.');
       el.inputOnboardAttendanceUrl?.focus();
       return;
     }
@@ -746,7 +1135,8 @@
         name: adminName,
         restaurantName: restaurantName,
         logoUrl: logoUrl,
-        attendanceScriptUrl: attendanceScriptUrl,
+        attendanceScriptUrl: attendanceTarget,
+        attendanceSheetId: attendanceTarget,
         timeZone: timeZone
       });
 
@@ -767,7 +1157,8 @@
         tenantId: tenant.tenantId || '',
         restaurantName: tenant.restaurantName || restaurantName,
         restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : logoUrl,
-        attendanceScriptUrl: tenant.attendanceScriptUrl || attendanceScriptUrl
+        attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || attendanceTarget,
+        accessToken: currentAccessToken
       });
 
       closeOnboardingModal();
@@ -957,11 +1348,14 @@
       return;
     }
 
-    const targetScriptUrl = session.attendanceScriptUrl || settings.scriptUrl;
+    const rawTarget = session.attendanceScriptUrl || settings.scriptUrl || '';
+    const isSheetApi = isGoogleSpreadsheetTarget(rawTarget);
+    const sheetId = isSheetApi ? extractSpreadsheetId(rawTarget) : null;
+    const targetScriptUrl = !isSheetApi && isGoogleAppsScriptUrl(rawTarget) ? rawTarget : null;
 
     try {
       // Sync server time if not already synced
-      if (!isServerTimeSynced && targetScriptUrl) {
+      if (!isServerTimeSynced && (targetScriptUrl || isSheetApi)) {
         try {
           await Promise.race([
             syncServerTime(),
@@ -976,11 +1370,16 @@
       // 2. Prepare timestamp & coordinates using server-synchronized time
       const now = getNow();
       const timestampStr = formatDateTime(now);
+      const dateStr = formatDateOnly(now);
       const mapsUrl = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
 
-      // 3. Send payload to Restaurant Attendance Google Apps Script Webhook
-      if (targetScriptUrl && targetScriptUrl.trim().length > 0) {
-        showLoading('Updating Google Sheet', 'Recording clock-in with Google Server Time...');
+      let sheetRow = null;
+      let sheetTab = 'Attendance';
+
+      // 3. Send payload: Choice B (Custom Apps Script Webhook) or Choice A (Tamper-Proof Central Proxy)
+      if (targetScriptUrl && isGoogleAppsScriptUrl(targetScriptUrl)) {
+        // Choice B: Custom Google Apps Script Webhook
+        showLoading('Updating Attendance Sheet', 'Recording clock-in with Google Server Time...');
         try {
           await postToGoogleAppsScript(targetScriptUrl, {
             action: 'clockin',
@@ -993,7 +1392,35 @@
             clockInIso: now.toISOString()
           });
         } catch (err) {
-          console.warn('Google Sheet submission note:', err);
+          console.warn('Apps Script submission note:', err);
+        } finally {
+          hideLoading();
+        }
+      } else if (settings.tenancyScriptUrl) {
+        // Choice A: Tamper-Proof Central Proxy to Merchant Sheet
+        // Staff members have 0 direct edit or view access to the spreadsheet!
+        showLoading('Updating Attendance Sheet', 'Recording tamper-proof clock-in to Google Sheet...');
+        try {
+          const res = await callTenancyApi('log_shift', {
+            subAction: 'clockin',
+            tenantId: session.tenantId,
+            email: session.email,
+            name: session.name,
+            latitude: location.latitude.toFixed(5),
+            longitude: location.longitude.toFixed(5),
+            accuracy: Math.round(location.accuracy),
+            timestamp: timestampStr,
+            clockInIso: now.toISOString()
+          });
+
+          if (!res.success) {
+            throw new Error(res.error || 'Could not record clock-in.');
+          }
+          sheetRow = res.rowNumber;
+          sheetTab = res.tabName || 'Attendance';
+        } catch (proxyErr) {
+          console.error('Tamper-Proof Attendance Sync Error:', proxyErr);
+          alert('Attendance Sync Notice:\n\n' + proxyErr.message + '\n\nYour shift has been recorded locally on your device.');
         } finally {
           hideLoading();
         }
@@ -1005,6 +1432,7 @@
         email: session.email,
         name: session.name,
         picture: session.picture || '',
+        clockInDate: dateStr,
         clockInTime: timestampStr,
         clockInIso: now.toISOString(),
         latitude: location.latitude.toFixed(5),
@@ -1012,7 +1440,10 @@
         accuracy: Math.round(location.accuracy),
         mapsUrl: mapsUrl,
         status: 'Clocked In',
-        serverSynced: isServerTimeSynced
+        serverSynced: isServerTimeSynced,
+        sheetRow: sheetRow,
+        sheetTab: sheetTab,
+        sheetId: sheetId
       };
 
       activeShift = shiftData;
@@ -1042,7 +1473,10 @@
     const confirmOut = confirm(`Clock out now, ${activeShift.name}?\nYour end time and current location will be recorded in the Google Sheet.`);
     if (!confirmOut) return;
 
-    const targetScriptUrl = session.attendanceScriptUrl || settings.scriptUrl;
+    const rawTarget = session.attendanceScriptUrl || settings.scriptUrl || '';
+    const isSheetApi = isGoogleSpreadsheetTarget(rawTarget);
+    const sheetId = isSheetApi ? (activeShift.sheetId || extractSpreadsheetId(rawTarget)) : null;
+    const targetScriptUrl = !isSheetApi && isGoogleAppsScriptUrl(rawTarget) ? rawTarget : null;
 
     try {
       // 1. Capture exact GPS Geolocation at clock-out moment
@@ -1074,8 +1508,8 @@
         }
       }
 
-      // 2. Send clockout to Google Apps Script (updates same row with clock-out time and location)
-      if (targetScriptUrl && targetScriptUrl.trim().length > 0) {
+      // 2. Send clockout: Choice B (Custom Apps Script Webhook) or Choice A (Tamper-Proof Central Proxy)
+      if (targetScriptUrl && isGoogleAppsScriptUrl(targetScriptUrl)) {
         try {
           await postToGoogleAppsScript(targetScriptUrl, {
             action: 'clockout',
@@ -1091,6 +1525,34 @@
           });
         } catch (err) {
           console.warn('Google Apps Script clockout warning:', err);
+        }
+      } else if (settings.tenancyScriptUrl) {
+        try {
+          const res = await callTenancyApi('log_shift', {
+            subAction: 'clockout',
+            tenantId: session.tenantId,
+            email: activeShift.email,
+            name: activeShift.name,
+            sheetRow: activeShift.sheetRow,
+            clockInDate: activeShift.clockInDate || formatDateOnly(now),
+            clockInTime: activeShift.clockInTime,
+            inCoords: `${activeShift.latitude}, ${activeShift.longitude}`,
+            inMapsUrl: activeShift.mapsUrl,
+            latitude: location.latitude.toFixed(5),
+            longitude: location.longitude.toFixed(5),
+            accuracy: Math.round(location.accuracy),
+            timestamp: clockOutTimeStr,
+            duration: durationStr,
+            clockInIso: activeShift.clockInIso,
+            clockOutIso: now.toISOString()
+          });
+
+          if (!res.success) {
+            throw new Error(res.error || 'Failed to update clock-out.');
+          }
+        } catch (proxyErr) {
+          console.error('Tamper-Proof Clock-Out Sync Error:', proxyErr);
+          alert('Clock-Out Sync Notice:\n\n' + proxyErr.message + '\n\nYour clock-out has been recorded locally on your device.');
         }
       }
 
@@ -1129,7 +1591,7 @@
     refreshScreenState();
   }
 
-  // POST helper for Attendance Google Apps Script Web App
+  // POST helper for Attendance Google Apps Script Web App (Fallback for legacy configs)
   function postToGoogleAppsScript(url, payload) {
     const target = url || currentUser?.attendanceScriptUrl || settings.scriptUrl;
     return new Promise((resolve) => {
@@ -1149,14 +1611,26 @@
 
   function updateSyncBadgeUI() {
     if (el.syncStatusText && el.syncStatusBadge) {
-      const targetScriptUrl = currentUser?.attendanceScriptUrl || settings.scriptUrl;
-      if (targetScriptUrl) {
+      const rawTarget = currentUser?.attendanceScriptUrl || settings.scriptUrl || '';
+      const isScript = isGoogleAppsScriptUrl(rawTarget);
+      const isSheetApi = isGoogleSpreadsheetTarget(rawTarget);
+      const sheetId = isSheetApi ? extractSpreadsheetId(rawTarget) : null;
+
+      if (isSheetApi && sheetId) {
+        const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
+        if (currentUser?.role === 'admin') {
+          el.syncStatusText.innerHTML = `Tamper-Proof Google Sheet (<a href="${sheetUrl}" target="_blank" class="underline font-bold text-emerald-900 hover:text-emerald-700">Open Sheet ↗</a>)`;
+        } else {
+          el.syncStatusText.textContent = 'Protected Google Sheet (Tamper-Proof Cloud Sync)';
+        }
+        el.syncStatusBadge.className = 'flex items-center gap-1.5 text-[10px] sm:text-[11px] text-emerald-800 bg-emerald-50 rounded-lg p-2 border border-emerald-200';
+      } else if (isScript) {
         el.syncStatusText.textContent = isServerTimeSynced
           ? `Verified Google Server Time (${serverTimeZone || 'Tamper-Proof'})`
           : 'Logged to Google Sheet via Google Apps Script (Server Time)';
         el.syncStatusBadge.className = 'flex items-center gap-1.5 text-[10px] sm:text-[11px] text-emerald-800 bg-emerald-50 rounded-lg p-2 border border-emerald-200';
       } else {
-        el.syncStatusText.textContent = 'Stored locally (Add Google Apps Script URL in Settings to sync)';
+        el.syncStatusText.textContent = 'Stored locally (Add Google Sheet ID in Settings to sync)';
         el.syncStatusBadge.className = 'flex items-center gap-1.5 text-[10px] sm:text-[11px] text-amber-800 bg-amber-50 rounded-lg p-2 border border-amber-200';
       }
     }
@@ -1427,7 +1901,8 @@
         settings.restaurantName = el.inputRestaurantName?.value.trim() || 'Bella Bistro & Bar';
         settings.restaurantLogo = el.inputRestaurantLogo?.value.trim() || '';
         settings.clientId = el.inputClientId?.value.trim() || '';
-        settings.scriptUrl = el.inputScriptUrl?.value.trim() || '';
+        const rawSheetInput = el.inputScriptUrl?.value.trim() || '';
+        settings.scriptUrl = extractSpreadsheetId(rawSheetInput);
         settings.tenancyScriptUrl = el.inputTenancyUrl?.value.trim() || '';
 
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
@@ -1444,7 +1919,8 @@
               adminEmail: currentUser.email,
               restaurantName: settings.restaurantName,
               logoUrl: settings.restaurantLogo,
-              attendanceScriptUrl: settings.scriptUrl
+              attendanceScriptUrl: settings.scriptUrl,
+              attendanceSheetId: settings.scriptUrl
             }).catch(e => console.warn('[Tenancy] update_config note:', e));
           }
         }

@@ -499,15 +499,15 @@
           <p class="text-[11px] text-warmgray-500 mt-1">Leave empty to use the built-in elegant restaurant icon.</p>
         </div>
 
-        <!-- Attendance Google Apps Script Web App URL -->
+        <!-- Attendance Google Sheet ID or URL -->
         <div class="pt-2 border-t border-warmgray-200">
           <div class="flex items-center justify-between mb-1">
-            <label class="font-semibold text-warmgray-800">Attendance Sheet Google Apps Script URL</label>
-            <span class="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-mono">Attendance</span>
+            <label class="font-semibold text-warmgray-800">Attendance Google Sheet ID or URL</label>
+            <span class="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-mono">Tamper-Proof</span>
           </div>
-          <input id="input-sheet-id" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-mono text-[11px]" />
-          <p class="text-[11px] text-warmgray-500 mt-1">
-            Google Apps Script Web App URL for this restaurant's Attendance Sheet where clock-in/out records are stored.
+          <input id="input-sheet-id" type="text" placeholder="e.g. 1BxiMVs... or Google Apps Script URL" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-mono text-[11px]" />
+          <p id="settings-sheet-hint" class="text-[11px] text-warmgray-500 mt-1">
+            Google Sheet ID or URL (Share with Platform Email as Editor). Staff members have 0 direct edit access. Alternatively, enter a custom Google Apps Script Web App URL.
           </p>
         </div>
 
@@ -575,9 +575,14 @@
         </div>
 
         <div>
-          <label class="block font-semibold text-warmgray-800 mb-1">Attendance Google Apps Script URL *</label>
-          <input id="input-onboard-attendance-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-mono text-[11px]" />
-          <p class="text-[11px] text-warmgray-500 mt-1">Web App URL from your Attendance Google Sheet where employee clock-ins will be logged.</p>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block font-semibold text-warmgray-800">Attendance Google Sheet ID or URL *</label>
+            <span class="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-mono">Tamper-Proof</span>
+          </div>
+          <input id="input-onboard-attendance-url" type="text" placeholder="e.g. 1BxiMVs... or Google Apps Script URL" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-mono text-[11px]" />
+          <p id="onboard-sheet-hint" class="text-[11px] text-warmgray-500 mt-1">
+            Create a sheet at <a href="https://sheets.new" target="_blank" class="underline text-amber-700 font-bold">sheets.new</a>, copy its link/ID, and share it with the platform email as Editor. Staff has zero direct access to tamper. Or paste a custom Apps Script Web App URL.
+          </p>
         </div>
 
         <div>
@@ -667,7 +672,7 @@
   </div>
 
   <!-- Configuration & Application Logic -->
-  <script src="config.js?v=20260904_2"></script>
-  <script src="app.js?v=20260904_2"></script>
+  <script src="config.js?v=20260905_1"></script>
+  <script src="app.js?v=20260905_2"></script>
 </body>
 </html>

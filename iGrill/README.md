@@ -112,36 +112,44 @@ Each shift is recorded as a single row with full dual-location auditing:
 
 ## Setup Guide: 2. Restaurant Attendance Sheet (Per Restaurant)
 
-Each restaurant has its own private Attendance Sheet:
+Merchants have two flexible options for their attendance sheet:
+
+### 🏆 Choice A (Recommended): Tamper-Proof Google Sheet ID
+Restaurant owners keep 100% ownership of their data in their personal Google Drive without writing any code. Employees have **ZERO access to the sheet**, making it impossible for staff to edit or tamper with their hours.
 1. Open [sheets.new](https://sheets.new) and name it: `[Restaurant Name] - Staff Attendance`.
 2. Ensure the sheet time zone matches the restaurant: **File > Settings > Time zone**.
-3. Click **Extensions > Apps Script**, delete existing code and paste [`google-apps-script.js`](google-apps-script.js).
-4. Click **Deploy > New deployment > Web app**:
-   - **Description**: `Attendance Webhook`
-   - **Execute as**: `Me (your email)`
-   - **Who has access**: `Anyone`
-5. Click **Deploy**, authorize access, and copy the **Web app URL**.
-6. Enter this URL when registering the restaurant workspace under **Attendance Google Apps Script URL**.
+3. **Share with Platform Email**: Click **Share** (top right) and share with your platform service email (the Gmail hosting `google-apps-script-tenancy.js`) as **Editor**. 
+   > *Security Note: Do NOT share this sheet with your employees. The CrewClock app will securely record clock-in/out records via the central backend. Employees never have direct edit or view permissions!*
+4. **Copy the Sheet ID or URL**: Copy the browser URL or copy the ID between `/d/` and `/edit` (e.g. `1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms`).
+5. Enter this Sheet ID or URL when signing up under **Attendance Google Sheet ID or URL**.
+   > *CrewClock automatically initializes the `Attendance` tab with the 11 auditing header columns on the first clock-in.*
+
+### ⚙️ Choice B (Optional): Custom Google Apps Script Webhook
+If a merchant prefers running their own independent Apps Script Webhook:
+1. In their Google Sheet, open **Extensions > Apps Script**, paste [`google-apps-script.js`](google-apps-script.js), and deploy as a Web App (`Execute as: Me`, `Who has access: Anyone`).
+2. Paste the resulting Web App URL (`https://script.google.com/macros/s/.../exec`) into the **Attendance Google Sheet ID or URL** field. CrewClock detects the URL format and posts directly to it!
 
 ---
 
-## Google Cloud Setup (OAuth 2.0 Web Client ID)
+## Google Cloud Setup (OAuth 2.0 Web Client ID & Sheets API)
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
 2. Create a new project (e.g. `Staff-ClockIn`).
-3. Under **APIs & Services > OAuth consent screen**:
+3. Under **APIs & Services > Library**:
+   - Search for **Google Sheets API** and click **Enable**.
+4. Under **APIs & Services > OAuth consent screen**:
    - User Type: **External**
    - App Name: `Staff Time Clock`
-   - Scopes: Just the default `userinfo.email` and `userinfo.profile` (no sensitive Drive scopes!).
+   - Scopes: Add `.../auth/userinfo.email`, `.../auth/userinfo.profile`, and `https://www.googleapis.com/auth/spreadsheets`.
    - Under **Test users**, add your Gmail address and staff emails.
-4. Under **APIs & Services > Credentials**:
+5. Under **APIs & Services > Credentials**:
    - Click **Create Credentials > OAuth client ID**.
    - Application Type: **Web application**.
    - **Authorized JavaScript origins**:
      - `http://localhost:8000` (for local testing)
      - `https://<your-github-username>.github.io` (for GitHub Pages)
    - Click **Create** and copy your **Client ID** (`123456789-xxx.apps.googleusercontent.com`).
-5. Paste your **Client ID** into [`config.js`](config.js) under `googleClientId`.
+6. Paste your **Client ID** into [`config.js`](config.js) under `googleClientId`.
 
 ---
 

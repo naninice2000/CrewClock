@@ -63,9 +63,16 @@ function handleTenancyRequest(e) {
 
     // Default / Health Check
     if (!action || action === "health") {
+      var serviceEmail = "";
+      try {
+        serviceEmail = Session.getEffectiveUser().getEmail();
+      } catch (e) {}
       return responseJSON({
         success: true,
         service: "CrewClock Multi-Tenant Directory",
+        serviceEmail: serviceEmail,
+        serverTimeIso: nowIso,
+        timeZone: ss.getSpreadsheetTimeZone(),
         totalTenants: Math.max(0, tenantsSheet.getLastRow() - 1),
         totalUsers: Math.max(0, usersSheet.getLastRow() - 1)
       });
@@ -114,7 +121,7 @@ function handleTenancyRequest(e) {
 
       var restaurantName = data.restaurantName || "My Restaurant";
       var logoUrl = data.logoUrl || "";
-      var attendanceScriptUrl = data.attendanceScriptUrl || "";
+      var attendanceScriptUrl = data.attendanceSheetId || data.attendanceScriptUrl || "";
       var timeZone = data.timeZone || "America/Los_Angeles";
       var tenantId = "t_" + Utilities.getUuid().slice(0, 8);
       var adminName = data.name || "Restaurant Admin";
@@ -283,7 +290,7 @@ function handleTenancyRequest(e) {
       var updated = updateTenant(tenantsSheet, adminUser.tenantId, {
         restaurantName: data.restaurantName,
         logoUrl: data.logoUrl,
-        attendanceScriptUrl: data.attendanceScriptUrl,
+        attendanceScriptUrl: data.attendanceSheetId || data.attendanceScriptUrl,
         timeZone: data.timeZone
       });
 
@@ -292,6 +299,157 @@ function handleTenancyRequest(e) {
         message: "Restaurant configuration updated!",
         tenant: updated
       });
+
+    // ============================================================
+    // ACTION 6: LOG ATTENDANCE SHIFT (Tamper-Proof Proxy Write to Merchant Sheet)
+    // ============================================================
+    } else if (action === "log_shift") {
+      var userEmail = (data.email || "").trim().toLowerCase();
+      var tenantId = (data.tenantId || "").trim();
+      var subAction = (data.subAction || "clockin").toLowerCase(); // 'clockin' | 'clockout'
+
+      if (!userEmail || !tenantId) {
+        return responseJSON({ success: false, error: "Both email and tenantId are required to log shift" });
+      }
+
+      // 1. Verify user belongs to this tenant workspace
+      var user = findUserByEmail(usersSheet, userEmail);
+      if (!user || user.tenantId !== tenantId) {
+        return responseJSON({ success: false, error: "Unauthorized: Staff member is not registered in this restaurant workspace." });
+      }
+
+      // 2. Look up tenant to get the merchant's attendanceSheetId
+      var tenant = findTenantById(tenantsSheet, tenantId);
+      if (!tenant) {
+        return responseJSON({ success: false, error: "Restaurant workspace not found." });
+      }
+
+      var targetSheet = tenant.attendanceScriptUrl || "";
+      var sheetId = extractSpreadsheetIdFromStr(targetSheet);
+      if (!sheetId) {
+        return responseJSON({ success: false, error: "No valid Google Sheet ID configured for this restaurant." });
+      }
+
+      // 3. Open Merchant's Google Sheet
+      var merchantSs;
+      try {
+        merchantSs = SpreadsheetApp.openById(sheetId);
+      } catch (openErr) {
+        var hostEmail = "";
+        try { hostEmail = Session.getEffectiveUser().getEmail(); } catch (e) {}
+        return responseJSON({
+          success: false,
+          error: "Permission Denied: Could not open restaurant Google Sheet. Please ensure the restaurant Owner opened their sheet (https://docs.google.com/spreadsheets/d/" + sheetId + "/edit) and shared it with " + (hostEmail || "the platform service email") + " as Editor."
+        });
+      }
+
+      // 4. Ensure Attendance tab exists
+      var attHeaders = [
+        "Date",
+        "Employee Name",
+        "Email",
+        "Clock In Time",
+        "Clock In Coordinates",
+        "Clock In Map",
+        "Clock Out Time",
+        "Shift Duration",
+        "Clock Out Coordinates",
+        "Clock Out Map",
+        "Status"
+      ];
+      var attSheet = getOrCreateSheet(merchantSs, "Attendance", attHeaders);
+
+      // Determine Server Time for accuracy
+      var tz = tenant.timeZone || "America/Los_Angeles";
+      var serverNow = new Date();
+      var dateFormatted = Utilities.formatDate(serverNow, tz, "MMM dd, yyyy");
+      var timeFormatted = Utilities.formatDate(serverNow, tz, "MMM dd, yyyy hh:mm:ss a");
+
+      var lat = data.latitude || "";
+      var lng = data.longitude || "";
+      var coords = (lat && lng) ? (lat + ", " + lng) : "";
+      var mapsUrl = (lat && lng) ? ("https://www.google.com/maps?q=" + lat + "," + lng) : "";
+
+      // 5. Execute Clock-In
+      if (subAction === "clockin") {
+        attSheet.appendRow([
+          dateFormatted,
+          data.name || user.name || "Employee",
+          userEmail,
+          data.timestamp || timeFormatted,
+          coords,
+          mapsUrl,
+          "", // Clock Out Time
+          "", // Duration
+          "", // Clock Out Coordinates
+          "", // Clock Out Map
+          "Clocked In"
+        ]);
+        var newRow = attSheet.getLastRow();
+        return responseJSON({
+          success: true,
+          action: "clockin",
+          rowNumber: newRow,
+          tabName: "Attendance",
+          serverTimeIso: serverNow.toISOString()
+        });
+      }
+
+      // 6. Execute Clock-Out
+      if (subAction === "clockout") {
+        var targetRow = parseInt(data.sheetRow, 10);
+        var lastRow = attSheet.getLastRow();
+
+        // If targetRow not provided or invalid, search bottom to top for active shift
+        if (!targetRow || targetRow < 2 || targetRow > lastRow) {
+          targetRow = findOpenShiftRowIndex(attSheet, userEmail);
+        }
+
+        var durationStr = data.duration || "0m";
+
+        if (targetRow && targetRow >= 2) {
+          // Update columns G:K (Cols 7 to 11)
+          attSheet.getRange(targetRow, 7, 1, 5).setValues([[
+            data.timestamp || timeFormatted,
+            durationStr,
+            coords,
+            mapsUrl,
+            "Completed"
+          ]]);
+
+          return responseJSON({
+            success: true,
+            action: "clockout",
+            rowNumber: targetRow,
+            tabName: "Attendance",
+            serverTimeIso: serverNow.toISOString()
+          });
+        } else {
+          // Graceful fallback: append completed row
+          attSheet.appendRow([
+            data.clockInDate || dateFormatted,
+            data.name || user.name || "Employee",
+            userEmail,
+            data.clockInTime || "--",
+            data.inCoords || "",
+            data.inMapsUrl || "",
+            data.timestamp || timeFormatted,
+            durationStr,
+            coords,
+            mapsUrl,
+            "Completed"
+          ]);
+          return responseJSON({
+            success: true,
+            action: "clockout",
+            rowNumber: attSheet.getLastRow(),
+            tabName: "Attendance",
+            serverTimeIso: serverNow.toISOString()
+          });
+        }
+      }
+
+      return responseJSON({ success: false, error: "Unknown subAction: " + subAction });
     }
 
     return responseJSON({ success: false, error: "Unknown action: " + action });
@@ -407,6 +565,33 @@ function updateTenant(tenantsSheet, tenantId, updates) {
     }
   }
   return null;
+}
+
+function extractSpreadsheetIdFromStr(str) {
+  if (!str) return "";
+  var clean = str.trim();
+  var match = clean.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (match && match[1]) return match[1];
+  if (/^[a-zA-Z0-9-_]{20,}$/.test(clean) && clean.indexOf("script.google.com") === -1) {
+    return clean;
+  }
+  return clean;
+}
+
+function findOpenShiftRowIndex(attSheet, userEmail) {
+  var lastRow = attSheet.getLastRow();
+  if (lastRow <= 1) return 0;
+  var rows = attSheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  for (var i = rows.length - 1; i >= 0; i--) {
+    var row = rows[i];
+    var email = (row[2] || "").toString().trim().toLowerCase();
+    var clockOut = (row[6] || "").toString().trim();
+    var status = (row[10] || "").toString().trim();
+    if (email === userEmail && (!clockOut || status === "Clocked In")) {
+      return i + 2; // 1-indexed (row 1 is header)
+    }
+  }
+  return 0;
 }
 
 function responseJSON(obj) {
