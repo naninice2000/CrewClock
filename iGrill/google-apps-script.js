@@ -8,7 +8,7 @@
  * 4. Delete any code in the editor and paste this entire script.
  * 5. Click "Deploy" (top right blue button) > "New deployment" (or "Manage deployments" > Edit > New version if updating).
  * 6. Click the gear icon next to "Select type" and choose "Web app".
- * 7. Set Description: "Staff Clock-In Webhook (Server Time)".
+ * 7. Set Description: "Staff Clock-In Webhook (Server Time & Dual Location)".
  * 8. Set "Execute as": "Me (your email)".
  * 9. Set "Who has access": "Anyone" (allows the web app to submit clock-ins).
  * 10. Click "Deploy", authorize permissions, and copy the "Web app URL".
@@ -21,24 +21,26 @@ function doPost(e) {
     var sheet = spreadsheet.getActiveSheet();
     var timeZone = spreadsheet.getSpreadsheetTimeZone() || "America/Los_Angeles";
 
-    // Automatically create and format headers if sheet is empty
+    // 1. Ensure Header Row exists
     if (sheet.getLastRow() === 0) {
       sheet.appendRow([
         "Email",
         "Employee Name",
         "Clock-In Time",
-        "Location (Lat, Lng)",
-        "Accuracy",
-        "Google Maps Link",
+        "Clock-In Location",
+        "Clock-In Accuracy",
+        "Clock-In Maps Link",
         "Clock-Out Time",
+        "Clock-Out Location",
+        "Clock-Out Maps Link",
         "Shift Duration",
         "Status"
       ]);
-      sheet.getRange(1, 1, 1, 9).setFontWeight("bold").setBackground("#F1F5F9");
+      sheet.getRange(1, 1, 1, 11).setFontWeight("bold").setBackground("#F1F5F9");
       sheet.setFrozenRows(1);
     }
 
-    // Parse incoming JSON payload
+    // 2. Parse incoming payload
     var data = {};
     if (e.postData && e.postData.contents) {
       try {
@@ -50,7 +52,7 @@ function doPost(e) {
       data = e.parameter;
     }
 
-    var action = data.action || "clockin";
+    var action = (data.action || "clockin").toLowerCase();
     var email = (data.email || "").trim().toLowerCase();
     var name = data.name || "Staff Member";
 
@@ -63,6 +65,11 @@ function doPost(e) {
       return responseJSON({ success: false, error: "Email is required" });
     }
 
+    // Read existing headers to dynamically map columns
+    var lastCol = Math.max(1, sheet.getLastColumn());
+    var headerRow = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var colMap = mapHeaders(headerRow, sheet);
+
     // --- ACTION 1: CLOCK IN ---
     if (action === "clockin") {
       var lat = data.latitude || "";
@@ -71,19 +78,17 @@ function doPost(e) {
       var locationStr = (lat && lng) ? (lat + ", " + lng) : "Location Unavailable";
       var mapsUrl = (lat && lng) ? ("https://www.google.com/maps?q=" + lat + "," + lng) : "";
 
-      // Append new Clock-In row with official Google Server Time
-      sheet.appendRow([
-        email,
-        name,
-        serverTimestampStr, // Col 3: Official Server Clock-In Time
-        locationStr,
-        accuracy,
-        mapsUrl,
-        "",                 // Col 7: Clock-Out Time (blank initially)
-        "",                 // Col 8: Duration (blank initially)
-        "Clocked In"        // Col 9: Status
-      ]);
+      // Build row according to header mapping
+      var rowData = new Array(sheet.getLastColumn()).fill("");
+      rowData[colMap.email - 1] = email;
+      rowData[colMap.name - 1] = name;
+      rowData[colMap.clockInTime - 1] = serverTimestampStr;
+      rowData[colMap.clockInLoc - 1] = locationStr;
+      if (colMap.clockInAcc !== -1) rowData[colMap.clockInAcc - 1] = accuracy;
+      if (colMap.clockInMap !== -1) rowData[colMap.clockInMap - 1] = mapsUrl;
+      rowData[colMap.status - 1] = "Clocked In";
 
+      sheet.appendRow(rowData);
       var newRowIndex = sheet.getLastRow();
 
       return responseJSON({
@@ -96,28 +101,35 @@ function doPost(e) {
         timeZone: timeZone
       });
 
-    // --- ACTION 2: CLOCK OUT (Same Row Update) ---
+    // --- ACTION 2: CLOCK OUT (Update same row with clock-out time & location) ---
     } else if (action === "clockout") {
       var lastRow = sheet.getLastRow();
       var foundRow = -1;
       var clockInVal = "";
 
-      // Search from the bottom up for the employee's active shift
+      // Search from the bottom up for employee's active shift
       if (lastRow > 1) {
-        var dataRange = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
-        for (var i = dataRange.length - 1; i >= 0; i--) {
-          var rowEmail = (dataRange[i][0] || "").toString().trim().toLowerCase();
-          var clockOutVal = dataRange[i][6]; // Col G: Clock-Out Time
-          
+        var emailColIdx = colMap.email;
+        var clockOutColIdx = colMap.clockOutTime;
+        var clockInColIdx = colMap.clockInTime;
+
+        var emailValues = sheet.getRange(2, emailColIdx, lastRow - 1, 1).getValues();
+        var clockOutValues = sheet.getRange(2, clockOutColIdx, lastRow - 1, 1).getValues();
+        var clockInValues = sheet.getRange(2, clockInColIdx, lastRow - 1, 1).getValues();
+
+        for (var i = emailValues.length - 1; i >= 0; i--) {
+          var rowEmail = (emailValues[i][0] || "").toString().trim().toLowerCase();
+          var clockOutVal = clockOutValues[i][0];
+
           if (rowEmail === email && (!clockOutVal || clockOutVal.toString().trim() === "")) {
-            foundRow = i + 2; // +2 for 1-based index and header row offset
-            clockInVal = dataRange[i][2]; // Col C: Clock-In Time
+            foundRow = i + 2; // +2 for 1-based index and header offset
+            clockInVal = clockInValues[i][0];
             break;
           }
         }
       }
 
-      // Compute shift duration on Google's servers (tamper-proof)
+      // Compute shift duration on Google's servers
       var durationStr = "";
       var inTime = null;
       if (clockInVal instanceof Date) {
@@ -125,8 +137,6 @@ function doPost(e) {
       } else if (clockInVal && clockInVal.toString().trim() !== "") {
         inTime = new Date(clockInVal);
       }
-
-      // Fallback to client ISO timestamp if cell date parsing fails
       if ((!inTime || isNaN(inTime.getTime())) && data.clockInIso) {
         inTime = new Date(data.clockInIso);
       }
@@ -147,12 +157,26 @@ function doPost(e) {
       } else {
         durationStr = data.duration || "Recorded";
       }
-      
+
+      // Parse clock-out location
+      var outLat = data.latitude || "";
+      var outLng = data.longitude || "";
+      var outLocationStr = (outLat && outLng) ? (outLat + ", " + outLng) : "Location Unavailable";
+      var outMapsUrl = (outLat && outLng) ? ("https://www.google.com/maps?q=" + outLat + "," + outLng) : "";
+
       if (foundRow !== -1) {
-        // Update Col 7 (Clock-Out Time), Col 8 (Duration), Col 9 (Status) in the EXACT same row
-        sheet.getRange(foundRow, 7).setValue(serverTimestampStr);
-        sheet.getRange(foundRow, 8).setValue(durationStr);
-        sheet.getRange(foundRow, 9).setValue("Completed");
+        // Update Clock-Out Time, Duration, Status
+        sheet.getRange(foundRow, colMap.clockOutTime).setValue(serverTimestampStr);
+        if (colMap.duration !== -1) sheet.getRange(foundRow, colMap.duration).setValue(durationStr);
+        sheet.getRange(foundRow, colMap.status).setValue("Completed");
+
+        // Update Clock-Out Location & Map Link
+        if (colMap.clockOutLoc !== -1) {
+          sheet.getRange(foundRow, colMap.clockOutLoc).setValue(outLocationStr);
+        }
+        if (colMap.clockOutMap !== -1 && outMapsUrl) {
+          sheet.getRange(foundRow, colMap.clockOutMap).setValue(outMapsUrl);
+        }
 
         return responseJSON({
           success: true,
@@ -164,18 +188,18 @@ function doPost(e) {
           timeZone: timeZone
         });
       } else {
-        // If no unclosed shift row found, append a standalone clock-out row
-        sheet.appendRow([
-          email,
-          name,
-          "No previous clock-in",
-          "N/A",
-          "N/A",
-          "",
-          serverTimestampStr,
-          "N/A",
-          "Completed"
-        ]);
+        // Fallback: append standalone clock-out row
+        var rowData = new Array(sheet.getLastColumn()).fill("");
+        rowData[colMap.email - 1] = email;
+        rowData[colMap.name - 1] = name;
+        rowData[colMap.clockInTime - 1] = "No previous clock-in";
+        rowData[colMap.clockOutTime - 1] = serverTimestampStr;
+        if (colMap.clockOutLoc !== -1) rowData[colMap.clockOutLoc - 1] = outLocationStr;
+        if (colMap.clockOutMap !== -1) rowData[colMap.clockOutMap - 1] = outMapsUrl;
+        if (colMap.duration !== -1) rowData[colMap.duration - 1] = "N/A";
+        rowData[colMap.status - 1] = "Completed";
+
+        sheet.appendRow(rowData);
         return responseJSON({
           success: true,
           action: "clockout",
@@ -191,6 +215,55 @@ function doPost(e) {
   } catch (error) {
     return responseJSON({ success: false, error: error.toString() });
   }
+}
+
+// Map column positions from existing header row, adding clock-out location columns if needed
+function mapHeaders(headerRow, sheet) {
+  var findIdx = function(keywords) {
+    for (var i = 0; i < headerRow.length; i++) {
+      var h = (headerRow[i] || "").toString().trim().toLowerCase();
+      for (var k = 0; k < keywords.length; k++) {
+        if (h.indexOf(keywords[k].toLowerCase()) !== -1) return i + 1;
+      }
+    }
+    return -1;
+  };
+
+  var map = {
+    email: findIdx(["email"]),
+    name: findIdx(["employee name", "name"]),
+    clockInTime: findIdx(["clock-in time", "clock in time", "clock in"]),
+    clockInLoc: findIdx(["clock-in location", "location (lat, lng)", "location"]),
+    clockInAcc: findIdx(["clock-in accuracy", "accuracy"]),
+    clockInMap: findIdx(["clock-in map", "google maps link", "maps link"]),
+    clockOutTime: findIdx(["clock-out time", "clock out time", "clock out"]),
+    clockOutLoc: findIdx(["clock-out location", "clock out location"]),
+    clockOutMap: findIdx(["clock-out map", "clock out map"]),
+    duration: findIdx(["shift duration", "duration"]),
+    status: findIdx(["status"])
+  };
+
+  // Defaults if headers were missing
+  if (map.email === -1) map.email = 1;
+  if (map.name === -1) map.name = 2;
+  if (map.clockInTime === -1) map.clockInTime = 3;
+  if (map.clockInLoc === -1) map.clockInLoc = 4;
+  if (map.clockOutTime === -1) map.clockOutTime = 7;
+  if (map.status === -1) map.status = 9;
+
+  // Auto-upgrade legacy 9-column sheet by appending Clock-Out Location headers to row 1
+  if (map.clockOutLoc === -1) {
+    var newCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, newCol).setValue("Clock-Out Location").setFontWeight("bold").setBackground("#F1F5F9");
+    map.clockOutLoc = newCol;
+  }
+  if (map.clockOutMap === -1) {
+    var newCol2 = sheet.getLastColumn() + 1;
+    sheet.getRange(1, newCol2).setValue("Clock-Out Maps Link").setFontWeight("bold").setBackground("#F1F5F9");
+    map.clockOutMap = newCol2;
+  }
+
+  return map;
 }
 
 // Handle GET requests (connection ping test & server time synchronization)

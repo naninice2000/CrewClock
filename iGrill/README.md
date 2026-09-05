@@ -1,60 +1,127 @@
-# Restaurant Staff Attendance & Time Clock Web App
+# Restaurant Staff Attendance & Time Clock Web App (Multi-Tenant)
 
-A 100% serverless Employee Clock-In & Attendance Web App hosted directly on **GitHub Pages**, combining **Google Gmail Authentication** with **Google Apps Script** for automatic, secure logging to a **Google Sheet**.
+A 100% serverless Employee Clock-In & Attendance Web App hosted directly on **GitHub Pages**, combining **Google Gmail Authentication** with **Google Apps Script** for automatic, secure logging to **Google Sheets**.
+
+Now features **Multi-Tenancy & Role-Based Access Control (RBAC)**: Multiple restaurants and locations can use the same system, manage their own branding and team rosters, and log clock-ins to their own dedicated Attendance Sheets.
 
 ---
 
-## Architecture: Why Google Apps Script is Better
+## Multi-Tenant & RBAC Architecture
+
+The system utilizes two Google Sheets for complete isolation between tenant directory management and individual restaurant attendance logs:
 
 ```
-[Employee Phone on GitHub Pages]
-   │
-   ├─► 1. "Clock In with Google"
-   │      └─ Google Identity Services (GIS OAuth 2.0 Popup)
-   │      └─ Authenticates genuine Gmail identity (email, name, photo)
-   │      └─ NO scary Google Drive permissions!
-   │
-   ├─► 2. Browser Geolocation API
-   │      └─ Captures high-accuracy GPS coordinates & accuracy radius
-   │
-   └─► 3. Google Apps Script Web App (Connected to Google Sheet)
-          ├─ Clock In: POST /exec { action: "clockin", email, name, lat, lng, timestamp }
-          │    └─ Appends row: [Email, Name, ClockIn, Location, Maps Link, (Empty), Status]
-          └─ Clock Out: POST /exec { action: "clockout", email, timestamp }
-               └─ Locates active shift & updates Clock-Out time in the EXACT SAME ROW
+┌─────────────────────────────────────────────────────────────────────────┐
+│              CENTRAL MULTI-TENANT DIRECTORY (Google Sheet)              │
+│                  Managed by: google-apps-script-tenancy.js              │
+│                                                                         │
+│   [Tenants Sheet]                               [Users Sheet]           │
+│   • Tenant ID                                   • User Email (Gmail)    │
+│   • Restaurant Name                             • User Name             │
+│   • Logo URL                                    • Role (admin/employee) │
+│   • Admin Email                                 • Tenant ID             │
+│   • Attendance Sheet Script URL                 • Status (active)       │
+│   • Timezone                                    • Invited By            │
+└─────────────────────────────────────────────────────────────────────────┘
+                                   │
+              ┌────────────────────┴────────────────────┐
+              ▼                                         ▼
+   [Restaurant A Portal]                     [Restaurant B Portal]
+   • Admin: alice@gmail.com                  • Admin: bob@gmail.com
+   • Employees: staff1, staff2               • Employees: chef1, waiter1
+   • Attendance Sheet URL: Script A          • Attendance Sheet URL: Script B
+              │                                         │
+              ▼                                         ▼
+┌───────────────────────────┐             ┌───────────────────────────┐
+│ Attendance Google Sheet A │             │ Attendance Google Sheet B │
+│ (Clock-In / Clock-Out)    │             │ (Clock-In / Clock-Out)    │
+└───────────────────────────┘             └───────────────────────────┘
 ```
 
-### Key Advantages:
-1. **Tamper-Proof Google Server Time**: Clock-in and clock-out timestamps, along with shift durations, are computed directly on Google's cloud servers in your restaurant's time zone. Employees cannot manipulate hours by modifying device clocks.
-2. **Generous Quotas**: Google Apps Script provides **20,000+ executions per day** for free (no daily API limits to worry about).
-3. **Employee Privacy**: Staff only verify their identity (Gmail address and name). They are never asked to give permission to edit files in their personal Google Drive.
-4. **Protected Spreadsheet**: Employees do not have edit access to your spreadsheet. The script runs as the owner and securely appends/updates records.
+### Role-Based Access Control (RBAC):
+1. **Restaurant Owners (Admins)**:
+   - Click **"Sign Up Your Restaurant with Google"**.
+   - Create and name their restaurant workspace, logo URL, and provide their restaurant's Attendance Sheet Script URL.
+   - Access to **Team Management** (👥): Invite employees by Gmail (sends automated email invitation via Google MailApp) and remove staff.
+   - Access to **App Configuration** (⚙️): Update branding and sheet settings.
+2. **Employees (Staff Members)**:
+   - Click **"Sign In with Google"**.
+   - Directly routed into their restaurant's branded portal.
+   - Simplified UI: Only Clock-In, Clock-Out, and personal shift history are visible.
+   - **No App Configuration or Team Management access**.
+3. **Uninvited Users**:
+   - If an uninvited Gmail user tries to sign in, they are blocked with an "Access Restricted" alert instructing them to contact their manager.
 
 ---
 
-## Google Sheet Layout
+## Shift Flow: Persistent Login & Action-Triggered Attendance
 
-Each shift is recorded as a single row:
-
-| Col A: Email | Col B: Employee Name | Col C: Clock-In Time | Col D: Location (Lat, Lng) | Col E: Accuracy | Col F: Google Maps Link | Col G: Clock-Out Time | Col H: Shift Duration | Col I: Status |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `alex@gmail.com` | `Alex Rivera` | `09/04/2026 08:30 AM` | `37.7749, -122.4194` | `6 m` | `[Map Link]` | `09/04/2026 04:30 PM` | `8h 0m` | `Completed` |
+```
+[Employee Phone / Mobile App]
+   │
+   ├─► 1. "Sign In with Google" (One-Time Login)
+   │      └─ Authenticates Gmail identity via Google Identity Services (GIS OAuth 2.0)
+   │      └─ Validates role and tenant against Central Tenancy Directory
+   │      └─ Saves persistent 7-day session in localStorage
+   │
+   ├─► 2. "Clock In" (Off Shift)
+   │      └─ Captures device GPS coordinates at click moment
+   │      └─ Posts to Restaurant's Attendance Sheet Webhook
+   │      └─ Records: [Email, Name, ClockIn, InLocation, InAcc, InMap, (blank), (blank), (blank), (blank), "Clocked In"]
+   │      └─ Activates live shift duration timer
+   │
+   └─► 3. "Clock Out" (Active Shift)
+          └─ Captures device GPS coordinates at clock-out click moment
+          └─ Posts to Restaurant's Attendance Sheet Webhook
+          └─ Updates same row: [..., ClockOut, OutLocation, OutMap, Duration, "Completed"]
+          └─ Displays shift completion summary; employee stays signed in for next shift!
+```
 
 ---
 
-## 2-Minute Google Sheet & Apps Script Setup
+## Google Sheet Layouts
+
+### 1. Central "Tenants & Users Directory" Sheet (Created Once by Platform Owner)
+* **`Tenants` tab**: `[Tenant ID, Restaurant Name, Logo URL, Admin Email, Attendance Sheet URL, Time Zone, Created At]`
+* **`Users` tab**: `[User Email, User Name, Role, Tenant ID, Status, Invited By, Created At]`
+
+### 2. Individual Restaurant "Attendance" Sheets (One Per Restaurant)
+Each shift is recorded as a single row with full dual-location auditing:
+
+| Col A: Email | Col B: Employee Name | Col C: Clock-In Time | Col D: Clock-In Location | Col E: Accuracy | Col F: Clock-In Map | Col G: Clock-Out Time | Col H: Clock-Out Location | Col I: Clock-Out Map | Col J: Shift Duration | Col K: Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `alex@gmail.com` | `Alex Rivera` | `09/04/2026 08:30 AM` | `37.7749, -122.4194` | `6 m` | `[In Map]` | `09/04/2026 04:30 PM` | `37.7750, -122.4192` | `[Out Map]` | `8h 0m` | `Completed` |
+
+---
+
+## Setup Guide: 1. Central Multi-Tenant Directory Sheet (Platform Level)
 
 1. Open [sheets.new](https://sheets.new) to create a new Google Sheet.
-2. Ensure your sheet is set to your restaurant's local time zone: **File > Settings > Time zone**.
+2. Name it: **`CrewClock - Tenants & Users Directory`**.
 3. In the top menu, click **Extensions > Apps Script**.
-4. Delete any code in the editor and paste the entire contents of [`google-apps-script.js`](google-apps-script.js).
-5. Click the blue **Deploy** button (top right) > **New deployment** (or **Manage deployments** > Edit > New version if updating).
+4. Delete any existing code and paste [`google-apps-script-tenancy.js`](google-apps-script-tenancy.js).
+5. Click **Deploy** (top right blue button) > **New deployment**.
 6. Click the gear icon next to "Select type" and choose **Web app**:
-   - **Description**: `Employee Clock-In Webhook (Server Time)`
+   - **Description**: `CrewClock Central Directory & RBAC`
    - **Execute as**: `Me (your email)`
-   - **Who has access**: `Anyone` *(required so the web app can submit clock-ins)*
-7. Click **Deploy**, click **Authorize access**, and copy your **Web app URL** (looks like `https://script.google.com/macros/s/.../exec`).
-8. Paste this URL into [`config.js`](config.js) under `googleScriptUrl` (or in the in-app **⚙️ Settings**).
+   - **Who has access**: `Anyone`
+7. Click **Deploy**, click **Authorize access**, and copy your **Web app URL**.
+8. Paste this URL into [`config.js`](config.js) under `tenancyScriptUrl` (or enter in Settings modal).
+
+---
+
+## Setup Guide: 2. Restaurant Attendance Sheet (Per Restaurant)
+
+Each restaurant has its own private Attendance Sheet:
+1. Open [sheets.new](https://sheets.new) and name it: `[Restaurant Name] - Staff Attendance`.
+2. Ensure the sheet time zone matches the restaurant: **File > Settings > Time zone**.
+3. Click **Extensions > Apps Script**, delete existing code and paste [`google-apps-script.js`](google-apps-script.js).
+4. Click **Deploy > New deployment > Web app**:
+   - **Description**: `Attendance Webhook`
+   - **Execute as**: `Me (your email)`
+   - **Who has access**: `Anyone`
+5. Click **Deploy**, authorize access, and copy the **Web app URL**.
+6. Enter this URL when registering the restaurant workspace under **Attendance Google Apps Script URL**.
 
 ---
 
@@ -113,7 +180,7 @@ Native wrappers for iOS and Android are available in this directory:
 * **Xcode Project**: [`ios/CrewClock.xcodeproj`](ios/CrewClock.xcodeproj)
 * **Features**: Embedded `WKWebView`, GPS Geolocation permissions, Google Sign-In popup handling, pull-to-refresh, and offline support.
 * **Auto-Updating**: Directly loads `https://naninice2000.github.io/CrewClock/iGrill/` so web updates reflect immediately without App Store re-submission.
-* **Setup Guide**: See the [iOS App Guide](ios/README.md).
+* **Build & Dev Phone Install Guide**: See the [iOS App Guide](ios/README.md) for step-by-step instructions to compile and deploy to your physical iPhone for free.
 
 ### 🤖 Native Android App
 * **Android Project**: [`android/`](android/)
