@@ -718,6 +718,10 @@
       return;
     }
 
+    const adminEmail = pendingAdminProfile.email;
+    const adminName = pendingAdminProfile.name || 'Restaurant Admin';
+    const adminPicture = pendingAdminProfile.picture || '';
+
     const restaurantName = (el.inputOnboardName?.value || '').trim();
     const logoUrl = (el.inputOnboardLogo?.value || '').trim();
     const attendanceScriptUrl = (el.inputOnboardAttendanceUrl?.value || '').trim();
@@ -738,8 +742,8 @@
     try {
       showLoading('Creating Restaurant Workspace', 'Registering your restaurant and provisioning Admin privileges...');
       const res = await callTenancyApi('signup', {
-        email: pendingAdminProfile.email,
-        name: pendingAdminProfile.name,
+        email: adminEmail,
+        name: adminName,
         restaurantName: restaurantName,
         logoUrl: logoUrl,
         attendanceScriptUrl: attendanceScriptUrl,
@@ -752,9 +756,9 @@
 
       const tenant = res.tenant || {};
       saveUserSession({
-        email: pendingAdminProfile.email,
-        name: pendingAdminProfile.name,
-        picture: pendingAdminProfile.picture,
+        email: adminEmail,
+        name: adminName,
+        picture: adminPicture,
         role: 'admin',
         tenantId: tenant.tenantId || '',
         restaurantName: tenant.restaurantName || restaurantName,
@@ -767,7 +771,7 @@
       syncServerTime();
       refreshScreenState();
 
-      alert(`🎉 Welcome to CrewClock, ${pendingAdminProfile.name}!\n\nWorkspace "${restaurantName}" is ready. You can now invite staff to sign in using the Team icon in the top header.`);
+      alert(`🎉 Welcome to CrewClock, ${adminName}!\n\nWorkspace "${restaurantName}" is ready. You can now invite staff to sign in using the Team icon in the top header.`);
     } catch (err) {
       hideLoading();
       alert('Onboarding Error: ' + err.message);
