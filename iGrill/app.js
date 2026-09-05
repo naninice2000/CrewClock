@@ -754,6 +754,10 @@
         throw new Error(res.error || 'Failed to create restaurant workspace.');
       }
 
+      if (res.service && !res.tenant && !res.user) {
+        throw new Error("Your deployed Google Apps Script Web App returned a default response. Please make sure you have pasted the latest google-apps-script-tenancy.js into Apps Script, saved, and deployed as a 'New version'.");
+      }
+
       const tenant = res.tenant || {};
       saveUserSession({
         email: adminEmail,
@@ -771,7 +775,9 @@
       syncServerTime();
       refreshScreenState();
 
-      alert(`🎉 Welcome to CrewClock, ${adminName}!\n\nWorkspace "${restaurantName}" is ready. You can now invite staff to sign in using the Team icon in the top header.`);
+      setTimeout(() => {
+        alert(`🎉 Welcome to CrewClock, ${adminName}!\n\nWorkspace "${restaurantName}" is ready. You can now invite staff to sign in using the Team icon in the top header.`);
+      }, 100);
     } catch (err) {
       hideLoading();
       alert('Onboarding Error: ' + err.message);
