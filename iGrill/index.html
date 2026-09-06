@@ -47,7 +47,7 @@
   </script>
 
   <!-- Google Fonts & Custom Styles -->
-  <link rel="stylesheet" href="style.css?v=20260906_1" />
+  <link rel="stylesheet" href="style.css?v=20260906_4" />
 
   <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -374,28 +374,7 @@
         </div>
       </div>
 
-      <!-- IN-SHIFT QUICK NAVIGATION (Access logs, team, settings while on active shift) -->
-      <div class="grid grid-cols-3 gap-2 mb-4 text-xs">
-        <button id="btn-shift-history" type="button" class="py-2.5 px-2 rounded-xl bg-warmgray-100 hover:bg-warmgray-200 text-warmgray-800 font-semibold flex items-center justify-center gap-1.5 btn-press touch-target border border-warmgray-200/80">
-          <svg class="w-4 h-4 text-warmgray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>Shift Logs</span>
-        </button>
-        <button id="btn-shift-team" type="button" class="py-2.5 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold flex items-center justify-center gap-1.5 btn-press touch-target border border-amber-200">
-          <svg class="w-4 h-4 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          <span>Team</span>
-        </button>
-        <button id="btn-shift-settings" type="button" class="py-2.5 px-2 rounded-xl bg-warmgray-100 hover:bg-warmgray-200 text-warmgray-800 font-semibold flex items-center justify-center gap-1.5 btn-press touch-target border border-warmgray-200/80">
-          <svg class="w-4 h-4 text-warmgray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span>Settings</span>
-        </button>
-      </div>
+
 
       <!-- MAIN CLOCK-OUT BUTTON -->
       <button id="btn-clockout-trigger" class="w-full min-h-[64px] py-4 px-6 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:from-rose-700 active:to-red-700 text-white font-bold text-lg sm:text-xl shadow-lg glow-rose btn-press flex items-center justify-center gap-3">
@@ -958,53 +937,53 @@
   <!-- ============================================== -->
   <!-- MOBILE BOTTOM NAVIGATION DOCK (PHONES ONLY)    -->
   <!-- ============================================== -->
-  <nav id="mobile-bottom-nav" class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-warmgray-200/80 mobile-dock">
-    <div class="max-w-md mx-auto flex items-center justify-around px-2 py-1">
+  <nav id="mobile-bottom-nav" class="mobile-dock" aria-label="Mobile Navigation">
+    <div class="max-w-md mx-auto flex items-center justify-around px-1 py-0.5">
       <!-- 1. Shift Tab -->
-      <button id="mobile-nav-clock" class="flex flex-col items-center justify-center py-1 text-amber-600 font-bold btn-press touch-target" title="Shift View">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button id="mobile-nav-clock" class="mobile-dock-btn text-amber-600 font-bold" title="Shift View">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span class="text-[10px] mt-0.5">Shift</span>
+        <span>Shift</span>
       </button>
 
       <!-- 2. Shift History Log -->
-      <button id="mobile-nav-history" class="flex flex-col items-center justify-center py-1 text-warmgray-500 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Shift Logs">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button id="mobile-nav-history" class="mobile-dock-btn" title="Shift Logs">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
-        <span class="text-[10px] mt-0.5">History</span>
+        <span>History</span>
       </button>
 
       <!-- 3. Team Management (Admin) -->
-      <button id="mobile-nav-team" class="flex flex-col items-center justify-center py-1 text-warmgray-500 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Manage Staff Team">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button id="mobile-nav-team" class="mobile-dock-btn" title="Manage Staff Team">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
-        <span class="text-[10px] mt-0.5">Team</span>
+        <span>Team</span>
       </button>
 
       <!-- 4. Billing Tab (Web App only) -->
-      <button id="mobile-nav-billing" class="flex flex-col items-center justify-center py-1 text-warmgray-500 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Subscription & Billing">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button id="mobile-nav-billing" class="mobile-dock-btn" title="Subscription & Billing">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>
-        <span class="text-[10px] mt-0.5">Billing</span>
+        <span>Billing</span>
       </button>
 
       <!-- 5. Settings -->
-      <button id="mobile-nav-settings" class="flex flex-col items-center justify-center py-1 text-warmgray-500 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Restaurant Settings">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button id="mobile-nav-settings" class="mobile-dock-btn" title="Restaurant Settings">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-        <span class="text-[10px] mt-0.5">Settings</span>
+        <span>Settings</span>
       </button>
     </div>
   </nav>
 
   <!-- Configuration & Application Logic -->
   <script src="config.js?v=20260905_1"></script>
-  <script src="app.js?v=20260906_2"></script>
+  <script src="app.js?v=20260906_4"></script>
 </body>
 </html>

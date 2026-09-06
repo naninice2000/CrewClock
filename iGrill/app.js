@@ -142,9 +142,6 @@
     shiftMapsLink: document.getElementById('shift-maps-link'),
     syncStatusBadge: document.getElementById('sync-status-badge'),
     syncStatusText: document.getElementById('sync-status-text'),
-    btnShiftHistory: document.getElementById('btn-shift-history'),
-    btnShiftTeam: document.getElementById('btn-shift-team'),
-    btnShiftSettings: document.getElementById('btn-shift-settings'),
     btnClockOutTrigger: document.getElementById('btn-clockout-trigger'),
 
     // Modals
@@ -412,13 +409,15 @@
       }
     }
 
-    // Desktop Top Navigation Buttons (Hidden on mobile phones; shown on desktop when logged in)
+    // Desktop Top Navigation Buttons (Visible on desktop when logged in; hidden on mobile via sm:flex)
     const hasSession = !!getUserSession();
     if (el.headerDesktopNav) {
       if (hasSession) {
-        el.headerDesktopNav.classList.remove('sm:hidden');
+        el.headerDesktopNav.classList.remove('hidden');
+        el.headerDesktopNav.classList.add('sm:flex');
       } else {
-        el.headerDesktopNav.classList.add('sm:hidden');
+        el.headerDesktopNav.classList.add('hidden');
+        el.headerDesktopNav.classList.remove('sm:flex');
       }
     }
 
@@ -449,20 +448,41 @@
       }
     }
 
-    // Mobile Bottom Navigation Dock (Always active on mobile screens; sm:hidden in CSS handles desktop >= 640px)
+    // Mobile Bottom Navigation Dock (Visible on mobile whenever user is logged in, both BEFORE and AFTER clock-in)
     if (el.mobileBottomNav) {
-      el.mobileBottomNav.classList.remove('hidden');
+      if (hasSession) {
+        el.mobileBottomNav.classList.remove('hidden');
+      } else {
+        el.mobileBottomNav.classList.add('hidden');
+      }
     }
 
-    // Mobile Bottom Navigation Tabs: Shift, History, Team, Settings always available
+    // Mobile Bottom Navigation Tabs:
+    // Shift & History always available for all logged-in staff
     if (el.mobileNavClock) el.mobileNavClock.classList.remove('hidden');
     if (el.mobileNavHistory) el.mobileNavHistory.classList.remove('hidden');
-    if (el.mobileNavTeam) el.mobileNavTeam.classList.remove('hidden');
-    if (el.mobileNavSettings) el.mobileNavSettings.classList.remove('hidden');
 
-    // Mobile Nav Billing Tab: Shown on Web App mobile view; hidden in native apps to satisfy store review
+    // Team management tab (Admin only)
+    if (el.mobileNavTeam) {
+      if (isAdmin) {
+        el.mobileNavTeam.classList.remove('hidden');
+      } else {
+        el.mobileNavTeam.classList.add('hidden');
+      }
+    }
+
+    // Restaurant Settings tab (Admin only)
+    if (el.mobileNavSettings) {
+      if (isAdmin) {
+        el.mobileNavSettings.classList.remove('hidden');
+      } else {
+        el.mobileNavSettings.classList.add('hidden');
+      }
+    }
+
+    // Mobile Nav Billing Tab: Shown for Admin on Web App mobile view; hidden in native apps for App Store compliance
     if (el.mobileNavBilling) {
-      if (!isMobileApp) {
+      if (canAccessBilling) {
         el.mobileNavBilling.classList.remove('hidden');
       } else {
         el.mobileNavBilling.classList.add('hidden');
@@ -2473,31 +2493,6 @@
       });
     }
 
-    // In-Shift Navigation Shortcut Events (Active Shift Screen)
-    if (el.btnShiftHistory) {
-      el.btnShiftHistory.addEventListener('click', () => {
-        triggerHaptic();
-        setActiveMobileTab('history');
-        renderHistoryModal();
-        if (el.historyModal) el.historyModal.classList.remove('hidden');
-      });
-    }
-
-    if (el.btnShiftTeam) {
-      el.btnShiftTeam.addEventListener('click', () => {
-        triggerHaptic();
-        setActiveMobileTab('team');
-        openTeamModal();
-      });
-    }
-
-    if (el.btnShiftSettings) {
-      el.btnShiftSettings.addEventListener('click', () => {
-        triggerHaptic();
-        setActiveMobileTab('settings');
-        openSettingsModal();
-      });
-    }
 
     // Mobile Bottom Navigation Events
     if (el.mobileNavClock) {
