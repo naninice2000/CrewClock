@@ -236,20 +236,12 @@ body.is-native-app #header-desktop-nav {
   display: none !important;
 }
 
-/* Billing & Subscription is strictly available on desktop web-app only (>= 768px); strictly hidden on mobile */
-#mobile-nav-billing {
-  display: none !important;
-}
-
-@media screen and (max-width: 767px) {
-  #settings-billing-section,
-  #billing-modal {
-    display: none !important;
-  }
-}
-
-body.is-native-app #settings-billing-section,
-body.is-native-app #billing-modal {
+/* Billing & Subscription:
+   - Supported across Desktop Web and Mobile (Native Apps & Mobile Viewports) with dynamic 15% store fee pricing
+   - Hidden when element has .hidden class. */
+#mobile-nav-billing.hidden,
+#settings-billing-section.hidden,
+#billing-modal.hidden {
   display: none !important;
 }
 

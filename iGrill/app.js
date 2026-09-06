@@ -216,6 +216,11 @@
     billingStatusDesc: document.getElementById('billing-status-desc'),
     billingStatusChip: document.getElementById('billing-status-chip'),
     billingCheckoutContainer: document.getElementById('billing-checkout-container'),
+    billingPlatformNotice: document.getElementById('billing-platform-notice'),
+    billingPlatformIcon: document.getElementById('billing-platform-icon'),
+    billingPlatformTitle: document.getElementById('billing-platform-title'),
+    billingPlatformBadge: document.getElementById('billing-platform-badge'),
+    billingPlatformDesc: document.getElementById('billing-platform-desc'),
     btnCycleMonthly: document.getElementById('btn-cycle-monthly'),
     btnCycleYearly: document.getElementById('btn-cycle-yearly'),
     planCardStarter: document.getElementById('plan-card-starter'),
@@ -629,7 +634,7 @@
       else el.btnOpenTeam.classList.add('hidden');
     }
     if (el.btnOpenBilling) {
-      if (canAccessBilling) el.btnOpenBilling.classList.remove('hidden');
+      if (isAdmin && isDesktopWebApp) el.btnOpenBilling.classList.remove('hidden');
       else el.btnOpenBilling.classList.add('hidden');
     }
     if (el.btnOpenSettings) {
@@ -657,20 +662,21 @@
       else el.mobileNavTeam.classList.add('hidden');
     }
 
+    // Mobile Nav Billing Tab (Admin only - now enabled with 15% store fee pricing)
+    if (el.mobileNavBilling) {
+      if (isAdmin && hasSession) el.mobileNavBilling.classList.remove('hidden');
+      else el.mobileNavBilling.classList.add('hidden');
+    }
+
     // Business Settings tab (Admin only)
     if (el.mobileNavSettings) {
       if (isAdmin) el.mobileNavSettings.classList.remove('hidden');
       else el.mobileNavSettings.classList.add('hidden');
     }
 
-    // Mobile Nav Billing Tab: ALWAYS hidden on mobile (Billing is strictly desktop web-app only)
-    if (el.mobileNavBilling) {
-      el.mobileNavBilling.classList.add('hidden');
-    }
-
-    // Settings Modal Billing Section: strictly hidden on mobile; visible for Admin on desktop web app
+    // Settings Modal Billing Section: visible for Admin across desktop and mobile
     if (el.settingsBillingSection) {
-      if (canAccessBilling) {
+      if (isAdmin && hasSession) {
         el.settingsBillingSection.classList.remove('hidden');
       } else {
         el.settingsBillingSection.classList.add('hidden');
@@ -678,7 +684,7 @@
     }
 
     if (el.btnSettingsUpgrade) {
-      if (canAccessBilling) {
+      if (isAdmin && hasSession) {
         el.btnSettingsUpgrade.classList.remove('hidden');
       } else {
         el.btnSettingsUpgrade.classList.add('hidden');
@@ -695,6 +701,7 @@
       { id: 'shift', el: el.mobileNavClock },
       { id: 'history', el: el.mobileNavHistory },
       { id: 'team', el: el.mobileNavTeam },
+      { id: 'billing', el: el.mobileNavBilling },
       { id: 'settings', el: el.mobileNavSettings }
     ];
     tabs.forEach(tab => {
@@ -2312,12 +2319,39 @@
     if (el.settingsModal) el.settingsModal.classList.remove('hidden');
   }
 
-  // --- SUBSCRIPTION & BILLING (WEB APP ONLY) ---
+  // --- SUBSCRIPTION & BILLING (DUAL-PLATFORM: WEB BASE & MOBILE STORE OPTION B) ---
+  function isMobileBillingEnvironment() {
+    if (isNativeMobileApp()) return true;
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return true;
+    return false;
+  }
+
   const PRICING_PLANS = {
     starter: {
       key: 'starter',
       name: 'Starter Crew',
       teamSize: 'Up to 25 Employees',
+      web: {
+        monthlyPrice: 9.99,
+        yearlyPrice: 99.00,
+        monthlyPriceFormatted: '$9.99',
+        yearlyPriceFormatted: '$99.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly',
+        yearlySubtext: '$8.25/mo (Billed $99/yr)'
+      },
+      mobile: {
+        monthlyPrice: 11.99,
+        yearlyPrice: 119.00,
+        monthlyPriceFormatted: '$11.99',
+        yearlyPriceFormatted: '$119.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly (includes 15% store fee)',
+        yearlySubtext: '$9.92/mo (Billed $119/yr, includes 15% store fee)'
+      },
+      // Root-level backward compatibility properties
       monthlyPrice: 9.99,
       yearlyPrice: 99.00,
       monthlyPriceFormatted: '$9.99',
@@ -2337,6 +2371,26 @@
       key: 'growth',
       name: 'Growth Crew',
       teamSize: '26 – 50 Employees',
+      web: {
+        monthlyPrice: 19.99,
+        yearlyPrice: 199.00,
+        monthlyPriceFormatted: '$19.99',
+        yearlyPriceFormatted: '$199.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly',
+        yearlySubtext: '$16.58/mo (Billed $199/yr)'
+      },
+      mobile: {
+        monthlyPrice: 23.99,
+        yearlyPrice: 239.00,
+        monthlyPriceFormatted: '$23.99',
+        yearlyPriceFormatted: '$239.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly (includes 15% store fee)',
+        yearlySubtext: '$19.92/mo (Billed $239/yr, includes 15% store fee)'
+      },
       monthlyPrice: 19.99,
       yearlyPrice: 199.00,
       monthlyPriceFormatted: '$19.99',
@@ -2356,6 +2410,26 @@
       key: 'scale',
       name: 'Scale Crew',
       teamSize: '51 – 100 Employees',
+      web: {
+        monthlyPrice: 29.99,
+        yearlyPrice: 299.00,
+        monthlyPriceFormatted: '$29.99',
+        yearlyPriceFormatted: '$299.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly',
+        yearlySubtext: '$24.92/mo (Billed $299/yr)'
+      },
+      mobile: {
+        monthlyPrice: 35.99,
+        yearlyPrice: 359.00,
+        monthlyPriceFormatted: '$35.99',
+        yearlyPriceFormatted: '$359.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly (includes 15% store fee)',
+        yearlySubtext: '$29.92/mo (Billed $359/yr, includes 15% store fee)'
+      },
       monthlyPrice: 29.99,
       yearlyPrice: 299.00,
       monthlyPriceFormatted: '$29.99',
@@ -2372,6 +2446,12 @@
       ]
     }
   };
+
+  function getPlanRates(tierKey, isMobile = isMobileBillingEnvironment()) {
+    const plan = PRICING_PLANS[tierKey] || PRICING_PLANS.starter;
+    const rates = isMobile ? plan.mobile : plan.web;
+    return rates || plan.web || plan;
+  }
 
   let selectedPlanTier = 'starter';
   let selectedBillingCycle = 'monthly';
@@ -2390,6 +2470,32 @@
 
   function updateBillingUI() {
     const isYearly = selectedBillingCycle === 'yearly';
+    const isMobile = isMobileBillingEnvironment();
+
+    // 0. Update Platform Notice Banner
+    if (el.billingPlatformNotice) {
+      if (isMobile) {
+        if (el.billingPlatformIcon) el.billingPlatformIcon.textContent = '📱';
+        if (el.billingPlatformTitle) el.billingPlatformTitle.textContent = 'Mobile App Store Pricing';
+        if (el.billingPlatformBadge) {
+          el.billingPlatformBadge.textContent = '+15% Store Fee Included';
+          el.billingPlatformBadge.className = 'px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-200 text-amber-900';
+        }
+        if (el.billingPlatformDesc) {
+          el.billingPlatformDesc.innerHTML = 'Prices reflect Apple App Store &amp; Google Play store processing fees. <b>Tip:</b> You can also subscribe on our web portal at <a href="https://crewclock.com" target="_blank" class="text-amber-700 underline font-semibold">crewclock.com</a> for direct base rates ($9.99/mo).';
+        }
+      } else {
+        if (el.billingPlatformIcon) el.billingPlatformIcon.textContent = '💻';
+        if (el.billingPlatformTitle) el.billingPlatformTitle.textContent = 'Web Direct Pricing';
+        if (el.billingPlatformBadge) {
+          el.billingPlatformBadge.textContent = 'Best Value · 0% App Store Fee';
+          el.billingPlatformBadge.className = 'px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
+        }
+        if (el.billingPlatformDesc) {
+          el.billingPlatformDesc.textContent = 'Direct web billing with 0% app store markups. Subscription works across all devices, including iOS and Android.';
+        }
+      }
+    }
 
     // 1. Cycle Toggle Buttons
     if (el.btnCycleMonthly && el.btnCycleYearly) {
@@ -2406,6 +2512,7 @@
     const tiers = ['starter', 'growth', 'scale'];
     tiers.forEach(t => {
       const plan = PRICING_PLANS[t];
+      const rates = getPlanRates(t, isMobile);
       const capT = t.charAt(0).toUpperCase() + t.slice(1);
       const priceEl = el[`planPrice${capT}`];
       const periodEl = el[`planPeriod${capT}`];
@@ -2413,9 +2520,9 @@
       const cardEl = el[`planCard${capT}`];
       const checkEl = el[`planCheck${capT}`];
 
-      if (priceEl) priceEl.textContent = isYearly ? plan.yearlyPriceFormatted : plan.monthlyPriceFormatted;
-      if (periodEl) periodEl.textContent = isYearly ? plan.yearlyPeriod : plan.monthlyPeriod;
-      if (subtextEl) subtextEl.textContent = isYearly ? plan.yearlySubtext : plan.monthlySubtext;
+      if (priceEl) priceEl.textContent = isYearly ? rates.yearlyPriceFormatted : rates.monthlyPriceFormatted;
+      if (periodEl) periodEl.textContent = isYearly ? rates.yearlyPeriod : rates.monthlyPeriod;
+      if (subtextEl) subtextEl.textContent = isYearly ? rates.yearlySubtext : rates.monthlySubtext;
 
       const isSelected = selectedPlanTier === t;
       if (cardEl) {
@@ -2436,6 +2543,7 @@
 
     // 3. Dynamic Features Box
     const currentPlan = PRICING_PLANS[selectedPlanTier] || PRICING_PLANS.starter;
+    const currentRates = getPlanRates(selectedPlanTier, isMobile);
     if (el.featuresPlanTitle) el.featuresPlanTitle.textContent = `${currentPlan.name} Core Features`;
     if (el.featuresTeamSize) el.featuresTeamSize.textContent = currentPlan.teamSize;
     if (el.featuresListContainer) {
@@ -2448,7 +2556,7 @@
     }
 
     // 4. Charge Summary & Submit Button Text
-    const currentPrice = isYearly ? currentPlan.yearlyPriceFormatted : currentPlan.monthlyPriceFormatted;
+    const currentPrice = isYearly ? currentRates.yearlyPriceFormatted : currentRates.monthlyPriceFormatted;
     const cycleLabel = isYearly ? 'Annual' : 'Monthly';
     if (el.billingChargeSummary) {
       el.billingChargeSummary.textContent = `Charge: ${currentPrice}`;
@@ -2459,11 +2567,11 @@
   }
 
   function openBillingModal() {
-    if (isNativeMobileApp() || window.innerWidth < 768) {
-      alert('Subscription and billing management is available only on our desktop Web App.');
+    if (!currentUser) {
+      alert('Subscription & Billing:\n\nPlease sign in with Google as a Business Admin to manage your workspace subscription.');
       return;
     }
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (currentUser.role !== 'admin') {
       alert('Only business administrators can access Billing & Subscription settings.');
       return;
     }
@@ -2524,14 +2632,11 @@
 
   function closeBillingModal() {
     if (el.billingModal) el.billingModal.classList.add('hidden');
+    setActiveMobileTab('shift');
   }
 
   async function handlePaymentSubmit(e) {
     if (e && e.preventDefault) e.preventDefault();
-    if (isNativeMobileApp()) {
-      alert('Payments cannot be processed within mobile apps. Please visit our web portal.');
-      return;
-    }
 
     if (!currentUser || !currentUser.tenantId) {
       alert('Business workspace information missing. Please re-login.');
@@ -2558,12 +2663,17 @@
     if (el.btnSubmitPayment) el.btnSubmitPayment.disabled = true;
 
     try {
+      const isMobile = isMobileBillingEnvironment();
       const planConfig = PRICING_PLANS[selectedPlanTier] || PRICING_PLANS.starter;
+      const planRates = getPlanRates(selectedPlanTier, isMobile);
       const isYearly = selectedBillingCycle === 'yearly';
       const planName = `${planConfig.name} (${isYearly ? 'Annual' : 'Monthly'})`;
-      const paidAmount = isYearly ? planConfig.yearlyPriceFormatted : planConfig.monthlyPriceFormatted;
+      const paidAmount = isYearly ? planRates.yearlyPriceFormatted : planRates.monthlyPriceFormatted;
       const durationDays = isYearly ? 365 : 30;
       const paymentRef = 'PAY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      const platformName = isNativeMobileApp()
+        ? (navigator.userAgent && /iPhone|iPad/i.test(navigator.userAgent) ? 'ios_app' : 'android_app')
+        : (isMobile ? 'mobile_web' : 'web');
 
       const res = await callTenancyApi('record_payment', {
         adminEmail: currentUser.email,
@@ -2572,7 +2682,8 @@
         billingCycle: selectedBillingCycle,
         paidAmount: paidAmount,
         paymentRef: paymentRef,
-        durationDays: durationDays
+        durationDays: durationDays,
+        platform: platformName
       });
 
       if (!res.success) {
@@ -2631,25 +2742,20 @@
     const isMobile = isNativeMobileApp() || window.innerWidth < 768;
     const isAdmin = currentUser && currentUser.role === 'admin';
 
-    if (isMobile) {
-      if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
-      if (el.expiredMobileActions) el.expiredMobileActions.classList.remove('hidden');
+    if (isAdmin) {
+      if (el.expiredWebActions) el.expiredWebActions.classList.remove('hidden');
+      if (el.expiredMobileActions) {
+        if (isMobile) el.expiredMobileActions.classList.remove('hidden');
+        else el.expiredMobileActions.classList.add('hidden');
+      }
       if (el.expiredModalMsg) {
-        el.expiredModalMsg.textContent = 'The 14-day free trial for this business workspace has expired. To continue using CrewClock, please visit our web portal at crewclock.com in your web browser to activate your subscription.';
+        el.expiredModalMsg.textContent = 'The 14-day free trial for your business workspace has expired. Choose a monthly or annual plan to continue uninterrupted attendance tracking.';
       }
     } else {
-      if (isAdmin) {
-        if (el.expiredWebActions) el.expiredWebActions.classList.remove('hidden');
-        if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
-        if (el.expiredModalMsg) {
-          el.expiredModalMsg.textContent = 'The 14-day free trial for your business workspace has expired. Choose a monthly or annual plan to continue uninterrupted attendance tracking.';
-        }
-      } else {
-        if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
-        if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
-        if (el.expiredModalMsg) {
-          el.expiredModalMsg.textContent = 'The 14-day free trial for this business has expired. Please notify your business administrator to renew the subscription on the web portal.';
-        }
+      if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
+      if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
+      if (el.expiredModalMsg) {
+        el.expiredModalMsg.textContent = 'The 14-day free trial for this business has expired. Please notify your business administrator to renew the workspace subscription.';
       }
     }
 
@@ -2918,10 +3024,6 @@
         if (el.teamModal) el.teamModal.classList.add('hidden');
         if (el.settingsModal) el.settingsModal.classList.add('hidden');
 
-        if (isNativeMobileApp()) {
-          alert('Subscription Notice:\n\nSubscription & payment management is only supported via our Web Portal at crewclock.com.');
-          return;
-        }
         if (!currentUser) {
           alert('Subscription & Billing:\n\nPlease sign in with Google as a Business Admin to manage your workspace subscription.');
           return;

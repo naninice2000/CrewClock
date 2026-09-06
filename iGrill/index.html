@@ -823,6 +823,22 @@
           </div>
         </div>
 
+        <!-- Platform Pricing Notice (Dynamic: Web Base vs Mobile Store Adjusted) -->
+        <div id="billing-platform-notice" class="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/90 flex items-start gap-2.5">
+          <div id="billing-platform-icon" class="p-1.5 rounded-lg bg-amber-100 text-amber-800 flex-shrink-0 text-sm">
+            📱
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span id="billing-platform-title" class="font-bold text-warmgray-900 text-xs">Mobile App Store Pricing</span>
+              <span id="billing-platform-badge" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-200 text-amber-900">+15% Store Fee Included</span>
+            </div>
+            <p id="billing-platform-desc" class="text-[11px] text-warmgray-600 mt-0.5 leading-snug">
+              Prices reflect Apple App Store & Google Play processing fees. <b>Tip:</b> You can also subscribe on our web portal at <a href="https://crewclock.com" target="_blank" class="text-amber-700 underline font-semibold">crewclock.com</a> for direct base rates ($9.99/mo).
+            </p>
+          </div>
+        </div>
+
         <!-- Plan Selection Cards -->
         <div>
           <label class="block font-bold text-warmgray-800 mb-2 text-xs">Select Team Plan</label>
@@ -1022,17 +1038,17 @@
         </p>
       </div>
 
-      <!-- Web-specific upgrade trigger -->
+      <!-- Upgrade trigger (Both Web & Mobile) -->
       <div id="expired-web-actions" class="space-y-2">
         <button id="btn-expired-upgrade" class="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md btn-press touch-target">
           Choose a Plan & Continue
         </button>
       </div>
 
-      <!-- Mobile-specific guidance -->
+      <!-- Mobile-specific guidance / savings tip -->
       <div id="expired-mobile-actions" class="hidden p-3 bg-amber-50 rounded-xl border border-amber-200 text-left">
         <p class="text-[11px] text-amber-900 font-medium leading-relaxed">
-          To continue using CrewClock for your business, please visit our web portal at <b>crewclock.com</b> in your web browser to activate your subscription.
+          💡 <b>Tip:</b> You can activate your plan right here on mobile, or visit our direct web portal at <b>crewclock.com</b> to save 15% on direct web rates.
         </p>
       </div>
 
@@ -1071,7 +1087,15 @@
         <span>Teams</span>
       </button>
 
-      <!-- 4. Settings (Admin) -->
+      <!-- 4. Billing Tab (Admin) -->
+      <button id="mobile-nav-billing" class="mobile-dock-btn hidden" title="Subscription & Billing">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+        <span>Billing</span>
+      </button>
+
+      <!-- 5. Settings (Admin) -->
       <button id="mobile-nav-settings" class="mobile-dock-btn" title="Business Settings">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

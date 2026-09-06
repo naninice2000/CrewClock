@@ -495,6 +495,7 @@ function handleTenancyRequest(e) {
       var paidAmount = data.paidAmount || (billingCycle === "yearly" ? "$290.00" : "$29.00");
       var paymentRef = data.paymentRef || ("PAY_" + Utilities.getUuid().slice(0, 8).toUpperCase());
       var durationDays = parseInt(data.durationDays || (billingCycle === "yearly" ? 365 : 30), 10);
+      var platform = (data.platform || "web").toLowerCase();
 
       if (!adminEmail || !tenantId) {
         return responseJSON({ success: false, error: "Both adminEmail and tenantId are required to record payment" });
@@ -543,6 +544,7 @@ function handleTenancyRequest(e) {
           billingCycle: billingCycle,
           paidAmount: paidAmount,
           paymentRef: paymentRef,
+          platform: platform,
           paymentDate: nowIso,
           subscriptionEndsAt: newSubscriptionEnd
         }
