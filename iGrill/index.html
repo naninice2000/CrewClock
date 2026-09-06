@@ -11,6 +11,10 @@
   <title>Staff Time Clock - Restaurant Employee Check-In</title>
   <meta name="description" content="Quick mobile clock-in and clock-out for restaurant employees with Google Sign-In, GPS location verification, and Google Sheet sync." />
   
+  <!-- App Icons & PWA Web Clip -->
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -146,10 +150,8 @@
     <!-- ============================================== -->
     <div id="screen-login" class="glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-8 transition-all">
       <div class="text-center space-y-2 mb-5 sm:mb-6">
-        <div class="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700 shadow-inner">
-          <svg class="w-7 h-7 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
+        <div class="w-28 h-28 sm:w-32 sm:h-32 mx-auto rounded-3xl bg-white flex items-center justify-center shadow-md p-1.5 border border-warmgray-200/80 overflow-hidden">
+          <img src="assets/CrewClockLogo.png" alt="CrewClock Logo" class="w-full h-full object-contain" />
         </div>
         <h2 class="text-xl sm:text-2xl font-bold text-warmgray-900">Staff Shift Portal</h2>
         <p class="text-xs sm:text-sm text-warmgray-600 max-w-sm mx-auto">
