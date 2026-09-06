@@ -152,6 +152,7 @@ struct WebViewContainer: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             if webView != popupWebView {
                 viewModel.isLoading = false
+                viewModel.hasLoadedOnce = true
                 viewModel.hasFailedInitialLoad = false
                 webView.scrollView.refreshControl?.endRefreshing()
             }

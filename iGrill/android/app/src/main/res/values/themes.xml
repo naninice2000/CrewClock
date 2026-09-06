@@ -13,8 +13,8 @@
 
     <!-- Splash Screen Theme (Android 12+ and Compat) -->
     <style name="Theme.CrewClock.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/brand_amber_600</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_clock</item>
+        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/launch_logo</item>
         <item name="postSplashScreenTheme">@style/Theme.CrewClock</item>
     </style>
 </resources>

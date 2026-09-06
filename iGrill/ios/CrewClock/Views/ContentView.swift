@@ -23,6 +23,19 @@ struct ContentView: View {
                 .transition(.opacity)
             }
             
+            // Native Launch Logo Overlay (Smooth transition from LaunchScreen)
+            if !viewModel.hasLoadedOnce && !viewModel.hasFailedInitialLoad {
+                ZStack {
+                    Color.white.ignoresSafeArea()
+                    Image("LaunchLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 280, height: 280)
+                }
+                .transition(.opacity)
+                .zIndex(10)
+            }
+            
             // Offline Screen Overlay
             if (!networkMonitor.isConnected && viewModel.hasFailedInitialLoad) {
                 OfflineView {

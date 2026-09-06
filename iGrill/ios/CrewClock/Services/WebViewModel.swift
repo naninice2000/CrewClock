@@ -10,6 +10,7 @@ class WebViewModel: ObservableObject {
     @Published var canGoForward: Bool = false
     @Published var shouldReload: Bool = false
     @Published var hasFailedInitialLoad: Bool = false
+    @Published var hasLoadedOnce: Bool = false
     @Published var errorMessage: String? = nil
     
     func reload() {

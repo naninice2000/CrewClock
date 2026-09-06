@@ -1,7 +1,9 @@
 package com.crewclock.app
 
 import android.os.Message
+import android.util.Log
 import android.view.View
+import android.webkit.ConsoleMessage
 import android.webkit.GeolocationPermissions
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -9,7 +11,8 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 
 class CrewClockWebChromeClient(
     private val progressBar: LinearProgressIndicator,
-    private val onGeolocationPrompt: (origin: String?, callback: GeolocationPermissions.Callback?) -> Unit
+    private val onGeolocationPrompt: (origin: String?, callback: GeolocationPermissions.Callback?) -> Unit,
+    private val onCreateWindowRequest: (view: WebView?, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message?) -> Boolean
 ) : WebChromeClient() {
 
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -35,9 +38,11 @@ class CrewClockWebChromeClient(
         isUserGesture: Boolean,
         resultMsg: Message?
     ): Boolean {
-        // Support Google OAuth popup windows inside WebView
-        val href = view?.handler?.obtainMessage()
-        view?.requestFocusNodeHref(href)
-        return super.onCreateWindow(view, isDialog, isUserGesture, resultMsg)
+        return onCreateWindowRequest(view, isDialog, isUserGesture, resultMsg)
+    }
+
+    override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+        Log.d("CrewClockWeb", "[${consoleMessage?.messageLevel()}] ${consoleMessage?.message()} -- line ${consoleMessage?.lineNumber()} of ${consoleMessage?.sourceId()}")
+        return true
     }
 }

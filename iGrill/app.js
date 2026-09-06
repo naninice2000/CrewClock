@@ -1013,6 +1013,15 @@
     currentAccessToken = tokenResponse.access_token;
     const tokenExpiresAt = Date.now() + (tokenResponse.expires_in ? Number(tokenResponse.expires_in) * 1000 : 3500 * 1000);
 
+    // Notify Android native wrapper to dismiss any open OAuth dialog
+    try {
+      if (window.AndroidBridge && typeof window.AndroidBridge.onAuthSuccess === 'function') {
+        window.AndroidBridge.onAuthSuccess();
+      }
+    } catch (bridgeErr) {
+      console.log('AndroidBridge call:', bridgeErr);
+    }
+
     try {
       showLoading('Verifying Gmail Account', 'Checking authenticated Google credentials...');
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
