@@ -23,6 +23,14 @@ struct WebViewContainer: UIViewRepresentable {
             config.preferences.javaScriptEnabled = true
         }
         
+        // Native App Environment Flag for Web App
+        let nativeScript = WKUserScript(
+            source: "window.__CREWCLOCK_NATIVE_APP__ = true; window.__CREWCLOCK_PLATFORM__ = 'ios';",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
+        )
+        config.userContentController.addUserScript(nativeScript)
+        
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
@@ -31,8 +39,8 @@ struct WebViewContainer: UIViewRepresentable {
         webView.backgroundColor = UIColor(red: 254/255, green: 252/255, blue: 247/255, alpha: 1.0)
         webView.isOpaque = false
         
-        // 2. Pure Standard Mobile Safari User-Agent (Prevents Google's 403 disallowed_useragent)
-        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
+        // 2. Pure Standard Mobile Safari User-Agent (Prevents Google's 403 disallowed_useragent and identifies app)
+        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1 CrewClockApp/1.0 (iOS)"
         
         // 3. Setup Native Pull-to-Refresh with Amber Tint
         let refreshControl = UIRefreshControl()

@@ -90,8 +90,10 @@
     headerUserImg: document.getElementById('header-user-img'),
     headerUserName: document.getElementById('header-user-name'),
     headerRolePill: document.getElementById('header-role-pill'),
+    headerPlanPill: document.getElementById('header-plan-pill'),
     btnLogoutTrigger: document.getElementById('btn-logout-trigger'),
     btnOpenTeam: document.getElementById('btn-open-team'),
+    btnOpenBilling: document.getElementById('btn-open-billing'),
     btnOpenHistory: document.getElementById('btn-open-history'),
     btnOpenSettings: document.getElementById('btn-open-settings'),
     headerDesktopNav: document.getElementById('header-desktop-nav'),
@@ -101,6 +103,7 @@
     mobileNavClock: document.getElementById('mobile-nav-clock'),
     mobileNavHistory: document.getElementById('mobile-nav-history'),
     mobileNavTeam: document.getElementById('mobile-nav-team'),
+    mobileNavBilling: document.getElementById('mobile-nav-billing'),
     mobileNavSettings: document.getElementById('mobile-nav-settings'),
 
     // Screens
@@ -122,6 +125,9 @@
     readyUserImg: document.getElementById('ready-user-img'),
     readyUserName: document.getElementById('ready-user-name'),
     readyUserEmail: document.getElementById('ready-user-email'),
+    readyRoleBadge: document.getElementById('ready-role-badge'),
+    readyPlanBadge: document.getElementById('ready-plan-badge'),
+    readyScreenGreeting: document.getElementById('ready-screen-greeting'),
     btnClockInTrigger: document.getElementById('btn-clockin-trigger'),
 
     // Screen 2: Active Shift
@@ -136,6 +142,9 @@
     shiftMapsLink: document.getElementById('shift-maps-link'),
     syncStatusBadge: document.getElementById('sync-status-badge'),
     syncStatusText: document.getElementById('sync-status-text'),
+    btnShiftHistory: document.getElementById('btn-shift-history'),
+    btnShiftTeam: document.getElementById('btn-shift-team'),
+    btnShiftSettings: document.getElementById('btn-shift-settings'),
     btnClockOutTrigger: document.getElementById('btn-clockout-trigger'),
 
     // Modals
@@ -155,6 +164,11 @@
     inputRestaurantLogo: document.getElementById('input-restaurant-logo'),
     inputScriptUrl: document.getElementById('input-sheet-id'),
     inputSettingsTimezone: document.getElementById('input-settings-timezone'),
+    settingsSubBadge: document.getElementById('settings-sub-badge'),
+    settingsSubPlan: document.getElementById('settings-sub-plan'),
+    settingsSubExpiry: document.getElementById('settings-sub-expiry'),
+    btnSettingsUpgrade: document.getElementById('btn-settings-upgrade'),
+    settingsMobileSubNote: document.getElementById('settings-mobile-sub-note'),
 
     historyModal: document.getElementById('history-modal'),
     btnCloseHistory: document.getElementById('btn-close-history'),
@@ -164,6 +178,7 @@
 
     // Onboarding Modal (Restaurant Owner Signup)
     onboardingModal: document.getElementById('onboarding-modal'),
+    onboardTrialDesc: document.getElementById('onboard-trial-desc'),
     inputOnboardName: document.getElementById('input-onboard-name'),
     inputOnboardLogo: document.getElementById('input-onboard-logo'),
     inputOnboardAttendanceUrl: document.getElementById('input-onboard-attendance-url'),
@@ -180,6 +195,44 @@
     btnSendInvite: document.getElementById('btn-send-invite'),
     inviteStatusMsg: document.getElementById('invite-status-msg'),
     teamListContainer: document.getElementById('team-list-container'),
+
+    // Billing Modal (Web App Only)
+    billingModal: document.getElementById('billing-modal'),
+    btnCloseBilling: document.getElementById('btn-close-billing'),
+    billingStatusBanner: document.getElementById('billing-current-status-banner'),
+    billingStatusTitle: document.getElementById('billing-status-title'),
+    billingStatusDesc: document.getElementById('billing-status-desc'),
+    billingStatusChip: document.getElementById('billing-status-chip'),
+    billingCheckoutContainer: document.getElementById('billing-checkout-container'),
+    planCardMonthly: document.getElementById('plan-card-monthly'),
+    planCardYearly: document.getElementById('plan-card-yearly'),
+    planCheckMonthly: document.getElementById('plan-check-monthly'),
+    planCheckYearly: document.getElementById('plan-check-yearly'),
+    billingChargeSummary: document.getElementById('billing-charge-summary'),
+    formBillingPayment: document.getElementById('form-billing-payment'),
+    inputCardName: document.getElementById('input-card-name'),
+    inputCardNumber: document.getElementById('input-card-number'),
+    inputCardExp: document.getElementById('input-card-exp'),
+    inputCardCvc: document.getElementById('input-card-cvc'),
+    inputCardZip: document.getElementById('input-card-zip'),
+    billingErrorMsg: document.getElementById('billing-error-msg'),
+    btnSubmitPayment: document.getElementById('btn-submit-payment'),
+    btnSubmitPaymentText: document.getElementById('btn-submit-payment-text'),
+    btnSubmitPaymentSpinner: document.getElementById('btn-submit-payment-spinner'),
+    billingReceiptContainer: document.getElementById('billing-receipt-container'),
+    receiptPlan: document.getElementById('receipt-plan'),
+    receiptAmount: document.getElementById('receipt-amount'),
+    receiptTxn: document.getElementById('receipt-txn'),
+    receiptExpiry: document.getElementById('receipt-expiry'),
+    btnFinishBilling: document.getElementById('btn-finish-billing'),
+
+    // Trial Expired Modal
+    trialExpiredModal: document.getElementById('trial-expired-modal'),
+    expiredModalMsg: document.getElementById('expired-modal-msg'),
+    expiredWebActions: document.getElementById('expired-web-actions'),
+    btnExpiredUpgrade: document.getElementById('btn-expired-upgrade'),
+    expiredMobileActions: document.getElementById('expired-mobile-actions'),
+    btnExpiredLogout: document.getElementById('btn-expired-logout'),
   };
 
   // --- INITIALIZATION ---
@@ -201,6 +254,16 @@
         refreshScreenState();
       }
     });
+  }
+
+  // --- NATIVE MOBILE APP DETECTION ---
+  function isNativeMobileApp() {
+    if (typeof window !== 'undefined') {
+      if (window.__CREWCLOCK_NATIVE_APP__ === true) return true;
+      if (window.AndroidBridge !== undefined) return true;
+      if (navigator.userAgent && /CrewClockApp/i.test(navigator.userAgent)) return true;
+    }
+    return false;
   }
 
   // --- USER SESSION MANAGEMENT ---
@@ -237,6 +300,20 @@
       restaurantName: user.restaurantName || settings.restaurantName,
       restaurantLogo: user.restaurantLogo !== undefined ? user.restaurantLogo : settings.restaurantLogo,
       attendanceScriptUrl: user.attendanceScriptUrl || settings.scriptUrl,
+      timeZone: user.timeZone || 'America/Los_Angeles',
+      subscription: user.subscription || (currentUser?.subscription ? currentUser.subscription : {
+        status: 'trial',
+        plan: 'Free Trial',
+        billingCycle: 'trial',
+        isTrial: true,
+        isPaid: false,
+        isValid: true,
+        daysRemaining: 14,
+        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        subscriptionEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        paidAmount: '$0.00',
+        paymentRef: 'TRIAL_SIGNUP'
+      }),
       accessToken: user.accessToken || currentAccessToken || '',
       tokenExpiresAt: user.tokenExpiresAt || (currentAccessToken ? Date.now() + 3500 * 1000 : 0),
       loginTime: Date.now(),
@@ -272,29 +349,59 @@
         const firstName = (currentUser.name || 'User').split(' ')[0];
         el.headerUserName.textContent = firstName;
       }
+      const initials = (currentUser.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      if (el.headerUserInitials) el.headerUserInitials.textContent = initials;
+
       if (currentUser.picture) {
         if (el.headerUserInitials) el.headerUserInitials.classList.add('hidden');
         if (el.headerUserImg) {
+          el.headerUserImg.onerror = () => {
+            el.headerUserImg.classList.add('hidden');
+            if (el.headerUserInitials) el.headerUserInitials.classList.remove('hidden');
+          };
           el.headerUserImg.src = currentUser.picture;
           el.headerUserImg.classList.remove('hidden');
         }
       } else {
         if (el.headerUserImg) el.headerUserImg.classList.add('hidden');
-        const initials = (currentUser.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-        if (el.headerUserInitials) {
-          el.headerUserInitials.textContent = initials;
-          el.headerUserInitials.classList.remove('hidden');
+        if (el.headerUserInitials) el.headerUserInitials.classList.remove('hidden');
+      }
+
+      // Subscription / Free Trial Pill
+      if (el.headerPlanPill) {
+        const sub = currentUser.subscription;
+        if (sub) {
+          if (sub.isPaid && sub.isValid) {
+            el.headerPlanPill.textContent = 'Active Pro';
+            el.headerPlanPill.className = 'px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-100 text-emerald-800 border border-emerald-200';
+            el.headerPlanPill.classList.remove('hidden');
+          } else if (sub.isTrial && sub.isValid) {
+            const days = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : 14;
+            el.headerPlanPill.textContent = `${days}d Trial`;
+            el.headerPlanPill.className = 'px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-200';
+            el.headerPlanPill.classList.remove('hidden');
+          } else {
+            el.headerPlanPill.textContent = 'Expired';
+            el.headerPlanPill.className = 'px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-rose-100 text-rose-800 border border-rose-200';
+            el.headerPlanPill.classList.remove('hidden');
+          }
+        } else {
+          el.headerPlanPill.classList.add('hidden');
         }
       }
+
       el.headerUserBadge.classList.remove('hidden');
     } else {
       el.headerUserBadge.classList.add('hidden');
+      if (el.headerPlanPill) el.headerPlanPill.classList.add('hidden');
     }
   }
 
   // --- ROLE-BASED ACCESS CONTROL (RBAC) UI ---
   function updateRoleBasedUI() {
     const isAdmin = currentUser && currentUser.role === 'admin';
+    const isMobileApp = isNativeMobileApp();
+    const canAccessBilling = isAdmin && !isMobileApp;
 
     // Admin role pill in header
     if (el.headerRolePill) {
@@ -324,6 +431,15 @@
       }
     }
 
+    // Subscription & Billing button (Admin on Web App only, desktop)
+    if (el.btnOpenBilling) {
+      if (canAccessBilling) {
+        el.btnOpenBilling.classList.remove('hidden');
+      } else {
+        el.btnOpenBilling.classList.add('hidden');
+      }
+    }
+
     // App Configuration button (Admin only, desktop)
     if (el.btnOpenSettings) {
       if (isAdmin) {
@@ -333,31 +449,62 @@
       }
     }
 
-    // Mobile Bottom Navigation Dock (Logged In users only)
+    // Mobile Bottom Navigation Dock (Always active on mobile screens; sm:hidden in CSS handles desktop >= 640px)
     if (el.mobileBottomNav) {
-      if (hasSession) {
-        el.mobileBottomNav.classList.remove('hidden');
+      el.mobileBottomNav.classList.remove('hidden');
+    }
+
+    // Mobile Bottom Navigation Tabs: Shift, History, Team, Settings always available
+    if (el.mobileNavClock) el.mobileNavClock.classList.remove('hidden');
+    if (el.mobileNavHistory) el.mobileNavHistory.classList.remove('hidden');
+    if (el.mobileNavTeam) el.mobileNavTeam.classList.remove('hidden');
+    if (el.mobileNavSettings) el.mobileNavSettings.classList.remove('hidden');
+
+    // Mobile Nav Billing Tab: Shown on Web App mobile view; hidden in native apps to satisfy store review
+    if (el.mobileNavBilling) {
+      if (!isMobileApp) {
+        el.mobileNavBilling.classList.remove('hidden');
       } else {
-        el.mobileBottomNav.classList.add('hidden');
+        el.mobileNavBilling.classList.add('hidden');
       }
     }
 
-    // Mobile Bottom Navigation Tabs (Admin only)
-    if (el.mobileNavTeam) {
-      if (isAdmin) {
-        el.mobileNavTeam.classList.remove('hidden');
+    // Settings Modal billing management button vs mobile informational note
+    if (el.btnSettingsUpgrade) {
+      if (canAccessBilling) {
+        el.btnSettingsUpgrade.classList.remove('hidden');
       } else {
-        el.mobileNavTeam.classList.add('hidden');
+        el.btnSettingsUpgrade.classList.add('hidden');
       }
     }
+    if (el.settingsMobileSubNote) {
+      if (isMobileApp) {
+        el.settingsMobileSubNote.classList.remove('hidden');
+      } else {
+        el.settingsMobileSubNote.classList.add('hidden');
+      }
+    }
+  }
 
-    if (el.mobileNavSettings) {
-      if (isAdmin) {
-        el.mobileNavSettings.classList.remove('hidden');
+  // --- MOBILE BOTTOM DOCK ACTIVE TAB HIGHLIGHT ---
+  function setActiveMobileTab(activeId) {
+    const tabs = [
+      { id: 'shift', el: el.mobileNavClock },
+      { id: 'history', el: el.mobileNavHistory },
+      { id: 'team', el: el.mobileNavTeam },
+      { id: 'billing', el: el.mobileNavBilling },
+      { id: 'settings', el: el.mobileNavSettings }
+    ];
+    tabs.forEach(tab => {
+      if (!tab.el) return;
+      if (tab.id === activeId) {
+        tab.el.classList.add('text-amber-600', 'font-bold');
+        tab.el.classList.remove('text-warmgray-500', 'text-warmgray-600');
       } else {
-        el.mobileNavSettings.classList.add('hidden');
+        tab.el.classList.remove('text-amber-600', 'font-bold');
+        tab.el.classList.add('text-warmgray-500');
       }
-    }
+    });
   }
 
   // --- SCREEN CONTROLLER ---
@@ -365,6 +512,7 @@
     const session = getUserSession();
     updateHeaderUserUI();
     updateRoleBasedUI();
+    setActiveMobileTab('shift');
 
     if (!session) {
       showScreen('login');
@@ -405,22 +553,67 @@
 
   function populateReadyScreen(user) {
     if (!user) return;
+    const isAdmin = user.role === 'admin';
+
     if (el.readyUserName) el.readyUserName.textContent = user.name || 'Staff Member';
     if (el.readyUserEmail) el.readyUserEmail.textContent = user.email || '';
+
+    // Custom greeting for Admin vs Staff
+    if (el.readyScreenGreeting) {
+      el.readyScreenGreeting.textContent = isAdmin ? 'Admin Workspace & Shift' : 'Ready for your shift?';
+    }
+
+    // Role badge on ready card
+    if (el.readyRoleBadge) {
+      if (isAdmin) {
+        el.readyRoleBadge.textContent = '👑 Restaurant Admin';
+        el.readyRoleBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300';
+        el.readyRoleBadge.classList.remove('hidden');
+      } else {
+        el.readyRoleBadge.textContent = 'Staff Member';
+        el.readyRoleBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-warmgray-100 text-warmgray-700 border border-warmgray-200';
+        el.readyRoleBadge.classList.remove('hidden');
+      }
+    }
+
+    // Plan / Subscription badge on ready card
+    if (el.readyPlanBadge) {
+      const sub = user.subscription;
+      if (sub && sub.isPaid && sub.isValid) {
+        el.readyPlanBadge.textContent = sub.plan || 'Pro Active';
+        el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300';
+        el.readyPlanBadge.classList.remove('hidden');
+      } else if (sub && sub.isTrial && sub.isValid) {
+        const days = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : 14;
+        el.readyPlanBadge.textContent = `${days}d Free Trial`;
+        el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300';
+        el.readyPlanBadge.classList.remove('hidden');
+      } else if (sub && !sub.isValid) {
+        el.readyPlanBadge.textContent = 'Trial Expired';
+        el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 border border-rose-300';
+        el.readyPlanBadge.classList.remove('hidden');
+      } else {
+        el.readyPlanBadge.classList.add('hidden');
+      }
+    }
+
+    // Safe Avatar image with initials fallback
+    const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    if (el.readyUserInitials) el.readyUserInitials.textContent = initials;
 
     if (user.picture) {
       if (el.readyUserInitials) el.readyUserInitials.classList.add('hidden');
       if (el.readyUserImg) {
+        el.readyUserImg.onerror = () => {
+          el.readyUserImg.classList.add('hidden');
+          if (el.readyUserInitials) el.readyUserInitials.classList.remove('hidden');
+        };
         el.readyUserImg.src = user.picture;
         el.readyUserImg.classList.remove('hidden');
       }
     } else {
       if (el.readyUserImg) el.readyUserImg.classList.add('hidden');
-      const initials = (user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-      if (el.readyUserInitials) {
-        el.readyUserInitials.textContent = initials;
-        el.readyUserInitials.classList.remove('hidden');
-      }
+      if (el.readyUserInitials) el.readyUserInitials.classList.remove('hidden');
     }
   }
 
@@ -430,19 +623,22 @@
     if (el.userName) el.userName.textContent = shift.name || 'Staff Member';
     if (el.userEmail) el.userEmail.textContent = shift.email || '';
 
+    const initials = (shift.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    if (el.userAvatarInitials) el.userAvatarInitials.textContent = initials;
+
     if (shift.picture) {
       if (el.userAvatarInitials) el.userAvatarInitials.classList.add('hidden');
       if (el.userAvatarImg) {
+        el.userAvatarImg.onerror = () => {
+          el.userAvatarImg.classList.add('hidden');
+          if (el.userAvatarInitials) el.userAvatarInitials.classList.remove('hidden');
+        };
         el.userAvatarImg.src = shift.picture;
         el.userAvatarImg.classList.remove('hidden');
       }
     } else {
       if (el.userAvatarImg) el.userAvatarImg.classList.add('hidden');
-      const initials = (shift.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-      if (el.userAvatarInitials) {
-        el.userAvatarInitials.textContent = initials;
-        el.userAvatarInitials.classList.remove('hidden');
-      }
+      if (el.userAvatarInitials) el.userAvatarInitials.classList.remove('hidden');
     }
 
     if (el.shiftClockInTime) el.shiftClockInTime.textContent = shift.clockInTime || '--:--';
@@ -1056,6 +1252,7 @@
                 restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.restaurantLogo,
                 attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || settings.scriptUrl,
                 timeZone: tenant.timeZone || 'America/Los_Angeles',
+                subscription: tenancyRes.subscription || tenant.subscription,
                 accessToken: currentAccessToken,
                 tokenExpiresAt: tokenExpiresAt
               });
@@ -1092,6 +1289,7 @@
                   restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.restaurantLogo,
                   attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || settings.scriptUrl,
                   timeZone: tenant.timeZone || 'America/Los_Angeles',
+                  subscription: tenancyRes.subscription || tenant.subscription,
                   accessToken: currentAccessToken,
                   tokenExpiresAt: tokenExpiresAt
                 });
@@ -1149,6 +1347,13 @@
     if (el.inputOnboardName) el.inputOnboardName.value = '';
     if (el.inputOnboardLogo) el.inputOnboardLogo.value = '';
     if (el.inputOnboardAttendanceUrl) el.inputOnboardAttendanceUrl.value = settings.scriptUrl || '';
+    if (el.onboardTrialDesc) {
+      if (isNativeMobileApp()) {
+        el.onboardTrialDesc.textContent = 'Every new restaurant workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via our Web Portal at crewclock.com (subscription purchase is not available inside mobile apps).';
+      } else {
+        el.onboardTrialDesc.textContent = 'Every new restaurant workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via the Web Portal.';
+      }
+    }
     if (el.onboardingModal) el.onboardingModal.classList.remove('hidden');
   }
 
@@ -1217,6 +1422,7 @@
         restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : logoUrl,
         attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || attendanceTarget,
         timeZone: tenant.timeZone || timeZone || 'America/Los_Angeles',
+        subscription: res.subscription || tenant.subscription,
         accessToken: currentAccessToken
       });
 
@@ -1247,6 +1453,7 @@
 
   function closeTeamModal() {
     if (el.teamModal) el.teamModal.classList.add('hidden');
+    if (typeof setActiveMobileTab === 'function') setActiveMobileTab('shift');
   }
 
   async function loadTeamRoster() {
@@ -1407,6 +1614,12 @@
       return;
     }
 
+    // Trial / Paid Subscription Verification Check
+    if (session.subscription && session.subscription.isValid === false) {
+      showTrialExpiredModal();
+      return;
+    }
+
     const rawTarget = session.attendanceScriptUrl || settings.scriptUrl || '';
     const isSheetApi = isGoogleSpreadsheetTarget(rawTarget);
     const sheetId = isSheetApi ? extractSpreadsheetId(rawTarget) : null;
@@ -1473,6 +1686,12 @@
           });
 
           if (!res.success) {
+            if (res.expired) {
+              if (session.subscription) session.subscription.isValid = false;
+              saveUserSession(session);
+              showTrialExpiredModal();
+              return;
+            }
             throw new Error(res.error || 'Could not record clock-in.');
           }
           sheetRow = res.rowNumber;
@@ -1831,7 +2050,255 @@
     if (el.inputRestaurantLogo) el.inputRestaurantLogo.value = currentUser?.restaurantLogo !== undefined ? currentUser.restaurantLogo : (settings.restaurantLogo || '');
     if (el.inputScriptUrl) el.inputScriptUrl.value = currentUser?.attendanceScriptUrl || settings.scriptUrl || '';
     if (el.inputSettingsTimezone) el.inputSettingsTimezone.value = currentUser?.timeZone || 'America/Los_Angeles';
+
+    // Populate Subscription status in settings
+    const sub = currentUser?.subscription;
+    if (sub) {
+      if (el.settingsSubPlan) el.settingsSubPlan.textContent = sub.plan || 'Free Trial Plan';
+      if (el.settingsSubBadge) {
+        if (sub.isPaid && sub.isValid) {
+          el.settingsSubBadge.textContent = 'Paid Active';
+          el.settingsSubBadge.className = 'text-[10px] text-emerald-800 bg-emerald-100 font-bold px-2 py-0.5 rounded-full border border-emerald-200';
+        } else if (sub.isTrial && sub.isValid) {
+          el.settingsSubBadge.textContent = '14-Day Free Trial';
+          el.settingsSubBadge.className = 'text-[10px] text-amber-800 bg-amber-100 font-bold px-2 py-0.5 rounded-full border border-amber-200';
+        } else {
+          el.settingsSubBadge.textContent = 'Trial Expired';
+          el.settingsSubBadge.className = 'text-[10px] text-rose-800 bg-rose-100 font-bold px-2 py-0.5 rounded-full border border-rose-200';
+        }
+      }
+      if (el.settingsSubExpiry) {
+        const days = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : 0;
+        const expiryDate = sub.subscriptionEndsAt || sub.trialEndsAt;
+        let formattedExp = '';
+        if (expiryDate) {
+          try {
+            formattedExp = ` (Ends ${new Date(expiryDate).toLocaleDateString()})`;
+          } catch(e) {}
+        }
+        if (sub.isValid) {
+          el.settingsSubExpiry.textContent = `${days} day${days === 1 ? '' : 's'} remaining${formattedExp}`;
+        } else {
+          el.settingsSubExpiry.textContent = `Subscription ended${formattedExp}. Please renew on Web.`;
+        }
+      }
+    }
+
     if (el.settingsModal) el.settingsModal.classList.remove('hidden');
+  }
+
+  // --- SUBSCRIPTION & BILLING (WEB APP ONLY) ---
+  let selectedBillingCycle = 'monthly';
+
+  function openBillingModal() {
+    if (isNativeMobileApp()) {
+      alert('Subscription & payment processing is only supported via our Web Portal at crewclock.com.');
+      return;
+    }
+    if (!currentUser || currentUser.role !== 'admin') {
+      alert('Only restaurant administrators can access Billing & Subscription settings.');
+      return;
+    }
+
+    // Reset view
+    if (el.billingReceiptContainer) el.billingReceiptContainer.classList.add('hidden');
+    if (el.billingCheckoutContainer) el.billingCheckoutContainer.classList.remove('hidden');
+    if (el.billingErrorMsg) {
+      el.billingErrorMsg.textContent = '';
+      el.billingErrorMsg.classList.add('hidden');
+    }
+
+    // Populate Current Status
+    const sub = currentUser.subscription;
+    if (sub) {
+      if (el.billingStatusTitle) el.billingStatusTitle.textContent = sub.plan || '14-Day Free Trial';
+      if (el.billingStatusDesc) {
+        const days = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : 0;
+        if (sub.isPaid && sub.isValid) {
+          el.billingStatusDesc.textContent = `Subscription active with ${days} day${days === 1 ? '' : 's'} remaining`;
+        } else if (sub.isTrial && sub.isValid) {
+          el.billingStatusDesc.textContent = `${days} day${days === 1 ? '' : 's'} left in your free trial`;
+        } else {
+          el.billingStatusDesc.textContent = 'Your 14-day free trial has expired. Select a plan below to continue.';
+        }
+      }
+      if (el.billingStatusChip) {
+        if (sub.isPaid && sub.isValid) {
+          el.billingStatusChip.textContent = 'Active Pro';
+          el.billingStatusChip.className = 'px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 flex-shrink-0';
+        } else if (sub.isTrial && sub.isValid) {
+          el.billingStatusChip.textContent = 'Trial Active';
+          el.billingStatusChip.className = 'px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-xs border border-amber-200 flex-shrink-0';
+        } else {
+          el.billingStatusChip.textContent = 'Expired';
+          el.billingStatusChip.className = 'px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 font-bold text-xs border border-rose-200 flex-shrink-0';
+        }
+      }
+    }
+
+    selectBillingPlan(selectedBillingCycle || 'monthly');
+    if (el.billingModal) el.billingModal.classList.remove('hidden');
+  }
+
+  function closeBillingModal() {
+    if (el.billingModal) el.billingModal.classList.add('hidden');
+  }
+
+  function selectBillingPlan(cycle) {
+    selectedBillingCycle = cycle;
+    const isYearly = cycle === 'yearly';
+
+    if (el.planCardMonthly && el.planCardYearly) {
+      if (isYearly) {
+        el.planCardYearly.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/40 relative transition-all';
+        el.planCardMonthly.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all';
+        if (el.planCheckYearly) el.planCheckYearly.className = 'w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]';
+        if (el.planCheckMonthly) el.planCheckMonthly.className = 'w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]';
+        if (el.billingChargeSummary) el.billingChargeSummary.textContent = 'Charge: $290.00';
+        if (el.btnSubmitPaymentText) el.btnSubmitPaymentText.textContent = 'Pay $290.00 & Activate Annual Pro';
+      } else {
+        el.planCardMonthly.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/40 relative transition-all';
+        el.planCardYearly.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all';
+        if (el.planCheckMonthly) el.planCheckMonthly.className = 'w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]';
+        if (el.planCheckYearly) el.planCheckYearly.className = 'w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]';
+        if (el.billingChargeSummary) el.billingChargeSummary.textContent = 'Charge: $29.00';
+        if (el.btnSubmitPaymentText) el.btnSubmitPaymentText.textContent = 'Pay $29.00 & Activate Monthly Pro';
+      }
+    }
+  }
+
+  async function handlePaymentSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isNativeMobileApp()) {
+      alert('Payments cannot be processed within mobile apps. Please visit our web portal.');
+      return;
+    }
+
+    if (!currentUser || !currentUser.tenantId) {
+      alert('Restaurant workspace information missing. Please re-login.');
+      return;
+    }
+
+    const cardName = (el.inputCardName?.value || '').trim();
+    const cardNumber = (el.inputCardNumber?.value || '').replace(/\s+/g, '');
+    const cardExp = (el.inputCardExp?.value || '').trim();
+    const cardCvc = (el.inputCardCvc?.value || '').trim();
+    const cardZip = (el.inputCardZip?.value || '').trim();
+
+    if (!cardName || cardNumber.length < 13 || cardExp.length < 5 || cardCvc.length < 3 || !cardZip) {
+      if (el.billingErrorMsg) {
+        el.billingErrorMsg.textContent = 'Please enter valid credit card details and billing ZIP code.';
+        el.billingErrorMsg.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (el.billingErrorMsg) el.billingErrorMsg.classList.add('hidden');
+    if (el.btnSubmitPaymentText) el.btnSubmitPaymentText.textContent = 'Processing Payment...';
+    if (el.btnSubmitPaymentSpinner) el.btnSubmitPaymentSpinner.classList.remove('hidden');
+    if (el.btnSubmitPayment) el.btnSubmitPayment.disabled = true;
+
+    try {
+      const isYearly = selectedBillingCycle === 'yearly';
+      const planName = isYearly ? 'Annual Pro' : 'Monthly Pro';
+      const paidAmount = isYearly ? '$290.00' : '$29.00';
+      const durationDays = isYearly ? 365 : 30;
+      const paymentRef = 'PAY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+      const res = await callTenancyApi('record_payment', {
+        adminEmail: currentUser.email,
+        tenantId: currentUser.tenantId,
+        plan: planName,
+        billingCycle: selectedBillingCycle,
+        paidAmount: paidAmount,
+        paymentRef: paymentRef,
+        durationDays: durationDays
+      });
+
+      if (!res.success) {
+        throw new Error(res.error || 'Payment processing failed.');
+      }
+
+      // Update session with new active subscription
+      const updatedSub = res.subscription || {
+        status: 'active',
+        plan: planName,
+        billingCycle: selectedBillingCycle,
+        isTrial: false,
+        isPaid: true,
+        isValid: true,
+        daysRemaining: durationDays,
+        subscriptionEndsAt: res.payment?.subscriptionEndsAt || new Date(Date.now() + durationDays * 86400000).toISOString(),
+        paidAmount: paidAmount,
+        paymentRef: paymentRef
+      };
+
+      currentUser.subscription = updatedSub;
+      saveUserSession(currentUser);
+
+      // Populate Receipt View
+      if (el.receiptPlan) el.receiptPlan.textContent = planName;
+      if (el.receiptAmount) el.receiptAmount.textContent = paidAmount;
+      if (el.receiptTxn) el.receiptTxn.textContent = paymentRef;
+      if (el.receiptExpiry) {
+        const expDate = updatedSub.subscriptionEndsAt ? new Date(updatedSub.subscriptionEndsAt).toLocaleDateString() : 'Active';
+        el.receiptExpiry.textContent = expDate;
+      }
+
+      // Switch to receipt screen
+      if (el.billingCheckoutContainer) el.billingCheckoutContainer.classList.add('hidden');
+      if (el.billingReceiptContainer) el.billingReceiptContainer.classList.remove('hidden');
+
+      // Clear card inputs for security
+      if (el.inputCardNumber) el.inputCardNumber.value = '';
+      if (el.inputCardCvc) el.inputCardCvc.value = '';
+
+    } catch (err) {
+      if (el.billingErrorMsg) {
+        el.billingErrorMsg.textContent = 'Payment Error: ' + err.message;
+        el.billingErrorMsg.classList.remove('hidden');
+      }
+    } finally {
+      if (el.btnSubmitPayment) el.btnSubmitPayment.disabled = false;
+      if (el.btnSubmitPaymentSpinner) el.btnSubmitPaymentSpinner.classList.add('hidden');
+      if (el.btnSubmitPaymentText) {
+        el.btnSubmitPaymentText.textContent = selectedBillingCycle === 'yearly' ? 'Pay $290.00 & Activate Annual Pro' : 'Pay $29.00 & Activate Monthly Pro';
+      }
+    }
+  }
+
+  // --- TRIAL EXPIRED MODAL ---
+  function showTrialExpiredModal() {
+    const isMobile = isNativeMobileApp();
+    const isAdmin = currentUser && currentUser.role === 'admin';
+
+    if (isMobile) {
+      if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
+      if (el.expiredMobileActions) el.expiredMobileActions.classList.remove('hidden');
+      if (el.expiredModalMsg) {
+        el.expiredModalMsg.textContent = 'The 14-day free trial for this restaurant workspace has expired. To continue using CrewClock, please visit our web portal at crewclock.com in your web browser to activate your subscription.';
+      }
+    } else {
+      if (isAdmin) {
+        if (el.expiredWebActions) el.expiredWebActions.classList.remove('hidden');
+        if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
+        if (el.expiredModalMsg) {
+          el.expiredModalMsg.textContent = 'The 14-day free trial for your restaurant workspace has expired. Choose a monthly or annual plan to continue uninterrupted attendance tracking.';
+        }
+      } else {
+        if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
+        if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
+        if (el.expiredModalMsg) {
+          el.expiredModalMsg.textContent = 'The 14-day free trial for this restaurant has expired. Please notify your restaurant administrator to renew the subscription on the web portal.';
+        }
+      }
+    }
+
+    if (el.trialExpiredModal) el.trialExpiredModal.classList.remove('hidden');
+  }
+
+  function closeTrialExpiredModal() {
+    if (el.trialExpiredModal) el.trialExpiredModal.classList.add('hidden');
   }
 
   // --- MOBILE HAPTIC FEEDBACK ---
@@ -1917,8 +2384,14 @@
         if (el.historyModal) el.historyModal.classList.remove('hidden');
       });
     }
-    if (el.btnCloseHistory) el.btnCloseHistory.addEventListener('click', () => el.historyModal?.classList.add('hidden'));
-    if (el.btnCloseHistoryBottom) el.btnCloseHistoryBottom.addEventListener('click', () => el.historyModal?.classList.add('hidden'));
+    if (el.btnCloseHistory) el.btnCloseHistory.addEventListener('click', () => {
+      el.historyModal?.classList.add('hidden');
+      setActiveMobileTab('shift');
+    });
+    if (el.btnCloseHistoryBottom) el.btnCloseHistoryBottom.addEventListener('click', () => {
+      el.historyModal?.classList.add('hidden');
+      setActiveMobileTab('shift');
+    });
     if (el.btnClearHistory) {
       el.btnClearHistory.addEventListener('click', () => {
         if (confirm('Clear all local shift records? This does not delete rows from your Google Sheet.')) {
@@ -1950,7 +2423,10 @@
     // Settings Modal
     if (el.btnOpenSettings) el.btnOpenSettings.addEventListener('click', openSettingsModal);
 
-    const closeSettings = () => el.settingsModal?.classList.add('hidden');
+    const closeSettings = () => {
+      el.settingsModal?.classList.add('hidden');
+      setActiveMobileTab('shift');
+    };
     if (el.btnCloseSettings) el.btnCloseSettings.addEventListener('click', closeSettings);
     if (el.btnCancelSettings) el.btnCancelSettings.addEventListener('click', closeSettings);
 
@@ -1997,14 +2473,42 @@
       });
     }
 
+    // In-Shift Navigation Shortcut Events (Active Shift Screen)
+    if (el.btnShiftHistory) {
+      el.btnShiftHistory.addEventListener('click', () => {
+        triggerHaptic();
+        setActiveMobileTab('history');
+        renderHistoryModal();
+        if (el.historyModal) el.historyModal.classList.remove('hidden');
+      });
+    }
+
+    if (el.btnShiftTeam) {
+      el.btnShiftTeam.addEventListener('click', () => {
+        triggerHaptic();
+        setActiveMobileTab('team');
+        openTeamModal();
+      });
+    }
+
+    if (el.btnShiftSettings) {
+      el.btnShiftSettings.addEventListener('click', () => {
+        triggerHaptic();
+        setActiveMobileTab('settings');
+        openSettingsModal();
+      });
+    }
+
     // Mobile Bottom Navigation Events
     if (el.mobileNavClock) {
       el.mobileNavClock.addEventListener('click', () => {
         triggerHaptic();
+        setActiveMobileTab('shift');
         if (el.historyModal) el.historyModal.classList.add('hidden');
         if (el.teamModal) el.teamModal.classList.add('hidden');
         if (el.settingsModal) el.settingsModal.classList.add('hidden');
         if (el.farewellModal) el.farewellModal.classList.add('hidden');
+        if (el.billingModal) el.billingModal.classList.add('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         refreshScreenState();
       });
@@ -2013,8 +2517,10 @@
     if (el.mobileNavHistory) {
       el.mobileNavHistory.addEventListener('click', () => {
         triggerHaptic();
+        setActiveMobileTab('history');
         if (el.teamModal) el.teamModal.classList.add('hidden');
         if (el.settingsModal) el.settingsModal.classList.add('hidden');
+        if (el.billingModal) el.billingModal.classList.add('hidden');
         renderHistoryModal();
         if (el.historyModal) el.historyModal.classList.remove('hidden');
       });
@@ -2025,7 +2531,44 @@
         triggerHaptic();
         if (el.historyModal) el.historyModal.classList.add('hidden');
         if (el.settingsModal) el.settingsModal.classList.add('hidden');
+        if (el.billingModal) el.billingModal.classList.add('hidden');
+
+        if (!currentUser) {
+          alert('Team Management:\n\nPlease sign in with Google as a Restaurant Admin to manage team members.');
+          return;
+        }
+        if (currentUser.role !== 'admin') {
+          alert('Team Management:\n\nOnly authorized restaurant Admins can access Team Management.');
+          return;
+        }
+
+        setActiveMobileTab('team');
         openTeamModal();
+      });
+    }
+
+    if (el.mobileNavBilling) {
+      el.mobileNavBilling.addEventListener('click', () => {
+        triggerHaptic();
+        if (el.historyModal) el.historyModal.classList.add('hidden');
+        if (el.teamModal) el.teamModal.classList.add('hidden');
+        if (el.settingsModal) el.settingsModal.classList.add('hidden');
+
+        if (isNativeMobileApp()) {
+          alert('Subscription Notice:\n\nSubscription & payment management is only supported via our Web Portal at crewclock.com.');
+          return;
+        }
+        if (!currentUser) {
+          alert('Subscription & Billing:\n\nPlease sign in with Google as a Restaurant Admin to manage your workspace subscription.');
+          return;
+        }
+        if (currentUser.role !== 'admin') {
+          alert('Subscription & Billing:\n\nOnly restaurant administrators can manage subscription and billing.');
+          return;
+        }
+
+        setActiveMobileTab('billing');
+        openBillingModal();
       });
     }
 
@@ -2034,16 +2577,97 @@
         triggerHaptic();
         if (el.historyModal) el.historyModal.classList.add('hidden');
         if (el.teamModal) el.teamModal.classList.add('hidden');
+        if (el.billingModal) el.billingModal.classList.add('hidden');
+        setActiveMobileTab('settings');
         openSettingsModal();
       });
     }
 
+    // Subscription & Billing Events (Web App Only)
+    if (el.btnOpenBilling) {
+      el.btnOpenBilling.addEventListener('click', () => {
+        triggerHaptic();
+        openBillingModal();
+      });
+    }
+    if (el.btnCloseBilling) {
+      el.btnCloseBilling.addEventListener('click', () => {
+        closeBillingModal();
+        setActiveMobileTab('shift');
+      });
+    }
+    if (el.btnSettingsUpgrade) {
+      el.btnSettingsUpgrade.addEventListener('click', () => {
+        triggerHaptic();
+        closeSettings();
+        openBillingModal();
+      });
+    }
+
+    if (el.planCardMonthly) {
+      el.planCardMonthly.addEventListener('click', () => selectBillingPlan('monthly'));
+    }
+    if (el.planCardYearly) {
+      el.planCardYearly.addEventListener('click', () => selectBillingPlan('yearly'));
+    }
+
+    if (el.formBillingPayment) {
+      el.formBillingPayment.addEventListener('submit', (e) => {
+        triggerHaptic();
+        handlePaymentSubmit(e);
+      });
+    }
+
+    if (el.btnFinishBilling) {
+      el.btnFinishBilling.addEventListener('click', () => {
+        triggerHaptic();
+        closeBillingModal();
+        setActiveMobileTab('shift');
+        refreshScreenState();
+      });
+    }
+
+    // Trial Expired Modal Events
+    if (el.btnExpiredUpgrade) {
+      el.btnExpiredUpgrade.addEventListener('click', () => {
+        triggerHaptic();
+        closeTrialExpiredModal();
+        openBillingModal();
+      });
+    }
+    if (el.btnExpiredLogout) {
+      el.btnExpiredLogout.addEventListener('click', () => {
+        triggerHaptic();
+        closeTrialExpiredModal();
+        triggerLogout();
+      });
+    }
+
+    // Credit Card Input Auto-Formatting
+    if (el.inputCardNumber) {
+      el.inputCardNumber.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').substring(0, 16);
+        val = val.match(/.{1,4}/g)?.join(' ') || val;
+        e.target.value = val;
+      });
+    }
+    if (el.inputCardExp) {
+      el.inputCardExp.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').substring(0, 4);
+        if (val.length >= 3) {
+          val = val.substring(0, 2) + '/' + val.substring(2);
+        }
+        e.target.value = val;
+      });
+    }
+
     // Modal backdrop click-to-dismiss for bottom sheets
-    [el.farewellModal, el.historyModal, el.settingsModal, el.teamModal].forEach(modalEl => {
+    [el.farewellModal, el.historyModal, el.settingsModal, el.teamModal, el.billingModal, el.trialExpiredModal].forEach(modalEl => {
       if (modalEl) {
         modalEl.addEventListener('click', (e) => {
           if (e.target === modalEl) {
             modalEl.classList.add('hidden');
+            setActiveMobileTab('shift');
           }
         });
       }

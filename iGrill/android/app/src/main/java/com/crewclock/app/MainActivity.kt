@@ -125,9 +125,9 @@ class MainActivity : AppCompatActivity() {
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
 
-        // Custom User Agent to satisfy Google Identity Services (stripping '; wv' prevents 403 disallowed_useragent)
+        // Custom User Agent to satisfy Google Identity Services and identify native app
         val defaultUserAgent = settings.userAgentString
-        val cleanUserAgent = defaultUserAgent.replace("; wv", "").replace("Version/4.0 ", "")
+        val cleanUserAgent = defaultUserAgent.replace("; wv", "").replace("Version/4.0 ", "") + " CrewClockApp/1.0 (Android)"
         settings.userAgentString = cleanUserAgent
 
         // Cookie Management for Google OAuth
@@ -137,7 +137,7 @@ class MainActivity : AppCompatActivity() {
             cookieManager.setAcceptThirdPartyCookies(webView, true)
         }
 
-        // Register Native JavaScript Bridge to auto-dismiss OAuth dialog on auth success
+        // Register Native JavaScript Bridge to auto-dismiss OAuth dialog on auth success & platform detection
         webView.addJavascriptInterface(object {
             @JavascriptInterface
             fun onAuthSuccess() {
@@ -145,6 +145,12 @@ class MainActivity : AppCompatActivity() {
                     dismissOAuthDialog()
                 }
             }
+
+            @JavascriptInterface
+            fun isNativeApp(): Boolean = true
+
+            @JavascriptInterface
+            fun getPlatform(): String = "android"
         }, "AndroidBridge")
 
         // Setup Clients

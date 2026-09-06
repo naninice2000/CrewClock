@@ -34,7 +34,15 @@ function handleTenancyRequest(e) {
       "Admin Email",
       "Attendance Sheet URL",
       "Time Zone",
-      "Created At"
+      "Created At",
+      "Subscription Status",
+      "Trial Ends At",
+      "Plan",
+      "Billing Cycle",
+      "Paid Amount",
+      "Payment Date",
+      "Payment Reference",
+      "Subscription Ends At"
     ]);
     var usersSheet = getOrCreateSheet(ss, "Users", [
       "User Email",
@@ -95,12 +103,13 @@ function handleTenancyRequest(e) {
         success: true,
         exists: true,
         user: user,
-        tenant: tenant
+        tenant: tenant,
+        subscription: tenant ? tenant.subscription : null
       });
     }
 
     // ============================================================
-    // ACTION 1: ADMIN SIGNUP (Create Tenant & Register Admin User)
+    // ACTION 1: ADMIN SIGNUP (Create Tenant & Register Admin User with 14-Day Free Trial)
     // ============================================================
     if (action === "signup") {
       if (!email) return responseJSON({ success: false, error: "Email is required for signup" });
@@ -115,7 +124,8 @@ function handleTenancyRequest(e) {
           message: "User already registered",
           alreadyRegistered: true,
           user: existingUser,
-          tenant: tenant
+          tenant: tenant,
+          subscription: tenant ? tenant.subscription : null
         });
       }
 
@@ -125,8 +135,12 @@ function handleTenancyRequest(e) {
       var timeZone = data.timeZone || "America/Los_Angeles";
       var tenantId = "t_" + Utilities.getUuid().slice(0, 8);
       var adminName = data.name || "Restaurant Admin";
+      
+      // Calculate 14-day free trial dates
+      var trialDurationMs = 14 * 24 * 60 * 60 * 1000;
+      var trialEndsAt = new Date(Date.now() + trialDurationMs).toISOString();
 
-      // 1. Append to Tenants sheet
+      // 1. Append to Tenants sheet (Cols 1 to 15)
       tenantsSheet.appendRow([
         tenantId,
         restaurantName,
@@ -134,7 +148,15 @@ function handleTenancyRequest(e) {
         email,
         attendanceScriptUrl,
         timeZone,
-        nowIso
+        nowIso,
+        "trial",        // Col 8: Subscription Status
+        trialEndsAt,    // Col 9: Trial Ends At (14 days)
+        "Free Trial",   // Col 10: Plan
+        "trial",        // Col 11: Billing Cycle
+        "$0.00",        // Col 12: Paid Amount
+        "",             // Col 13: Payment Date
+        "",             // Col 14: Payment Reference
+        trialEndsAt     // Col 15: Subscription Ends At
       ]);
 
       // 2. Append to Users sheet (Role: admin)
@@ -148,17 +170,13 @@ function handleTenancyRequest(e) {
         nowIso
       ]);
 
+      var newTenant = findTenantById(tenantsSheet, tenantId);
+
       return responseJSON({
         success: true,
-        message: "Restaurant workspace created successfully!",
-        tenant: {
-          tenantId: tenantId,
-          restaurantName: restaurantName,
-          logoUrl: logoUrl,
-          adminEmail: email,
-          attendanceScriptUrl: attendanceScriptUrl,
-          timeZone: timeZone
-        },
+        message: "Restaurant workspace created successfully with 14-day Free Trial!",
+        tenant: newTenant,
+        subscription: newTenant ? newTenant.subscription : null,
         user: {
           email: email,
           name: adminName,
@@ -324,6 +342,15 @@ function handleTenancyRequest(e) {
         return responseJSON({ success: false, error: "Restaurant workspace not found." });
       }
 
+      // 2.1 Verify Tenant Subscription or Free Trial is Valid
+      if (tenant.subscription && !tenant.subscription.isValid) {
+        return responseJSON({
+          success: false,
+          expired: true,
+          error: "Subscription Required: The 14-day free trial for " + tenant.restaurantName + " has expired. The restaurant administrator must activate a subscription via the CrewClock Web Portal to continue logging attendance shifts."
+        });
+      }
+
       var targetSheet = tenant.attendanceScriptUrl || "";
       var sheetId = extractSpreadsheetIdFromStr(targetSheet);
       if (!sheetId) {
@@ -452,6 +479,71 @@ function handleTenancyRequest(e) {
       return responseJSON({ success: false, error: "Unknown subAction: " + subAction });
     }
 
+    // ============================================================
+    // ACTION 7: RECORD PAYMENT / ACTIVATE SUBSCRIPTION (Admin Web Only)
+    // ============================================================
+    else if (action === "record_payment") {
+      var adminEmail = (data.adminEmail || "").trim().toLowerCase();
+      var tenantId = (data.tenantId || "").trim();
+      var plan = data.plan || "Monthly Pro";
+      var billingCycle = (data.billingCycle || "monthly").toLowerCase();
+      var paidAmount = data.paidAmount || (billingCycle === "yearly" ? "$290.00" : "$29.00");
+      var paymentRef = data.paymentRef || ("PAY_" + Utilities.getUuid().slice(0, 8).toUpperCase());
+      var durationDays = parseInt(data.durationDays || (billingCycle === "yearly" ? 365 : 30), 10);
+
+      if (!adminEmail || !tenantId) {
+        return responseJSON({ success: false, error: "Both adminEmail and tenantId are required to record payment" });
+      }
+
+      // Verify caller is admin of this tenant
+      var adminUser = findUserByEmail(usersSheet, adminEmail);
+      if (!adminUser || adminUser.role !== "admin" || adminUser.tenantId !== tenantId) {
+        return responseJSON({ success: false, error: "Unauthorized: Only an authorized Admin can manage subscriptions." });
+      }
+
+      var tenant = findTenantById(tenantsSheet, tenantId);
+      if (!tenant) {
+        return responseJSON({ success: false, error: "Tenant workspace not found" });
+      }
+
+      // Calculate new subscription end date
+      var now = new Date();
+      var baseDate = now;
+      if (tenant.subscriptionEndsAt) {
+        var existingEnd = new Date(tenant.subscriptionEndsAt);
+        if (existingEnd.getTime() > now.getTime()) {
+          baseDate = existingEnd; // Extend from current expiration date
+        }
+      }
+      var newSubscriptionEnd = new Date(baseDate.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+      // Update tenant row in Tenants sheet
+      var updated = updateTenantSubscription(tenantsSheet, tenantId, {
+        subscriptionStatus: "active",
+        plan: plan,
+        billingCycle: billingCycle,
+        paidAmount: paidAmount,
+        paymentDate: nowIso,
+        paymentRef: paymentRef,
+        subscriptionEndsAt: newSubscriptionEnd
+      });
+
+      return responseJSON({
+        success: true,
+        message: "Payment processed successfully! Your subscription is now active.",
+        tenant: updated,
+        subscription: updated ? updated.subscription : null,
+        payment: {
+          plan: plan,
+          billingCycle: billingCycle,
+          paidAmount: paidAmount,
+          paymentRef: paymentRef,
+          paymentDate: nowIso,
+          subscriptionEndsAt: newSubscriptionEnd
+        }
+      });
+    }
+
     return responseJSON({ success: false, error: "Unknown action: " + action });
 
   } catch (err) {
@@ -472,6 +564,19 @@ function getOrCreateSheet(ss, name, headers) {
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#F1F5F9");
     sheet.setFrozenRows(1);
+  } else {
+    // Automatically migrate and append any new columns to existing sheet
+    try {
+      var lastCol = sheet.getLastColumn();
+      if (lastCol > 0 && lastCol < headers.length) {
+        var existingHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+        for (var h = existingHeaders.length; h < headers.length; h++) {
+          sheet.getRange(1, h + 1).setValue(headers[h]).setFontWeight("bold").setBackground("#F1F5F9");
+        }
+      }
+    } catch (migErr) {
+      console.warn("Header migration note:", migErr);
+    }
   }
   return sheet;
 }
@@ -499,9 +604,39 @@ function findUserByEmail(usersSheet, email) {
 function findTenantById(tenantsSheet, tenantId) {
   var lastRow = tenantsSheet.getLastRow();
   if (lastRow <= 1) return null;
-  var rows = tenantsSheet.getRange(2, 1, lastRow - 1, 7).getValues();
+  var colCount = Math.max(15, tenantsSheet.getLastColumn());
+  var rows = tenantsSheet.getRange(2, 1, lastRow - 1, colCount).getValues();
   for (var i = 0; i < rows.length; i++) {
     if ((rows[i][0] || "").toString().trim() === tenantId) {
+      var createdAt = rows[i][6] || new Date().toISOString();
+      var trialEndsAt = rows[i][8];
+      if (!trialEndsAt) {
+        var createdDate = new Date(createdAt);
+        if (isNaN(createdDate.getTime())) createdDate = new Date();
+        trialEndsAt = new Date(createdDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      }
+
+      var rawStatus = (rows[i][7] || "trial").toString().toLowerCase();
+      var plan = rows[i][9] || "Free Trial";
+      var billingCycle = rows[i][10] || "trial";
+      var paidAmount = rows[i][11] || "$0.00";
+      var paymentDate = rows[i][12] || "";
+      var paymentRef = rows[i][13] || "";
+      var subscriptionEndsAt = rows[i][14] || trialEndsAt;
+
+      // Dynamic validity computation
+      var now = new Date();
+      var trialEndDate = new Date(trialEndsAt);
+      var subEndDate = new Date(subscriptionEndsAt);
+      var isPaid = rawStatus === "active";
+      var isPaidActive = isPaid && subEndDate.getTime() > now.getTime();
+      var isTrialActive = !isPaid && trialEndDate.getTime() > now.getTime();
+      var isValid = isPaidActive || isTrialActive;
+
+      var effectiveEndDate = isPaidActive ? subEndDate : trialEndDate;
+      var daysRemaining = Math.max(0, Math.ceil((effectiveEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      var dynamicStatus = isPaidActive ? "active" : (isTrialActive ? "trial" : "expired");
+
       return {
         tenantId: rows[i][0],
         restaurantName: rows[i][1],
@@ -509,8 +644,49 @@ function findTenantById(tenantsSheet, tenantId) {
         adminEmail: rows[i][3],
         attendanceScriptUrl: rows[i][4],
         timeZone: rows[i][5],
-        createdAt: rows[i][6]
+        createdAt: createdAt,
+        subscriptionStatus: dynamicStatus,
+        trialEndsAt: trialEndsAt,
+        plan: plan,
+        billingCycle: billingCycle,
+        paidAmount: paidAmount,
+        paymentDate: paymentDate,
+        paymentRef: paymentRef,
+        subscriptionEndsAt: subscriptionEndsAt,
+        subscription: {
+          status: dynamicStatus,
+          plan: plan,
+          billingCycle: billingCycle,
+          isTrial: isTrialActive,
+          isPaid: isPaidActive,
+          isValid: isValid,
+          daysRemaining: daysRemaining,
+          trialEndsAt: trialEndsAt,
+          subscriptionEndsAt: subscriptionEndsAt,
+          paidAmount: paidAmount,
+          paymentRef: paymentRef
+        }
       };
+    }
+  }
+  return null;
+}
+
+function updateTenantSubscription(tenantsSheet, tenantId, sub) {
+  var lastRow = tenantsSheet.getLastRow();
+  if (lastRow <= 1) return null;
+  var rows = tenantsSheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  for (var i = 0; i < rows.length; i++) {
+    if ((rows[i][0] || "").toString().trim() === tenantId) {
+      var rowNum = i + 2;
+      tenantsSheet.getRange(rowNum, 8).setValue(sub.subscriptionStatus);
+      tenantsSheet.getRange(rowNum, 10).setValue(sub.plan);
+      tenantsSheet.getRange(rowNum, 11).setValue(sub.billingCycle);
+      tenantsSheet.getRange(rowNum, 12).setValue(sub.paidAmount);
+      tenantsSheet.getRange(rowNum, 13).setValue(sub.paymentDate);
+      tenantsSheet.getRange(rowNum, 14).setValue(sub.paymentRef);
+      tenantsSheet.getRange(rowNum, 15).setValue(sub.subscriptionEndsAt);
+      return findTenantById(tenantsSheet, tenantId);
     }
   }
   return null;

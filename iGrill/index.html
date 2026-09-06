@@ -55,12 +55,12 @@
 <body class="bg-gradient-to-br from-amber-50 via-warmgray-50 to-orange-50 text-warmgray-900 flex flex-col justify-between min-h-screen selection:bg-amber-200">
 
   <!-- TOP APP BAR -->
-  <header class="w-full max-w-xl mx-auto px-4 pt-3 sm:pt-4 pb-2 flex items-center justify-between gap-2">
+  <header class="w-full max-w-3xl mx-auto px-3 sm:px-6 pt-2.5 pb-2.5 flex items-center justify-between gap-2.5 sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-warmgray-200/80 shadow-xs">
     <!-- Restaurant Brand Header -->
-    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-      <div id="brand-logo-container" class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-md shadow-amber-500/20 flex items-center justify-center text-white overflow-hidden p-1.5 flex-shrink-0">
+    <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+      <div id="brand-logo-container" class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-md shadow-amber-500/20 flex items-center justify-center text-white overflow-hidden p-1.5 flex-shrink-0">
         <!-- Default Logo SVG -->
-        <svg id="brand-logo-svg" class="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg id="brand-logo-svg" class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" class="hidden"/>
           <path d="M12 2a5 5 0 0 0-5 5v5a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"/>
           <path d="M8 21h8"/>
@@ -68,8 +68,8 @@
         </svg>
         <img id="brand-logo-img" src="" alt="Logo" class="w-full h-full object-cover rounded-xl hidden" />
       </div>
-      <div class="min-w-0">
-        <h1 id="restaurant-name-display" class="font-serif-title font-bold text-base sm:text-xl leading-tight text-warmgray-900 tracking-tight truncate max-w-[150px] xs:max-w-[210px] sm:max-w-none">
+      <div class="min-w-0 flex-1">
+        <h1 id="restaurant-name-display" class="font-serif-title font-bold text-sm sm:text-lg leading-snug text-warmgray-900 tracking-tight truncate">
           Lightning Ventures LLC
         </h1>
         <p class="text-[10px] sm:text-xs font-medium text-amber-700/80 flex items-center gap-1.5 truncate">
@@ -82,14 +82,15 @@
     <!-- Quick Actions -->
     <div class="flex items-center gap-1.5 flex-shrink-0">
       <!-- User Profile Badge (Visible when logged in) -->
-      <div id="header-user-badge" class="hidden flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-white/90 border border-warmgray-200/80 shadow-xs">
+      <div id="header-user-badge" class="hidden flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 rounded-xl bg-white/90 border border-warmgray-200/80 shadow-xs flex-shrink-0">
         <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center text-[10px] font-bold overflow-hidden flex-shrink-0">
           <span id="header-user-initials">U</span>
-          <img id="header-user-img" src="" alt="Avatar" class="w-full h-full object-cover hidden" />
+          <img id="header-user-img" src="" alt="Avatar" referrerpolicy="no-referrer" class="w-full h-full object-cover hidden" />
         </div>
-        <div class="hidden xs:flex items-center gap-1">
-          <span id="header-user-name" class="text-xs font-bold text-warmgray-800 max-w-[70px] sm:max-w-[100px] truncate">User</span>
-          <span id="header-role-pill" class="hidden px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-200">Admin</span>
+        <div class="flex items-center gap-1">
+          <span id="header-user-name" class="text-xs font-bold text-warmgray-800 max-w-[50px] sm:max-w-[90px] truncate">User</span>
+          <span id="header-role-pill" class="hidden px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
+          <span id="header-plan-pill" class="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-100 text-emerald-800 border border-emerald-300">14d Trial</span>
         </div>
         <button id="btn-logout-trigger" title="Sign Out" class="text-warmgray-400 hover:text-rose-600 p-1 transition-colors touch-target" aria-label="Sign Out">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,6 +105,13 @@
         <button id="btn-open-team" title="Manage Staff Team" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </button>
+
+        <!-- Subscription & Billing Button (Visible only on Web App to Admin) -->
+        <button id="btn-open-billing" title="Subscription & Billing" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-amber-700 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
           </svg>
         </button>
 
@@ -235,13 +243,13 @@
         <div class="relative inline-block">
           <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-500 to-orange-400 p-1 shadow-lg shadow-amber-500/20 flex items-center justify-center text-white text-xl sm:text-2xl font-bold overflow-hidden">
             <span id="ready-user-initials">U</span>
-            <img id="ready-user-img" src="" alt="Avatar" class="w-full h-full object-cover rounded-full hidden" />
+            <img id="ready-user-img" src="" alt="Avatar" referrerpolicy="no-referrer" class="w-full h-full object-cover rounded-full hidden" />
           </div>
           <span class="absolute bottom-0 right-0 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-white text-[9px] sm:text-[10px]">✓</span>
         </div>
 
         <div>
-          <h2 class="text-xl sm:text-2xl font-bold text-warmgray-900">
+          <h2 id="ready-screen-greeting" class="text-xl sm:text-2xl font-bold text-warmgray-900">
             Ready for your shift?
           </h2>
           <p id="ready-user-name" class="text-sm sm:text-base font-semibold text-amber-800 mt-0.5">
@@ -250,6 +258,15 @@
           <p id="ready-user-email" class="text-xs text-warmgray-500 font-mono truncate max-w-xs mx-auto">
             user@gmail.com
           </p>
+          <!-- Prominent Role & Subscription Badges -->
+          <div class="flex items-center justify-center gap-1.5 mt-2 flex-wrap">
+            <span id="ready-role-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+              👑 Restaurant Admin
+            </span>
+            <span id="ready-plan-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+              14d Free Trial
+            </span>
+          </div>
         </div>
       </div>
 
@@ -277,7 +294,7 @@
         <div class="relative inline-block">
           <div id="user-avatar" class="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-500 to-orange-400 p-1 shadow-lg shadow-amber-500/20 flex items-center justify-center text-white text-xl sm:text-2xl font-bold overflow-hidden">
             <span id="user-avatar-initials">U</span>
-            <img id="user-avatar-img" src="" alt="Avatar" class="w-full h-full object-cover rounded-full hidden" />
+            <img id="user-avatar-img" src="" alt="Avatar" referrerpolicy="no-referrer" class="w-full h-full object-cover rounded-full hidden" />
           </div>
           <span class="absolute bottom-0 right-0 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-white text-[9px] sm:text-[10px]">✓</span>
         </div>
@@ -296,7 +313,7 @@
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
             </svg>
-            <span class="font-semibold text-blue-900 hidden xs:inline">Verified:</span>
+            <span class="font-semibold text-blue-900 inline">Verified:</span>
             <span id="active-user-email" class="font-mono font-medium truncate">user@gmail.com</span>
           </div>
         </div>
@@ -355,6 +372,29 @@
           </svg>
           <span id="sync-status-text" class="truncate">Clocked In and Saved to System</span>
         </div>
+      </div>
+
+      <!-- IN-SHIFT QUICK NAVIGATION (Access logs, team, settings while on active shift) -->
+      <div class="grid grid-cols-3 gap-2 mb-4 text-xs">
+        <button id="btn-shift-history" type="button" class="py-2.5 px-2 rounded-xl bg-warmgray-100 hover:bg-warmgray-200 text-warmgray-800 font-semibold flex items-center justify-center gap-1.5 btn-press touch-target border border-warmgray-200/80">
+          <svg class="w-4 h-4 text-warmgray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Shift Logs</span>
+        </button>
+        <button id="btn-shift-team" type="button" class="py-2.5 px-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold flex items-center justify-center gap-1.5 btn-press touch-target border border-amber-200">
+          <svg class="w-4 h-4 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <span>Team</span>
+        </button>
+        <button id="btn-shift-settings" type="button" class="py-2.5 px-2 rounded-xl bg-warmgray-100 hover:bg-warmgray-200 text-warmgray-800 font-semibold flex items-center justify-center gap-1.5 btn-press touch-target border border-warmgray-200/80">
+          <svg class="w-4 h-4 text-warmgray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Settings</span>
+        </button>
       </div>
 
       <!-- MAIN CLOCK-OUT BUTTON -->
@@ -531,6 +571,28 @@
           </select>
           <p class="text-[11px] text-warmgray-500 mt-1">Official timezone used for shift calculation and cutoffs.</p>
         </div>
+
+        <!-- Workspace Subscription & Plan -->
+        <div class="pt-2 border-t border-warmgray-200">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="font-semibold text-warmgray-800">Workspace Subscription</label>
+            <span id="settings-sub-badge" class="text-[10px] text-emerald-800 bg-emerald-100 font-bold px-2 py-0.5 rounded-full border border-emerald-200">14-Day Free Trial</span>
+          </div>
+          <div class="p-3 bg-warmgray-50 border border-warmgray-200/90 rounded-xl flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p id="settings-sub-plan" class="font-bold text-warmgray-900 text-xs truncate">Free Trial Plan</p>
+              <p id="settings-sub-expiry" class="text-[11px] text-warmgray-600 mt-0.5 truncate">14 days left in trial</p>
+            </div>
+            <!-- Web App only: Manage/Upgrade button -->
+            <button id="btn-settings-upgrade" type="button" class="hidden px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs shadow-xs btn-press flex-shrink-0 touch-target">
+              Manage Plan
+            </button>
+            <!-- Mobile App: informational note -->
+            <p id="settings-mobile-sub-note" class="hidden text-[10px] text-warmgray-500 max-w-[140px] text-right flex-shrink-0">
+              Billing managed on Web App
+            </p>
+          </div>
+        </div>
       </div>
 
       <div class="pt-3 border-t border-warmgray-200 flex items-center justify-end gap-2">
@@ -561,6 +623,18 @@
             <h3 class="font-bold text-lg text-warmgray-900">Create Restaurant Workspace</h3>
             <p class="text-xs text-warmgray-500">Welcome! Set up your restaurant details as Admin</p>
           </div>
+        </div>
+      <!-- 14-Day Free Trial Callout Banner -->
+      <div class="mt-3 p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 rounded-2xl flex items-start gap-2.5 shadow-xs">
+        <span class="text-xl flex-shrink-0">🎁</span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h4 class="font-bold text-xs text-emerald-950">14-Day Free Trial Included</h4>
+            <span class="px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded text-[9px] font-bold uppercase">Free</span>
+          </div>
+          <p id="onboard-trial-desc" class="text-[11px] text-emerald-900 mt-1 leading-relaxed">
+            Every new restaurant workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via the Web Portal.
+          </p>
         </div>
       </div>
 
@@ -674,12 +748,220 @@
   </div>
 
   <!-- ============================================== -->
+  <!-- MODAL: BILLING & SUBSCRIPTION (WEB APP ONLY)   -->
+  <!-- ============================================== -->
+  <div id="billing-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[94dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-sm">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-warmgray-900">Subscription & Billing</h3>
+            <p class="text-xs text-warmgray-500">Manage plan, trial status & payments</p>
+          </div>
+        </div>
+        <button id="btn-close-billing" class="p-2 rounded-xl text-warmgray-500 hover:bg-warmgray-100 touch-target" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Current Subscription Status Pill / Banner -->
+      <div id="billing-current-status-banner" class="mt-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800">Current Status</span>
+          <h4 id="billing-status-title" class="font-bold text-sm text-warmgray-900 mt-0.5 truncate">14-Day Free Trial</h4>
+          <p id="billing-status-desc" class="text-xs text-warmgray-600 mt-0.5 truncate">14 days left in your trial</p>
+        </div>
+        <div id="billing-status-chip" class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 flex-shrink-0">
+          Trial Active
+        </div>
+      </div>
+
+      <!-- Checkout View (Shown if choosing / paying) -->
+      <div id="billing-checkout-container" class="py-4 space-y-4 text-xs">
+        <!-- Choose Billing Cycle -->
+        <div>
+          <label class="block font-semibold text-warmgray-800 mb-2">Select Your Plan</label>
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Monthly Plan Card -->
+            <div id="plan-card-monthly" class="plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/40 relative transition-all">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-warmgray-900 text-sm">Monthly Pro</span>
+                <span id="plan-check-monthly" class="w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">✓</span>
+              </div>
+              <p class="text-lg font-extrabold text-warmgray-900 mt-1">$29<span class="text-xs font-normal text-warmgray-500"> / mo</span></p>
+              <p class="text-[10px] text-warmgray-500 mt-1">Billed monthly. Cancel anytime.</p>
+            </div>
+
+            <!-- Annual Plan Card -->
+            <div id="plan-card-yearly" class="plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all">
+              <span class="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-wider shadow-xs">Save $58</span>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-warmgray-900 text-sm">Annual Pro</span>
+                <span id="plan-check-yearly" class="w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]">✓</span>
+              </div>
+              <p class="text-lg font-extrabold text-warmgray-900 mt-1">$290<span class="text-xs font-normal text-warmgray-500"> / yr</span></p>
+              <p class="text-[10px] text-warmgray-500 mt-1">$24.17/mo. 2 Months Free!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plan Features Inclusion -->
+        <div class="p-3 bg-warmgray-50 rounded-xl border border-warmgray-200/80 space-y-1.5 text-[11px] text-warmgray-700">
+          <div class="flex items-center gap-1.5 font-medium">
+            <span class="text-emerald-600 font-bold">✓</span>
+            <span>Unlimited employee invitations & shift tracking</span>
+          </div>
+          <div class="flex items-center gap-1.5 font-medium">
+            <span class="text-emerald-600 font-bold">✓</span>
+            <span>Tamper-proof proxy logging directly to your Google Sheet</span>
+          </div>
+          <div class="flex items-center gap-1.5 font-medium">
+            <span class="text-emerald-600 font-bold">✓</span>
+            <span>GPS geofencing & map pin verification on every shift</span>
+          </div>
+          <div class="flex items-center gap-1.5 font-medium">
+            <span class="text-emerald-600 font-bold">✓</span>
+            <span>Full iOS & Android native app access for your entire staff</span>
+          </div>
+        </div>
+
+        <!-- Payment Details Form -->
+        <form id="form-billing-payment" class="space-y-3 pt-2 border-t border-warmgray-200">
+          <div>
+            <label class="block font-semibold text-warmgray-800 mb-1">Cardholder Name</label>
+            <input id="input-card-name" type="text" placeholder="Full Name on Card" required class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
+          </div>
+
+          <div>
+            <label class="block font-semibold text-warmgray-800 mb-1">Card Number</label>
+            <div class="relative">
+              <input id="input-card-number" type="text" maxlength="19" placeholder="4242 4242 4242 4242" required class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-mono tracking-wider text-xs pr-12" />
+              <div class="absolute right-3 top-2.5 flex items-center gap-1 text-warmgray-400">
+                <span>💳</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block font-semibold text-warmgray-800 mb-1">Expires</label>
+              <input id="input-card-exp" type="text" maxlength="5" placeholder="MM/YY" required class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-mono text-center text-xs" />
+            </div>
+            <div>
+              <label class="block font-semibold text-warmgray-800 mb-1">CVC</label>
+              <input id="input-card-cvc" type="text" maxlength="4" placeholder="123" required class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-mono text-center text-xs" />
+            </div>
+            <div>
+              <label class="block font-semibold text-warmgray-800 mb-1">ZIP</label>
+              <input id="input-card-zip" type="text" maxlength="10" placeholder="94103" required class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-center text-xs" />
+            </div>
+          </div>
+
+          <div class="pt-2 flex items-center justify-between text-[11px] text-warmgray-500">
+            <span class="flex items-center gap-1">
+              <span>🔒</span>
+              <span>256-Bit SSL Encrypted</span>
+            </span>
+            <span id="billing-charge-summary" class="font-bold text-warmgray-900">Charge: $29.00</span>
+          </div>
+
+          <div id="billing-error-msg" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium"></div>
+
+          <button id="btn-submit-payment" type="submit" class="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-sm shadow-md btn-press flex items-center justify-center gap-2 touch-target">
+            <span id="btn-submit-payment-text">Pay & Activate Subscription</span>
+            <span id="btn-submit-payment-spinner" class="hidden animate-spin">⏳</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Payment Success Receipt View (Shown after payment) -->
+      <div id="billing-receipt-container" class="hidden py-4 text-center space-y-4">
+        <div class="w-14 h-14 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl shadow-inner">
+          ✓
+        </div>
+        <div>
+          <h4 class="font-bold text-lg text-warmgray-900">Payment Successful!</h4>
+          <p class="text-xs text-warmgray-600 mt-1">Your subscription is active and synced to the Tenants Google Sheet.</p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-warmgray-50 border border-warmgray-200 text-left space-y-2 text-xs">
+          <div class="flex justify-between">
+            <span class="text-warmgray-500">Plan:</span>
+            <span id="receipt-plan" class="font-bold text-warmgray-800">Monthly Pro</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-warmgray-500">Amount Paid:</span>
+            <span id="receipt-amount" class="font-bold text-emerald-700 font-mono">$29.00</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-warmgray-500">Transaction ID:</span>
+            <span id="receipt-txn" class="font-mono text-warmgray-700 text-[11px]">PAY_XXXXXXXX</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-warmgray-500">Active Through:</span>
+            <span id="receipt-expiry" class="font-semibold text-warmgray-800">Oct 05, 2026</span>
+          </div>
+        </div>
+
+        <button id="btn-finish-billing" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md btn-press touch-target">
+          Done & Return to Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: TRIAL EXPIRED LOCK NOTICE               -->
+  <!-- ============================================== -->
+  <div id="trial-expired-modal" class="fixed inset-0 bg-warmgray-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-card rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-3xl shadow-inner">
+        ⏳
+      </div>
+      <div>
+        <h3 class="font-bold text-lg text-warmgray-900">14-Day Free Trial Ended</h3>
+        <p id="expired-modal-msg" class="text-xs text-warmgray-600 mt-1.5 leading-relaxed">
+          The 14-day free trial for your restaurant workspace has expired.
+        </p>
+      </div>
+
+      <!-- Web-specific upgrade trigger -->
+      <div id="expired-web-actions" class="space-y-2">
+        <button id="btn-expired-upgrade" class="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md btn-press touch-target">
+          Choose a Plan & Continue ($29/mo)
+        </button>
+      </div>
+
+      <!-- Mobile-specific guidance -->
+      <div id="expired-mobile-actions" class="hidden p-3 bg-amber-50 rounded-xl border border-amber-200 text-left">
+        <p class="text-[11px] text-amber-900 font-medium leading-relaxed">
+          To continue using CrewClock for your restaurant, please visit our web portal at <b>crewclock.com</b> in your web browser to activate your subscription.
+        </p>
+      </div>
+
+      <button id="btn-expired-logout" class="text-warmgray-500 hover:text-warmgray-800 text-xs font-semibold underline touch-target">
+        Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
   <!-- MOBILE BOTTOM NAVIGATION DOCK (PHONES ONLY)    -->
   <!-- ============================================== -->
-  <nav id="mobile-bottom-nav" class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-warmgray-200/80 mobile-dock hidden">
+  <nav id="mobile-bottom-nav" class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-warmgray-200/80 mobile-dock">
     <div class="max-w-md mx-auto flex items-center justify-around px-2 py-1">
       <!-- 1. Shift Tab -->
-      <button id="mobile-nav-clock" class="flex flex-col items-center justify-center py-1 text-amber-600 font-semibold btn-press touch-target" title="Shift View">
+      <button id="mobile-nav-clock" class="flex flex-col items-center justify-center py-1 text-amber-600 font-bold btn-press touch-target" title="Shift View">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -687,23 +969,31 @@
       </button>
 
       <!-- 2. Shift History Log -->
-      <button id="mobile-nav-history" class="flex flex-col items-center justify-center py-1 text-warmgray-600 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Shift Logs">
+      <button id="mobile-nav-history" class="flex flex-col items-center justify-center py-1 text-warmgray-500 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Shift Logs">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
         <span class="text-[10px] mt-0.5">History</span>
       </button>
 
-      <!-- 3. Team Management (Admin only) -->
-      <button id="mobile-nav-team" class="hidden flex-col items-center justify-center py-1 text-warmgray-600 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Manage Staff Team">
+      <!-- 3. Team Management (Admin) -->
+      <button id="mobile-nav-team" class="flex flex-col items-center justify-center py-1 text-warmgray-500 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Manage Staff Team">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
         <span class="text-[10px] mt-0.5">Team</span>
       </button>
 
-      <!-- 4. Settings (Admin only) -->
-      <button id="mobile-nav-settings" class="hidden flex-col items-center justify-center py-1 text-warmgray-600 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Restaurant Settings">
+      <!-- 4. Billing Tab (Web App only) -->
+      <button id="mobile-nav-billing" class="flex flex-col items-center justify-center py-1 text-warmgray-500 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Subscription & Billing">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+        <span class="text-[10px] mt-0.5">Billing</span>
+      </button>
+
+      <!-- 5. Settings -->
+      <button id="mobile-nav-settings" class="flex flex-col items-center justify-center py-1 text-warmgray-500 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Restaurant Settings">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

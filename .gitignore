@@ -1,0 +1,43 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-builder
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+ios/build/
+ios/build_device/
+iGrill/ios/build/
+iGrill/ios/build_device/
+**/DerivedData/
+**/build/
+
+# Android
+.gradle/
+**/build/
+**/local.properties
+**/.idea/
+*.iml
+.cxx/
+*.apk
+*.aab
+*.dex
+*.class
+output-metadata.json
+
+# Local App Builds
+builds/

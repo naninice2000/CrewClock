@@ -9,7 +9,7 @@
 const APP_CONFIG = {
   // Central Multi-Tenancy & User Directory Google Apps Script URL
   // Deploy google-apps-script-tenancy.js to your "Tenants & Users" Google Sheet and paste URL here:
-  tenancyScriptUrl: "https://script.google.com/macros/s/AKfycbzdO465KRfhdKCevp7aDcUj3MG2C_zTg4mnLRi19Vo3ZvENE24fPvzt-pQtMVfbek6q/exec",
+  tenancyScriptUrl: "https://script.google.com/macros/s/AKfycbyHlJpM1Xf_zHVKL4VS8jJXy-0vFpMbdwvcNsEH5ljNuQZVxTjzoO_sZdgci-W0EV-K/exec",
 
   // Google OAuth 2.0 Web Client ID (from Google Cloud Console)
   googleClientId: "581219908499-6t51ebp75one50g1od070tvac8tslntl.apps.googleusercontent.com",
