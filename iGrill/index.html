@@ -43,7 +43,7 @@
   </script>
 
   <!-- Google Fonts & Custom Styles -->
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=20260906_1" />
 
   <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -51,12 +51,12 @@
 <body class="bg-gradient-to-br from-amber-50 via-warmgray-50 to-orange-50 text-warmgray-900 flex flex-col justify-between min-h-screen selection:bg-amber-200">
 
   <!-- TOP APP BAR -->
-  <header class="w-full max-w-xl mx-auto px-4 pt-4 pb-2 flex items-center justify-between">
+  <header class="w-full max-w-xl mx-auto px-4 pt-3 sm:pt-4 pb-2 flex items-center justify-between gap-2">
     <!-- Restaurant Brand Header -->
-    <div class="flex items-center gap-3">
-      <div id="brand-logo-container" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-md shadow-amber-500/20 flex items-center justify-center text-white overflow-hidden p-1.5 flex-shrink-0">
+    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+      <div id="brand-logo-container" class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-md shadow-amber-500/20 flex items-center justify-center text-white overflow-hidden p-1.5 flex-shrink-0">
         <!-- Default Logo SVG -->
-        <svg id="brand-logo-svg" class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg id="brand-logo-svg" class="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" class="hidden"/>
           <path d="M12 2a5 5 0 0 0-5 5v5a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"/>
           <path d="M8 21h8"/>
@@ -64,62 +64,65 @@
         </svg>
         <img id="brand-logo-img" src="" alt="Logo" class="w-full h-full object-cover rounded-xl hidden" />
       </div>
-      <div>
-        <h1 id="restaurant-name-display" class="font-serif-title font-bold text-xl leading-tight text-warmgray-900 tracking-tight">
+      <div class="min-w-0">
+        <h1 id="restaurant-name-display" class="font-serif-title font-bold text-base sm:text-xl leading-tight text-warmgray-900 tracking-tight truncate max-w-[150px] xs:max-w-[210px] sm:max-w-none">
           Lightning Ventures LLC
         </h1>
-        <p class="text-xs font-medium text-amber-700/80 flex items-center gap-1.5">
-          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          Employee Attendance Portal
+        <p class="text-[10px] sm:text-xs font-medium text-amber-700/80 flex items-center gap-1.5 truncate">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+          <span class="truncate">Attendance Portal</span>
         </p>
       </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="flex items-center gap-1.5">
+    <div class="flex items-center gap-1.5 flex-shrink-0">
       <!-- User Profile Badge (Visible when logged in) -->
-      <div id="header-user-badge" class="hidden flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/90 border border-warmgray-200/80 shadow-xs">
+      <div id="header-user-badge" class="hidden flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-white/90 border border-warmgray-200/80 shadow-xs">
         <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center text-[10px] font-bold overflow-hidden flex-shrink-0">
           <span id="header-user-initials">U</span>
           <img id="header-user-img" src="" alt="Avatar" class="w-full h-full object-cover hidden" />
         </div>
-        <div class="flex items-center gap-1">
+        <div class="hidden xs:flex items-center gap-1">
           <span id="header-user-name" class="text-xs font-bold text-warmgray-800 max-w-[70px] sm:max-w-[100px] truncate">User</span>
           <span id="header-role-pill" class="hidden px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-200">Admin</span>
         </div>
-        <button id="btn-logout-trigger" title="Sign Out" class="text-warmgray-400 hover:text-rose-600 p-0.5 transition-colors">
+        <button id="btn-logout-trigger" title="Sign Out" class="text-warmgray-400 hover:text-rose-600 p-1 transition-colors touch-target" aria-label="Sign Out">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
         </button>
       </div>
+ 
+      <!-- Desktop-only Top Navigation Buttons (Completely hidden on mobile phones; mobile uses bottom dock) -->
+      <div id="header-desktop-nav" class="hidden sm:flex items-center gap-1.5">
+        <!-- Team Management Button (Visible only to Admin on desktop) -->
+        <button id="btn-open-team" title="Manage Staff Team" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </button>
 
-      <!-- Team Management Button (Visible only to Admin) -->
-      <button id="btn-open-team" title="Manage Staff Team" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      </button>
+        <!-- Recent Records Button (Visible on desktop) -->
+        <button id="btn-open-history" title="View Shift Log" class="p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
 
-      <!-- Recent Records Button -->
-      <button id="btn-open-history" title="View Shift Log" class="p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </button>
-
-      <!-- Settings Button (Visible only to Admin) -->
-      <button id="btn-open-settings" title="Restaurant Configuration" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      </button>
+        <!-- Settings Button (Visible only to Admin on desktop) -->
+        <button id="btn-open-settings" title="Restaurant Configuration" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
 
   <!-- MAIN CONTAINER -->
-  <main class="w-full max-w-xl mx-auto px-4 py-3 flex-1 flex flex-col justify-center">
+  <main class="w-full max-w-xl mx-auto px-4 py-2 sm:py-3 pb-24 sm:pb-6 flex-1 flex flex-col justify-center">
 
     <!-- LIVE CLOCK CARD -->
     <div class="mb-5 text-center">
@@ -396,8 +399,9 @@
   <!-- ============================================== -->
   <!-- MODAL: CLOCK-OUT CONFIRMATION & FAREWELL       -->
   <!-- ============================================== -->
-  <div id="farewell-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl animate-fade-in">
+  <div id="farewell-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl animate-slide-up sm:animate-fade-in pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-2 sm:hidden flex-shrink-0"></div>
       <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -410,7 +414,7 @@
       <div class="p-3 bg-amber-50 rounded-xl text-amber-900 text-xs font-medium">
         ✨ Have a relaxing evening! See you next shift.
       </div>
-      <button id="btn-close-farewell" class="w-full py-3 rounded-xl bg-warmgray-900 hover:bg-warmgray-800 text-white font-semibold text-sm transition-colors btn-press">
+      <button id="btn-close-farewell" class="w-full py-3.5 rounded-2xl bg-warmgray-900 hover:bg-warmgray-800 text-white font-semibold text-sm transition-colors btn-press touch-target">
         Done (Return to Shift Portal)
       </button>
     </div>
@@ -419,8 +423,9 @@
   <!-- ============================================== -->
   <!-- MODAL: SHIFT HISTORY / LOG INSPECTOR           -->
   <!-- ============================================== -->
-  <div id="history-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="glass-card rounded-3xl max-w-lg w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
+  <div id="history-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
           <div class="p-2 rounded-lg bg-amber-100 text-amber-700">
@@ -433,7 +438,7 @@
             <p class="text-xs text-warmgray-500">Records logged to Google Sheet & Local Storage</p>
           </div>
         </div>
-        <button id="btn-close-history" class="p-1.5 rounded-lg text-warmgray-500 hover:bg-warmgray-100">
+        <button id="btn-close-history" class="p-2 rounded-xl text-warmgray-500 hover:bg-warmgray-100 touch-target" aria-label="Close">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -441,15 +446,15 @@
       </div>
 
       <!-- History Table Container -->
-      <div class="flex-1 overflow-y-auto py-3 space-y-2.5" id="history-list-container">
+      <div class="flex-1 overflow-y-auto py-3 space-y-2.5 modal-scroll" id="history-list-container">
         <!-- Injected via JavaScript -->
       </div>
 
       <div class="pt-3 border-t border-warmgray-200 flex items-center justify-between text-xs">
-        <button id="btn-clear-history" class="text-rose-600 hover:text-rose-800 font-medium">
+        <button id="btn-clear-history" class="text-rose-600 hover:text-rose-800 font-medium py-2 px-1 touch-target">
           Clear Local Log
         </button>
-        <button id="btn-close-history-bottom" class="px-4 py-2 rounded-xl bg-warmgray-900 text-white font-medium hover:bg-warmgray-800">
+        <button id="btn-close-history-bottom" class="px-5 py-2.5 rounded-xl bg-warmgray-900 text-white font-medium hover:bg-warmgray-800 btn-press touch-target">
           Close
         </button>
       </div>
@@ -459,8 +464,9 @@
   <!-- ============================================== -->
   <!-- MODAL: SETTINGS & CONFIGURATION               -->
   <!-- ============================================== -->
-  <div id="settings-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="glass-card rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
+  <div id="settings-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
           <div class="p-2 rounded-lg bg-warmgray-100 text-warmgray-700">
@@ -474,7 +480,7 @@
             <p class="text-xs text-warmgray-500">Customize restaurant branding & Google connections</p>
           </div>
         </div>
-        <button id="btn-close-settings" class="p-1.5 rounded-lg text-warmgray-500 hover:bg-warmgray-100">
+        <button id="btn-close-settings" class="p-2 rounded-xl text-warmgray-500 hover:bg-warmgray-100 touch-target" aria-label="Close">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -526,10 +532,10 @@
       </div>
 
       <div class="pt-3 border-t border-warmgray-200 flex items-center justify-end gap-2">
-        <button id="btn-cancel-settings" class="px-4 py-2 rounded-xl text-warmgray-600 hover:bg-warmgray-100 text-xs font-semibold">
+        <button id="btn-cancel-settings" class="px-4 py-2.5 rounded-xl text-warmgray-600 hover:bg-warmgray-100 text-xs font-semibold touch-target">
           Cancel
         </button>
-        <button id="btn-save-settings" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-md btn-press">
+        <button id="btn-save-settings" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-semibold shadow-md btn-press touch-target">
           Save Settings
         </button>
       </div>
@@ -539,8 +545,9 @@
   <!-- ============================================== -->
   <!-- MODAL: RESTAURANT OWNER ONBOARDING            -->
   <!-- ============================================== -->
-  <div id="onboarding-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="glass-card rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto animate-fade-in">
+  <div id="onboarding-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
           <div class="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-sm">
@@ -594,10 +601,10 @@
       </div>
 
       <div class="pt-3 border-t border-warmgray-200 flex items-center justify-end gap-2">
-        <button id="btn-cancel-onboard" class="px-4 py-2.5 rounded-xl text-warmgray-600 hover:bg-warmgray-100 text-xs font-semibold">
+        <button id="btn-cancel-onboard" class="px-4 py-2.5 rounded-xl text-warmgray-600 hover:bg-warmgray-100 text-xs font-semibold touch-target">
           Cancel
         </button>
-        <button id="btn-save-onboard" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-md btn-press flex items-center gap-1.5">
+        <button id="btn-save-onboard" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-bold shadow-md btn-press flex items-center gap-1.5 touch-target">
           <span>Create Workspace & Start</span>
           <span>→</span>
         </button>
@@ -608,8 +615,9 @@
   <!-- ============================================== -->
   <!-- MODAL: TEAM MANAGEMENT (ADMIN ONLY)            -->
   <!-- ============================================== -->
-  <div id="team-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="glass-card rounded-3xl max-w-lg w-full p-6 shadow-2xl flex flex-col max-h-[85vh] animate-fade-in">
+  <div id="team-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
           <div class="p-2 rounded-xl bg-amber-100 text-amber-700">
@@ -622,7 +630,7 @@
             <p class="text-xs text-warmgray-500">Invite staff by Gmail to allow clock-in access</p>
           </div>
         </div>
-        <button id="btn-close-team" class="p-1.5 rounded-lg text-warmgray-500 hover:bg-warmgray-100">
+        <button id="btn-close-team" class="p-2 rounded-xl text-warmgray-500 hover:bg-warmgray-100 touch-target" aria-label="Close">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -630,7 +638,7 @@
       </div>
 
       <!-- Invite New Employee Form -->
-      <div class="py-3.5 border-b border-warmgray-200 bg-amber-50/60 -mx-6 px-6 space-y-2.5">
+      <div class="py-3.5 border-b border-warmgray-200 bg-amber-50/60 -mx-5 sm:-mx-6 px-5 sm:px-6 space-y-2.5">
         <p class="text-xs font-bold text-amber-900">Invite Employee (Gmail Only)</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           <input id="input-invite-email" type="email" placeholder="staff@gmail.com" class="px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
@@ -638,7 +646,7 @@
         </div>
         <div class="flex items-center justify-between">
           <p id="invite-status-msg" class="text-[11px] text-warmgray-600 truncate"></p>
-          <button id="btn-send-invite" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs shadow-xs btn-press flex items-center gap-1.5 flex-shrink-0">
+          <button id="btn-send-invite" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs shadow-xs btn-press flex items-center gap-1.5 flex-shrink-0 touch-target">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
@@ -648,7 +656,7 @@
       </div>
 
       <!-- Team Members Roster List -->
-      <div class="flex-1 overflow-y-auto py-3 space-y-2" id="team-list-container">
+      <div class="flex-1 overflow-y-auto py-3 space-y-2 modal-scroll" id="team-list-container">
         <!-- Injected via JavaScript -->
         <div class="text-center py-6 text-warmgray-400 text-xs">
           Loading team roster...
@@ -656,15 +664,55 @@
       </div>
 
       <div class="pt-3 border-t border-warmgray-200 flex items-center justify-end text-xs">
-        <button id="btn-close-team-bottom" class="px-4 py-2 rounded-xl bg-warmgray-900 text-white font-medium hover:bg-warmgray-800">
+        <button id="btn-close-team-bottom" class="px-5 py-2.5 rounded-xl bg-warmgray-900 text-white font-medium hover:bg-warmgray-800 btn-press touch-target">
           Close
         </button>
       </div>
     </div>
   </div>
 
+  <!-- ============================================== -->
+  <!-- MOBILE BOTTOM NAVIGATION DOCK (PHONES ONLY)    -->
+  <!-- ============================================== -->
+  <nav id="mobile-bottom-nav" class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-warmgray-200/80 mobile-dock hidden">
+    <div class="max-w-md mx-auto flex items-center justify-around px-2 py-1">
+      <!-- 1. Shift Tab -->
+      <button id="mobile-nav-clock" class="flex flex-col items-center justify-center py-1 text-amber-600 font-semibold btn-press touch-target" title="Shift View">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="text-[10px] mt-0.5">Shift</span>
+      </button>
+
+      <!-- 2. Shift History Log -->
+      <button id="mobile-nav-history" class="flex flex-col items-center justify-center py-1 text-warmgray-600 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Shift Logs">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+        <span class="text-[10px] mt-0.5">History</span>
+      </button>
+
+      <!-- 3. Team Management (Admin only) -->
+      <button id="mobile-nav-team" class="hidden flex-col items-center justify-center py-1 text-warmgray-600 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Manage Staff Team">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <span class="text-[10px] mt-0.5">Team</span>
+      </button>
+
+      <!-- 4. Settings (Admin only) -->
+      <button id="mobile-nav-settings" class="hidden flex-col items-center justify-center py-1 text-warmgray-600 hover:text-warmgray-900 font-semibold btn-press touch-target" title="Restaurant Settings">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span class="text-[10px] mt-0.5">Settings</span>
+      </button>
+    </div>
+  </nav>
+
   <!-- Configuration & Application Logic -->
   <script src="config.js?v=20260905_1"></script>
-  <script src="app.js?v=20260905_4"></script>
+  <script src="app.js?v=20260906_2"></script>
 </body>
 </html>

@@ -94,6 +94,14 @@
     btnOpenTeam: document.getElementById('btn-open-team'),
     btnOpenHistory: document.getElementById('btn-open-history'),
     btnOpenSettings: document.getElementById('btn-open-settings'),
+    headerDesktopNav: document.getElementById('header-desktop-nav'),
+
+    // Mobile Bottom Navigation Dock
+    mobileBottomNav: document.getElementById('mobile-bottom-nav'),
+    mobileNavClock: document.getElementById('mobile-nav-clock'),
+    mobileNavHistory: document.getElementById('mobile-nav-history'),
+    mobileNavTeam: document.getElementById('mobile-nav-team'),
+    mobileNavSettings: document.getElementById('mobile-nav-settings'),
 
     // Screens
     screenLogin: document.getElementById('screen-login'),
@@ -297,7 +305,17 @@
       }
     }
 
-    // Team management button (Admin only)
+    // Desktop Top Navigation Buttons (Hidden on mobile phones; shown on desktop when logged in)
+    const hasSession = !!getUserSession();
+    if (el.headerDesktopNav) {
+      if (hasSession) {
+        el.headerDesktopNav.classList.remove('sm:hidden');
+      } else {
+        el.headerDesktopNav.classList.add('sm:hidden');
+      }
+    }
+
+    // Team management button (Admin only, desktop)
     if (el.btnOpenTeam) {
       if (isAdmin) {
         el.btnOpenTeam.classList.remove('hidden');
@@ -306,12 +324,38 @@
       }
     }
 
-    // App Configuration button (Admin only)
+    // App Configuration button (Admin only, desktop)
     if (el.btnOpenSettings) {
       if (isAdmin) {
         el.btnOpenSettings.classList.remove('hidden');
       } else {
         el.btnOpenSettings.classList.add('hidden');
+      }
+    }
+
+    // Mobile Bottom Navigation Dock (Logged In users only)
+    if (el.mobileBottomNav) {
+      if (hasSession) {
+        el.mobileBottomNav.classList.remove('hidden');
+      } else {
+        el.mobileBottomNav.classList.add('hidden');
+      }
+    }
+
+    // Mobile Bottom Navigation Tabs (Admin only)
+    if (el.mobileNavTeam) {
+      if (isAdmin) {
+        el.mobileNavTeam.classList.remove('hidden');
+      } else {
+        el.mobileNavTeam.classList.add('hidden');
+      }
+    }
+
+    if (el.mobileNavSettings) {
+      if (isAdmin) {
+        el.mobileNavSettings.classList.remove('hidden');
+      } else {
+        el.mobileNavSettings.classList.add('hidden');
       }
     }
   }
@@ -1943,6 +1987,58 @@
         alert('Settings saved successfully!');
       });
     }
+
+    // Mobile Bottom Navigation Events
+    if (el.mobileNavClock) {
+      el.mobileNavClock.addEventListener('click', () => {
+        triggerHaptic();
+        if (el.historyModal) el.historyModal.classList.add('hidden');
+        if (el.teamModal) el.teamModal.classList.add('hidden');
+        if (el.settingsModal) el.settingsModal.classList.add('hidden');
+        if (el.farewellModal) el.farewellModal.classList.add('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        refreshScreenState();
+      });
+    }
+
+    if (el.mobileNavHistory) {
+      el.mobileNavHistory.addEventListener('click', () => {
+        triggerHaptic();
+        if (el.teamModal) el.teamModal.classList.add('hidden');
+        if (el.settingsModal) el.settingsModal.classList.add('hidden');
+        renderHistoryModal();
+        if (el.historyModal) el.historyModal.classList.remove('hidden');
+      });
+    }
+
+    if (el.mobileNavTeam) {
+      el.mobileNavTeam.addEventListener('click', () => {
+        triggerHaptic();
+        if (el.historyModal) el.historyModal.classList.add('hidden');
+        if (el.settingsModal) el.settingsModal.classList.add('hidden');
+        openTeamModal();
+      });
+    }
+
+    if (el.mobileNavSettings) {
+      el.mobileNavSettings.addEventListener('click', () => {
+        triggerHaptic();
+        if (el.historyModal) el.historyModal.classList.add('hidden');
+        if (el.teamModal) el.teamModal.classList.add('hidden');
+        openSettingsModal();
+      });
+    }
+
+    // Modal backdrop click-to-dismiss for bottom sheets
+    [el.farewellModal, el.historyModal, el.settingsModal, el.teamModal].forEach(modalEl => {
+      if (modalEl) {
+        modalEl.addEventListener('click', (e) => {
+          if (e.target === modalEl) {
+            modalEl.classList.add('hidden');
+          }
+        });
+      }
+    });
   }
 
   // Run on DOM Ready
