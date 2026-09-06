@@ -66,7 +66,7 @@
       </div>
       <div>
         <h1 id="restaurant-name-display" class="font-serif-title font-bold text-xl leading-tight text-warmgray-900 tracking-tight">
-          Bella Bistro & Bar
+          Lightning Ventures LLC
         </h1>
         <p class="text-xs font-medium text-amber-700/80 flex items-center gap-1.5">
           <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -179,11 +179,7 @@
           <span class="text-xl">⚠️</span>
           <div>
             <p class="font-bold text-xs text-amber-900">Google OAuth Setup Required</p>
-            <p class="text-[11px] text-amber-800 mt-0.5">Please provide your Google Client ID to enable real Google Gmail employee authentication.</p>
-            <button id="btn-quick-setup" class="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 hover:text-amber-950 underline">
-              <span>Open Settings to add Client ID & Sheet URL</span>
-              <span>→</span>
-            </button>
+            <p class="text-[11px] text-amber-800 mt-0.5">Please provide your Google Client ID in <code class="font-mono bg-amber-100 px-1 py-0.5 rounded">config.js</code> to enable Google authentication.</p>
           </div>
         </div>
       </div>
@@ -511,25 +507,21 @@
           </p>
         </div>
 
-        <!-- Central Tenancy Script URL -->
+        <!-- Restaurant Operational Time Zone -->
         <div class="pt-2 border-t border-warmgray-200">
-          <div class="flex items-center justify-between mb-1">
-            <label class="font-semibold text-warmgray-800">Tenants & Users Directory Script URL</label>
-            <span class="text-[10px] text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded font-mono">Directory</span>
-          </div>
-          <input id="input-tenancy-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-mono text-[11px]" />
-          <p class="text-[11px] text-warmgray-500 mt-1">
-            Central Google Apps Script URL for Tenants & Users Sheet (enables multi-tenancy & employee invites).
-          </p>
-        </div>
-
-        <!-- Google OAuth Client ID -->
-        <div class="pt-2 border-t border-warmgray-200">
-          <div class="flex items-center justify-between mb-1">
-            <label class="font-semibold text-warmgray-800">Google OAuth 2.0 Client ID</label>
-            <span class="text-[10px] text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded font-mono">OAuth 2.0</span>
-          </div>
-          <input id="input-client-id" type="text" placeholder="123456789-xxxxxx.apps.googleusercontent.com" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-mono text-[11px]" />
+          <label class="block font-semibold text-warmgray-800 mb-1">Restaurant Operational Time Zone</label>
+          <select id="input-settings-timezone" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-xs">
+            <option value="America/New_York">Eastern Time (ET)</option>
+            <option value="America/Chicago">Central Time (CT)</option>
+            <option value="America/Denver">Mountain Time (MT)</option>
+            <option value="America/Los_Angeles">Pacific Time (PT)</option>
+            <option value="America/Phoenix">Arizona (MST)</option>
+            <option value="America/Anchorage">Alaska Time (AKT)</option>
+            <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+            <option value="Europe/London">London (GMT/BST)</option>
+            <option value="Asia/Kolkata">India (IST)</option>
+          </select>
+          <p class="text-[11px] text-warmgray-500 mt-1">Official timezone used for shift calculation and cutoffs.</p>
         </div>
       </div>
 
@@ -673,6 +665,6 @@
 
   <!-- Configuration & Application Logic -->
   <script src="config.js?v=20260905_1"></script>
-  <script src="app.js?v=20260905_2"></script>
+  <script src="app.js?v=20260905_4"></script>
 </body>
 </html>

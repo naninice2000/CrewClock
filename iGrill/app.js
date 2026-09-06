@@ -24,12 +24,15 @@
 
   // Default Settings merging config.js and localStorage
   const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || '{}');
+  const defaultOrgName = fileConfig.organizationName || fileConfig.restaurantName || 'Lightning Ventures LLC';
   let settings = {
-    restaurantName: savedSettings.restaurantName || fileConfig.restaurantName || 'Bella Bistro & Bar',
-    restaurantLogo: savedSettings.restaurantLogo || fileConfig.restaurantLogo || '',
-    clientId: savedSettings.clientId || fileConfig.googleClientId || '',
-    scriptUrl: savedSettings.scriptUrl || fileConfig.googleScriptUrl || '',
-    tenancyScriptUrl: savedSettings.tenancyScriptUrl || fileConfig.tenancyScriptUrl || ''
+    restaurantName: savedSettings.restaurantName || defaultOrgName,
+    restaurantLogo: savedSettings.restaurantLogo || fileConfig.organizationLogo || fileConfig.restaurantLogo || '',
+    // Code-driven platform parameters (common to all tenants, cannot be modified by tenant admins):
+    clientId: (fileConfig.googleClientId || '').trim(),
+    tenancyScriptUrl: (fileConfig.tenancyScriptUrl || '').trim(),
+    // Tenant attendance target:
+    scriptUrl: savedSettings.scriptUrl || fileConfig.googleScriptUrl || ''
   };
 
   // Runtime State
@@ -142,9 +145,8 @@
     btnSaveSettings: document.getElementById('btn-save-settings'),
     inputRestaurantName: document.getElementById('input-restaurant-name'),
     inputRestaurantLogo: document.getElementById('input-restaurant-logo'),
-    inputClientId: document.getElementById('input-client-id'),
     inputScriptUrl: document.getElementById('input-sheet-id'),
-    inputTenancyUrl: document.getElementById('input-tenancy-url'),
+    inputSettingsTimezone: document.getElementById('input-settings-timezone'),
 
     historyModal: document.getElementById('history-modal'),
     btnCloseHistory: document.getElementById('btn-close-history'),
@@ -481,7 +483,8 @@
 
   // --- BRAND & CONFIG DISPLAY ---
   function applyBrandSettings() {
-    const brandName = currentUser?.restaurantName || settings.restaurantName || 'Bella Bistro & Bar';
+    const defaultOrgName = fileConfig.organizationName || fileConfig.restaurantName || 'Lightning Ventures LLC';
+    const brandName = currentUser?.restaurantName || settings.restaurantName || defaultOrgName;
     const brandLogo = currentUser?.restaurantLogo !== undefined ? currentUser.restaurantLogo : settings.restaurantLogo;
 
     if (el.restaurantNameDisplay) {
@@ -999,6 +1002,7 @@
                 restaurantName: tenant.restaurantName || settings.restaurantName,
                 restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.restaurantLogo,
                 attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || settings.scriptUrl,
+                timeZone: tenant.timeZone || 'America/Los_Angeles',
                 accessToken: currentAccessToken,
                 tokenExpiresAt: tokenExpiresAt
               });
@@ -1034,6 +1038,7 @@
                   restaurantName: tenant.restaurantName || settings.restaurantName,
                   restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.restaurantLogo,
                   attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || settings.scriptUrl,
+                  timeZone: tenant.timeZone || 'America/Los_Angeles',
                   accessToken: currentAccessToken,
                   tokenExpiresAt: tokenExpiresAt
                 });
@@ -1158,6 +1163,7 @@
         restaurantName: tenant.restaurantName || restaurantName,
         restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : logoUrl,
         attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || attendanceTarget,
+        timeZone: tenant.timeZone || timeZone || 'America/Los_Angeles',
         accessToken: currentAccessToken
       });
 
@@ -1770,9 +1776,8 @@
   function openSettingsModal() {
     if (el.inputRestaurantName) el.inputRestaurantName.value = currentUser?.restaurantName || settings.restaurantName || '';
     if (el.inputRestaurantLogo) el.inputRestaurantLogo.value = currentUser?.restaurantLogo !== undefined ? currentUser.restaurantLogo : (settings.restaurantLogo || '');
-    if (el.inputClientId) el.inputClientId.value = settings.clientId || '';
     if (el.inputScriptUrl) el.inputScriptUrl.value = currentUser?.attendanceScriptUrl || settings.scriptUrl || '';
-    if (el.inputTenancyUrl) el.inputTenancyUrl.value = settings.tenancyScriptUrl || '';
+    if (el.inputSettingsTimezone) el.inputSettingsTimezone.value = currentUser?.timeZone || 'America/Los_Angeles';
     if (el.settingsModal) el.settingsModal.classList.remove('hidden');
   }
 
@@ -1900,17 +1905,22 @@
       el.btnSaveSettings.addEventListener('click', () => {
         settings.restaurantName = el.inputRestaurantName?.value.trim() || 'Bella Bistro & Bar';
         settings.restaurantLogo = el.inputRestaurantLogo?.value.trim() || '';
-        settings.clientId = el.inputClientId?.value.trim() || '';
         const rawSheetInput = el.inputScriptUrl?.value.trim() || '';
         settings.scriptUrl = extractSpreadsheetId(rawSheetInput);
-        settings.tenancyScriptUrl = el.inputTenancyUrl?.value.trim() || '';
+        const selectedTimezone = el.inputSettingsTimezone?.value || currentUser?.timeZone || 'America/Los_Angeles';
 
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+        // Save only tenant-customizable properties to localStorage
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({
+          restaurantName: settings.restaurantName,
+          restaurantLogo: settings.restaurantLogo,
+          scriptUrl: settings.scriptUrl
+        }));
 
         if (currentUser) {
           currentUser.restaurantName = settings.restaurantName;
           currentUser.restaurantLogo = settings.restaurantLogo;
           currentUser.attendanceScriptUrl = settings.scriptUrl;
+          currentUser.timeZone = selectedTimezone;
           localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(currentUser));
 
           // If Admin, sync updated configuration to central tenancy sheet
@@ -1920,14 +1930,14 @@
               restaurantName: settings.restaurantName,
               logoUrl: settings.restaurantLogo,
               attendanceScriptUrl: settings.scriptUrl,
-              attendanceSheetId: settings.scriptUrl
+              attendanceSheetId: settings.scriptUrl,
+              timeZone: selectedTimezone
             }).catch(e => console.warn('[Tenancy] update_config note:', e));
           }
         }
 
         applyBrandSettings();
         updateSetupWarningVisibility();
-        initGoogleAuth();
         syncServerTime();
         closeSettings();
         alert('Settings saved successfully!');

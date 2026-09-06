@@ -14,10 +14,12 @@ const APP_CONFIG = {
   // Google OAuth 2.0 Web Client ID (from Google Cloud Console)
   googleClientId: "581219908499-6t51ebp75one50g1od070tvac8tslntl.apps.googleusercontent.com",
 
-  // Default Restaurant / Brand Name
-  restaurantName: "iGrill Kebabs & Biryanis",
+  // Platform Organization Name (Multi-Tenant Umbrella Entity)
+  organizationName: "Lightning Ventures LLC",
+  restaurantName: "Lightning Ventures LLC",
 
-  // Optional: URL to restaurant logo image
+  // Optional: URL to platform/organization logo image
+  organizationLogo: "",
   restaurantLogo: "",
 
   // Default Attendance Google Apps Script Web App URL (from your Attendance Google Sheet)
