@@ -1,17 +1,20 @@
 /**
- * Restaurant Employee Clock-In & Attendance Web App
- * Hosted on GitHub Pages (100% Client-Side)
- * Multi-Tenant Architecture & Role-Based Access Control (RBAC)
- * Google Identity (Gmail Verification) + Google Apps Script Webhooks (Google Sheets)
+ * Small & Medium Business Employee Clock-In & Attendance Web App
+ * Features:
+ * - Google Sign-In authentication with multi-tenant directory routing
+ * - Onboarding flow for Business Owners (creates workspace + Admin role)
+ * - 14-Day Free Trial model synced to central Google Sheet
+ * - Mobile bottom navigation dock & desktop top navigation bar
+ * - Real-time GPS verification with tamper-proof Google Sheet sync
  */
 
-(function () {
+(() => {
   'use strict';
 
   // --- LOCAL STORAGE KEYS ---
   const STORAGE_KEYS = {
-    SETTINGS: 'clockin_settings',
-    SESSION: 'clockin_user_session',
+    SETTINGS: 'crewclock_settings_v3',
+    SESSION: 'crewclock_user_session',
     ACTIVE_SHIFT: 'clockin_active_shift',
     HISTORY: 'clockin_history'
   };
@@ -24,10 +27,13 @@
 
   // Default Settings merging config.js and localStorage
   const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || '{}');
-  const defaultOrgName = fileConfig.organizationName || fileConfig.restaurantName || 'Lightning Ventures LLC';
+  const defaultOrgName = fileConfig.organizationName || fileConfig.businessName || fileConfig.restaurantName || 'Lightning Ventures LLC';
   let settings = {
-    restaurantName: savedSettings.restaurantName || defaultOrgName,
-    restaurantLogo: savedSettings.restaurantLogo || fileConfig.organizationLogo || fileConfig.restaurantLogo || '',
+    businessName: savedSettings.businessName || savedSettings.restaurantName || defaultOrgName,
+    restaurantName: savedSettings.businessName || savedSettings.restaurantName || defaultOrgName,
+    businessType: savedSettings.businessType || 'Small & Medium Business',
+    businessLogo: savedSettings.businessLogo || savedSettings.restaurantLogo || fileConfig.organizationLogo || fileConfig.businessLogo || fileConfig.restaurantLogo || '',
+    restaurantLogo: savedSettings.businessLogo || savedSettings.restaurantLogo || fileConfig.organizationLogo || fileConfig.businessLogo || fileConfig.restaurantLogo || '',
     // Code-driven platform parameters (common to all tenants, cannot be modified by tenant admins):
     clientId: (fileConfig.googleClientId || '').trim(),
     tenancyScriptUrl: (fileConfig.tenancyScriptUrl || '').trim(),
@@ -158,9 +164,14 @@
     btnCancelSettings: document.getElementById('btn-cancel-settings'),
     btnSaveSettings: document.getElementById('btn-save-settings'),
     inputRestaurantName: document.getElementById('input-restaurant-name'),
+    inputSettingsBusinessType: document.getElementById('input-settings-business-type'),
+    btnToggleSettingsBusinessType: document.getElementById('btn-toggle-settings-business-type'),
+    listSettingsBusinessType: document.getElementById('list-settings-business-type'),
+    arrowSettingsBusinessType: document.getElementById('arrow-settings-business-type'),
     inputRestaurantLogo: document.getElementById('input-restaurant-logo'),
     inputScriptUrl: document.getElementById('input-sheet-id'),
     inputSettingsTimezone: document.getElementById('input-settings-timezone'),
+    settingsBillingSection: document.getElementById('settings-billing-section'),
     settingsSubBadge: document.getElementById('settings-sub-badge'),
     settingsSubPlan: document.getElementById('settings-sub-plan'),
     settingsSubExpiry: document.getElementById('settings-sub-expiry'),
@@ -173,10 +184,14 @@
     btnClearHistory: document.getElementById('btn-clear-history'),
     historyListContainer: document.getElementById('history-list-container'),
 
-    // Onboarding Modal (Restaurant Owner Signup)
+    // Onboarding Modal (Business Owner Signup)
     onboardingModal: document.getElementById('onboarding-modal'),
     onboardTrialDesc: document.getElementById('onboard-trial-desc'),
     inputOnboardName: document.getElementById('input-onboard-name'),
+    inputOnboardBusinessType: document.getElementById('input-onboard-business-type'),
+    btnToggleOnboardBusinessType: document.getElementById('btn-toggle-onboard-business-type'),
+    listOnboardBusinessType: document.getElementById('list-onboard-business-type'),
+    arrowOnboardBusinessType: document.getElementById('arrow-onboard-business-type'),
     inputOnboardLogo: document.getElementById('input-onboard-logo'),
     inputOnboardAttendanceUrl: document.getElementById('input-onboard-attendance-url'),
     inputOnboardTimezone: document.getElementById('input-onboard-timezone'),
@@ -201,10 +216,26 @@
     billingStatusDesc: document.getElementById('billing-status-desc'),
     billingStatusChip: document.getElementById('billing-status-chip'),
     billingCheckoutContainer: document.getElementById('billing-checkout-container'),
-    planCardMonthly: document.getElementById('plan-card-monthly'),
-    planCardYearly: document.getElementById('plan-card-yearly'),
-    planCheckMonthly: document.getElementById('plan-check-monthly'),
-    planCheckYearly: document.getElementById('plan-check-yearly'),
+    btnCycleMonthly: document.getElementById('btn-cycle-monthly'),
+    btnCycleYearly: document.getElementById('btn-cycle-yearly'),
+    planCardStarter: document.getElementById('plan-card-starter'),
+    planCardGrowth: document.getElementById('plan-card-growth'),
+    planCardScale: document.getElementById('plan-card-scale'),
+    planCheckStarter: document.getElementById('plan-check-starter'),
+    planCheckGrowth: document.getElementById('plan-check-growth'),
+    planCheckScale: document.getElementById('plan-check-scale'),
+    planPriceStarter: document.getElementById('plan-price-starter'),
+    planPriceGrowth: document.getElementById('plan-price-growth'),
+    planPriceScale: document.getElementById('plan-price-scale'),
+    planPeriodStarter: document.getElementById('plan-period-starter'),
+    planPeriodGrowth: document.getElementById('plan-period-growth'),
+    planPeriodScale: document.getElementById('plan-period-scale'),
+    planSubtextStarter: document.getElementById('plan-subtext-starter'),
+    planSubtextGrowth: document.getElementById('plan-subtext-growth'),
+    planSubtextScale: document.getElementById('plan-subtext-scale'),
+    featuresPlanTitle: document.getElementById('features-plan-title'),
+    featuresTeamSize: document.getElementById('features-team-size'),
+    featuresListContainer: document.getElementById('features-list-container'),
     billingChargeSummary: document.getElementById('billing-charge-summary'),
     formBillingPayment: document.getElementById('form-billing-payment'),
     inputCardName: document.getElementById('input-card-name'),
@@ -231,6 +262,147 @@
     expiredMobileActions: document.getElementById('expired-mobile-actions'),
     btnExpiredLogout: document.getElementById('btn-expired-logout'),
   };
+
+  // --- SMB BUSINESS CATEGORIES ---
+  const BUSINESS_TYPES = [
+    { icon: '🍽️', name: 'Restaurant, Cafe & Bakery' },
+    { icon: '🛍️', name: 'Retail Store & Boutique' },
+    { icon: '🔨', name: 'Construction & General Contracting' },
+    { icon: '🏥', name: 'Healthcare, Clinic & Dental' },
+    { icon: '💇', name: 'Salon, Spa & Barbershop' },
+    { icon: '🧹', name: 'Cleaning & Janitorial Services' },
+    { icon: '🚚', name: 'Logistics, Moving & Warehousing' },
+    { icon: '🏨', name: 'Hospitality, Hotel & Lodging' },
+    { icon: '🚗', name: 'Automotive Repair & Dealership' },
+    { icon: '🏋️', name: 'Fitness Gym, Yoga & Martial Arts' },
+    { icon: '🛠️', name: 'Plumbing, HVAC & Electrical' },
+    { icon: '🌿', name: 'Landscaping & Grounds Care' },
+    { icon: '📦', name: 'Wholesale, Supply & Distribution' },
+    { icon: '🎓', name: 'Education, Daycare & Tutoring' },
+    { icon: '☕', name: 'Coffee Shop & Food Truck' },
+    { icon: '💻', name: 'IT, Tech & Consulting Services' },
+    { icon: '🛡️', name: 'Security & Facility Management' },
+    { icon: '🎨', name: 'Creative Agency, Studio & Media' },
+    { icon: '🐾', name: 'Pet Care, Grooming & Veterinary' },
+    { icon: '🏢', name: 'Real Estate & Property Management' },
+    { icon: '⚖️', name: 'Accounting, Tax & Legal Services' },
+    { icon: '🌐', name: 'General Business / Other' }
+  ];
+
+  function safeEscapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, m => {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+    });
+  }
+
+  function initSearchableDropdown(inputEl, toggleBtnEl, listEl, arrowEl, options, onSelect) {
+    if (!inputEl || !listEl) return;
+
+    let isOpen = false;
+
+    function renderOptions(filterText = '') {
+      const query = (filterText || '').trim().toLowerCase();
+      const filtered = options.filter(opt => {
+        if (!query) return true;
+        return opt.name.toLowerCase().includes(query);
+      });
+
+      listEl.innerHTML = '';
+
+      if (filtered.length === 0) {
+        const emptyItem = document.createElement('li');
+        emptyItem.className = 'px-3 py-2 text-warmgray-500 italic text-xs hover:bg-amber-50 cursor-pointer flex items-center justify-between';
+        emptyItem.innerHTML = `<span>Use: <strong>${safeEscapeHtml(filterText)}</strong></span> <span class="text-[10px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded font-semibold">Custom</span>`;
+        emptyItem.addEventListener('click', () => {
+          inputEl.value = filterText;
+          closeDropdown();
+          if (typeof onSelect === 'function') onSelect(filterText);
+        });
+        listEl.appendChild(emptyItem);
+      } else {
+        filtered.forEach(opt => {
+          const li = document.createElement('li');
+          li.className = 'px-3 py-2 text-warmgray-700 hover:bg-amber-50 hover:text-amber-900 cursor-pointer flex items-center gap-2 transition-colors select-none';
+          li.innerHTML = `<span class="text-sm">${opt.icon}</span> <span class="font-medium">${safeEscapeHtml(opt.name)}</span>`;
+          li.addEventListener('click', (e) => {
+            e.stopPropagation();
+            inputEl.value = opt.name;
+            closeDropdown();
+            if (typeof onSelect === 'function') onSelect(opt.name);
+          });
+          listEl.appendChild(li);
+        });
+      }
+    }
+
+    function openDropdown() {
+      if (isOpen) return;
+      isOpen = true;
+      renderOptions(inputEl.value);
+      listEl.classList.remove('hidden');
+      if (arrowEl) arrowEl.classList.add('rotate-180');
+    }
+
+    function closeDropdown() {
+      if (!isOpen) return;
+      isOpen = false;
+      listEl.classList.add('hidden');
+      if (arrowEl) arrowEl.classList.remove('rotate-180');
+    }
+
+    function toggleDropdown() {
+      if (isOpen) closeDropdown();
+      else openDropdown();
+    }
+
+    inputEl.addEventListener('focus', () => {
+      openDropdown();
+    });
+
+    inputEl.addEventListener('input', () => {
+      if (!isOpen) {
+        isOpen = true;
+        listEl.classList.remove('hidden');
+        if (arrowEl) arrowEl.classList.add('rotate-180');
+      }
+      renderOptions(inputEl.value);
+    });
+
+    if (toggleBtnEl) {
+      toggleBtnEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        inputEl.focus();
+        toggleDropdown();
+      });
+    }
+
+    // Dismiss on click outside
+    document.addEventListener('click', (e) => {
+      if (!isOpen) return;
+      if (!inputEl.contains(e.target) && !listEl.contains(e.target) && (!toggleBtnEl || !toggleBtnEl.contains(e.target))) {
+        closeDropdown();
+      }
+    });
+
+    // Keyboard navigation
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDropdown();
+      } else if (e.key === 'Enter') {
+        if (isOpen) {
+          e.preventDefault();
+          const firstItem = listEl.querySelector('li');
+          if (firstItem) {
+            firstItem.click();
+          } else {
+            closeDropdown();
+          }
+        }
+      }
+    });
+  }
 
   // --- INITIALIZATION ---
   function init() {
@@ -294,8 +466,11 @@
       picture: user.picture || '',
       role: user.role || 'employee',
       tenantId: user.tenantId || '',
-      restaurantName: user.restaurantName || settings.restaurantName,
-      restaurantLogo: user.restaurantLogo !== undefined ? user.restaurantLogo : settings.restaurantLogo,
+      businessName: user.businessName || user.restaurantName || settings.businessName || settings.restaurantName,
+      restaurantName: user.businessName || user.restaurantName || settings.businessName || settings.restaurantName,
+      businessType: user.businessType || settings.businessType || 'General Business',
+      businessLogo: user.businessLogo !== undefined ? user.businessLogo : (user.restaurantLogo !== undefined ? user.restaurantLogo : settings.businessLogo),
+      restaurantLogo: user.businessLogo !== undefined ? user.businessLogo : (user.restaurantLogo !== undefined ? user.restaurantLogo : settings.restaurantLogo),
       attendanceScriptUrl: user.attendanceScriptUrl || settings.scriptUrl,
       timeZone: user.timeZone || 'America/Los_Angeles',
       subscription: user.subscription || (currentUser?.subscription ? currentUser.subscription : {
@@ -364,33 +539,43 @@
         if (el.headerUserInitials) el.headerUserInitials.classList.remove('hidden');
       }
 
-      // Subscription / Free Trial Pill
+      // Subscription / Free Trial Pill (Admin only - billing managed by Admin)
       if (el.headerPlanPill) {
+        const isAdmin = currentUser && currentUser.role === 'admin';
         const sub = currentUser.subscription;
-        if (sub) {
+        if (isAdmin && sub) {
           if (sub.isPaid && sub.isValid) {
-            el.headerPlanPill.textContent = 'Active Pro';
-            el.headerPlanPill.className = 'px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-100 text-emerald-800 border border-emerald-200';
+            const displayPlan = sub.plan ? (sub.plan.includes('(') ? sub.plan.split('(')[0].trim() : sub.plan) : 'Active Plan';
+            el.headerPlanPill.textContent = displayPlan;
+            el.headerPlanPill.className = 'hidden xl:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-100 text-emerald-800 border border-emerald-200';
             el.headerPlanPill.classList.remove('hidden');
           } else if (sub.isTrial && sub.isValid) {
             const days = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : 14;
             el.headerPlanPill.textContent = `${days}d Trial`;
-            el.headerPlanPill.className = 'px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-200';
+            el.headerPlanPill.className = 'hidden xl:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-200';
             el.headerPlanPill.classList.remove('hidden');
           } else {
             el.headerPlanPill.textContent = 'Expired';
-            el.headerPlanPill.className = 'px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-rose-100 text-rose-800 border border-rose-200';
+            el.headerPlanPill.className = 'hidden xl:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-rose-100 text-rose-800 border border-rose-200';
             el.headerPlanPill.classList.remove('hidden');
           }
         } else {
-          el.headerPlanPill.classList.add('hidden');
+          el.headerPlanPill.textContent = '';
+          el.headerPlanPill.className = 'hidden';
         }
       }
 
       el.headerUserBadge.classList.remove('hidden');
     } else {
       el.headerUserBadge.classList.add('hidden');
-      if (el.headerPlanPill) el.headerPlanPill.classList.add('hidden');
+      if (el.headerPlanPill) {
+        el.headerPlanPill.textContent = '';
+        el.headerPlanPill.className = 'hidden';
+      }
+      if (el.headerRolePill) {
+        el.headerRolePill.textContent = '';
+        el.headerRolePill.className = 'hidden';
+      }
     }
   }
 
@@ -398,7 +583,8 @@
   function updateRoleBasedUI() {
     const isAdmin = currentUser && currentUser.role === 'admin';
     const isMobileApp = isNativeMobileApp();
-    const canAccessBilling = isAdmin && !isMobileApp;
+    const isDesktopWebApp = !isMobileApp && window.innerWidth >= 768;
+    const canAccessBilling = isAdmin && isDesktopWebApp;
     const hasSession = !!getUserSession();
 
     // Mark body if native mobile app container (iOS/Android)
@@ -408,12 +594,19 @@
       document.body.classList.remove('is-native-app');
     }
 
-    // Header role pill (desktop only)
+    // Header role pill (desktop only: Admin vs Staff)
     if (el.headerRolePill) {
       if (isAdmin) {
+        el.headerRolePill.textContent = 'Admin';
+        el.headerRolePill.className = 'hidden xl:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-300';
+        el.headerRolePill.classList.remove('hidden');
+      } else if (currentUser && (currentUser.role === 'employee' || !isAdmin)) {
+        el.headerRolePill.textContent = 'Staff';
+        el.headerRolePill.className = 'hidden xl:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-warmgray-100 text-warmgray-700 border border-warmgray-200';
         el.headerRolePill.classList.remove('hidden');
       } else {
-        el.headerRolePill.classList.add('hidden');
+        el.headerRolePill.textContent = '';
+        el.headerRolePill.className = 'hidden';
       }
     }
 
@@ -427,6 +620,10 @@
     }
 
     // Desktop button permissions
+    if (el.btnOpenHistory) {
+      if (hasSession) el.btnOpenHistory.classList.remove('hidden');
+      else el.btnOpenHistory.classList.add('hidden');
+    }
     if (el.btnOpenTeam) {
       if (isAdmin) el.btnOpenTeam.classList.remove('hidden');
       else el.btnOpenTeam.classList.add('hidden');
@@ -460,19 +657,26 @@
       else el.mobileNavTeam.classList.add('hidden');
     }
 
-    // Restaurant Settings tab (Admin only)
+    // Business Settings tab (Admin only)
     if (el.mobileNavSettings) {
       if (isAdmin) el.mobileNavSettings.classList.remove('hidden');
       else el.mobileNavSettings.classList.add('hidden');
     }
 
-    // Mobile Nav Billing Tab: Shown for Admin on Web App mobile view; hidden in native apps for App Store compliance
+    // Mobile Nav Billing Tab: ALWAYS hidden on mobile (Billing is strictly desktop web-app only)
     if (el.mobileNavBilling) {
-      if (canAccessBilling) el.mobileNavBilling.classList.remove('hidden');
-      else el.mobileNavBilling.classList.add('hidden');
+      el.mobileNavBilling.classList.add('hidden');
     }
 
-    // Settings Modal billing management button vs mobile informational note
+    // Settings Modal Billing Section: strictly hidden on mobile; visible for Admin on desktop web app
+    if (el.settingsBillingSection) {
+      if (canAccessBilling) {
+        el.settingsBillingSection.classList.remove('hidden');
+      } else {
+        el.settingsBillingSection.classList.add('hidden');
+      }
+    }
+
     if (el.btnSettingsUpgrade) {
       if (canAccessBilling) {
         el.btnSettingsUpgrade.classList.remove('hidden');
@@ -481,11 +685,7 @@
       }
     }
     if (el.settingsMobileSubNote) {
-      if (isMobileApp) {
-        el.settingsMobileSubNote.classList.remove('hidden');
-      } else {
-        el.settingsMobileSubNote.classList.add('hidden');
-      }
+      el.settingsMobileSubNote.classList.add('hidden');
     }
   }
 
@@ -495,16 +695,15 @@
       { id: 'shift', el: el.mobileNavClock },
       { id: 'history', el: el.mobileNavHistory },
       { id: 'team', el: el.mobileNavTeam },
-      { id: 'billing', el: el.mobileNavBilling },
       { id: 'settings', el: el.mobileNavSettings }
     ];
     tabs.forEach(tab => {
       if (!tab.el) return;
       if (tab.id === activeId) {
-        tab.el.classList.add('text-amber-600', 'font-bold');
+        tab.el.classList.add('text-amber-600', 'font-bold', 'active');
         tab.el.classList.remove('text-warmgray-500', 'text-warmgray-600');
       } else {
-        tab.el.classList.remove('text-amber-600', 'font-bold');
+        tab.el.classList.remove('text-amber-600', 'font-bold', 'active');
         tab.el.classList.add('text-warmgray-500');
       }
     });
@@ -569,7 +768,7 @@
     // Role badge on ready card
     if (el.readyRoleBadge) {
       if (isAdmin) {
-        el.readyRoleBadge.textContent = '👑 Restaurant Admin';
+        el.readyRoleBadge.textContent = '👑 Business Admin';
         el.readyRoleBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300';
         el.readyRoleBadge.classList.remove('hidden');
       } else {
@@ -579,24 +778,30 @@
       }
     }
 
-    // Plan / Subscription badge on ready card
+    // Plan / Subscription badge on ready card (Admin only)
     if (el.readyPlanBadge) {
-      const sub = user.subscription;
-      if (sub && sub.isPaid && sub.isValid) {
-        el.readyPlanBadge.textContent = sub.plan || 'Pro Active';
-        el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300';
-        el.readyPlanBadge.classList.remove('hidden');
-      } else if (sub && sub.isTrial && sub.isValid) {
-        const days = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : 14;
-        el.readyPlanBadge.textContent = `${days}d Free Trial`;
-        el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300';
-        el.readyPlanBadge.classList.remove('hidden');
-      } else if (sub && !sub.isValid) {
-        el.readyPlanBadge.textContent = 'Trial Expired';
-        el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 border border-rose-300';
-        el.readyPlanBadge.classList.remove('hidden');
-      } else {
+      if (!isAdmin) {
+        el.readyPlanBadge.textContent = '';
         el.readyPlanBadge.classList.add('hidden');
+      } else {
+        const sub = user.subscription;
+        if (sub && sub.isPaid && sub.isValid) {
+          el.readyPlanBadge.textContent = sub.plan || 'Pro Active';
+          el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300';
+          el.readyPlanBadge.classList.remove('hidden');
+        } else if (sub && sub.isTrial && sub.isValid) {
+          const days = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : 14;
+          el.readyPlanBadge.textContent = `${days}d Free Trial`;
+          el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300';
+          el.readyPlanBadge.classList.remove('hidden');
+        } else if (sub && !sub.isValid) {
+          el.readyPlanBadge.textContent = 'Trial Expired';
+          el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 border border-rose-300';
+          el.readyPlanBadge.classList.remove('hidden');
+        } else {
+          el.readyPlanBadge.textContent = '';
+          el.readyPlanBadge.classList.add('hidden');
+        }
       }
     }
 
@@ -726,9 +931,9 @@
 
   // --- BRAND & CONFIG DISPLAY ---
   function applyBrandSettings() {
-    const defaultOrgName = fileConfig.organizationName || fileConfig.restaurantName || 'Lightning Ventures LLC';
-    const brandName = currentUser?.restaurantName || settings.restaurantName || defaultOrgName;
-    const brandLogo = currentUser?.restaurantLogo !== undefined ? currentUser.restaurantLogo : settings.restaurantLogo;
+    const defaultOrgName = fileConfig.organizationName || fileConfig.businessName || fileConfig.restaurantName || 'Lightning Ventures LLC';
+    const brandName = currentUser?.businessName || currentUser?.restaurantName || settings.businessName || settings.restaurantName || defaultOrgName;
+    const brandLogo = currentUser?.businessLogo !== undefined ? currentUser.businessLogo : (currentUser?.restaurantLogo !== undefined ? currentUser.restaurantLogo : (settings.businessLogo || settings.restaurantLogo));
 
     if (el.restaurantNameDisplay) {
       el.restaurantNameDisplay.textContent = brandName;
@@ -1192,7 +1397,7 @@
       showLoading(
         'Connecting to Google',
         authMode === 'signup'
-          ? 'Opening Google Account chooser for Restaurant Signup...'
+          ? 'Opening Google Account chooser for Business Signup...'
           : 'Opening Google Sign-In account chooser...'
       );
       tokenClient.requestAccessToken({ prompt: 'select_account' });
@@ -1251,7 +1456,10 @@
                 picture: picture,
                 role: userRole,
                 tenantId: tenancyRes.user.tenantId,
-                restaurantName: tenant.restaurantName || settings.restaurantName,
+                businessName: tenant.businessName || tenant.restaurantName || settings.businessName,
+                restaurantName: tenant.businessName || tenant.restaurantName || settings.businessName,
+                businessType: tenant.businessType || settings.businessType || 'General Business',
+                businessLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.businessLogo,
                 restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.restaurantLogo,
                 attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || settings.scriptUrl,
                 timeZone: tenant.timeZone || 'America/Los_Angeles',
@@ -1270,13 +1478,13 @@
               // User NOT registered in Directory -> Block sign-in with clear notice
               hideLoading();
               if (el.uninvitedUserText) {
-                el.uninvitedUserText.textContent = `Account "${email}" is not registered in any restaurant workspace. Please ask your restaurant manager to invite this Gmail, or sign up as a restaurant owner below.`;
+                el.uninvitedUserText.textContent = `Account "${email}" is not registered in any business workspace. Please ask your business manager to invite this Gmail, or sign up as a business owner below.`;
               }
               if (el.uninvitedUserAlert) el.uninvitedUserAlert.classList.remove('hidden');
               return;
             }
 
-          // SCENARIO 2: SIGN UP FLOW (Restaurant Owners)
+          // SCENARIO 2: SIGN UP FLOW (Business Owners)
           } else if (authMode === 'signup') {
             if (tenancyRes.exists && tenancyRes.user) {
               hideLoading();
@@ -1288,7 +1496,10 @@
                   picture: picture,
                   role: 'admin',
                   tenantId: tenancyRes.user.tenantId,
-                  restaurantName: tenant.restaurantName || settings.restaurantName,
+                  businessName: tenant.businessName || tenant.restaurantName || settings.businessName,
+                  restaurantName: tenant.businessName || tenant.restaurantName || settings.businessName,
+                  businessType: tenant.businessType || settings.businessType || 'General Business',
+                  businessLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.businessLogo,
                   restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : settings.restaurantLogo,
                   attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || settings.scriptUrl,
                   timeZone: tenant.timeZone || 'America/Los_Angeles',
@@ -1298,14 +1509,14 @@
                 });
                 syncServerTime();
                 refreshScreenState();
-                alert(`Welcome back, ${name}!\nYou are already registered as Admin for "${tenant.restaurantName || 'your restaurant'}".`);
+                alert(`Welcome back, ${name}!\nYou are already registered as Admin for "${tenant.businessName || tenant.restaurantName || 'your business'}".`);
               } else {
-                alert(`Account "${email}" is already registered as an employee at "${tenancyRes.tenant?.restaurantName || 'a restaurant'}". Please use "Sign In with Google" instead.`);
+                alert(`Account "${email}" is already registered as an employee at "${tenancyRes.tenant?.businessName || tenancyRes.tenant?.restaurantName || 'a business'}". Please use "Sign In with Google" instead.`);
               }
               return;
             }
 
-            // New Admin -> Open Onboarding Modal to capture Restaurant details
+            // New Admin -> Open Onboarding Modal to capture Business details
             hideLoading();
             pendingAdminProfile = { email: email, name: name, picture: picture };
             openOnboardingModal();
@@ -1324,7 +1535,10 @@
         name: name,
         picture: picture,
         role: 'admin', // Full access in standalone fallback
+        businessName: settings.businessName,
         restaurantName: settings.restaurantName,
+        businessType: settings.businessType,
+        businessLogo: settings.businessLogo,
         restaurantLogo: settings.restaurantLogo,
         attendanceScriptUrl: settings.scriptUrl,
         accessToken: currentAccessToken,
@@ -1344,17 +1558,18 @@
     }
   }
 
-  // --- RESTAURANT ONBOARDING (SIGNUP) ---
+  // --- BUSINESS ONBOARDING (SIGNUP) ---
   function openOnboardingModal() {
     if (!pendingAdminProfile) return;
     if (el.inputOnboardName) el.inputOnboardName.value = '';
+    if (el.inputOnboardBusinessType) el.inputOnboardBusinessType.value = '';
     if (el.inputOnboardLogo) el.inputOnboardLogo.value = '';
     if (el.inputOnboardAttendanceUrl) el.inputOnboardAttendanceUrl.value = settings.scriptUrl || '';
     if (el.onboardTrialDesc) {
       if (isNativeMobileApp()) {
-        el.onboardTrialDesc.textContent = 'Every new restaurant workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via our Web Portal at crewclock.com (subscription purchase is not available inside mobile apps).';
+        el.onboardTrialDesc.textContent = 'Every new business workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via our Web Portal at crewclock.com (subscription purchase is not available inside mobile apps).';
       } else {
-        el.onboardTrialDesc.textContent = 'Every new restaurant workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via the Web Portal.';
+        el.onboardTrialDesc.textContent = 'Every new business workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via the Web Portal.';
       }
     }
     if (el.onboardingModal) el.onboardingModal.classList.remove('hidden');
@@ -1367,23 +1582,24 @@
 
   async function submitOnboarding() {
     if (!pendingAdminProfile) {
-      alert('Admin registration session expired. Please click "Sign Up Your Restaurant" again.');
+      alert('Admin registration session expired. Please click "Sign Up Your Business" again.');
       closeOnboardingModal();
       return;
     }
 
     const adminEmail = pendingAdminProfile.email;
-    const adminName = pendingAdminProfile.name || 'Restaurant Admin';
+    const adminName = pendingAdminProfile.name || 'Business Admin';
     const adminPicture = pendingAdminProfile.picture || '';
 
-    const restaurantName = (el.inputOnboardName?.value || '').trim();
+    const businessName = (el.inputOnboardName?.value || '').trim();
+    const businessType = (el.inputOnboardBusinessType?.value || '').trim() || 'General Business';
     const logoUrl = (el.inputOnboardLogo?.value || '').trim();
     const rawAttendanceInput = (el.inputOnboardAttendanceUrl?.value || '').trim();
     const attendanceTarget = extractSpreadsheetId(rawAttendanceInput);
     const timeZone = el.inputOnboardTimezone?.value || 'America/Los_Angeles';
 
-    if (!restaurantName) {
-      alert('Please enter your Restaurant / Location Name.');
+    if (!businessName) {
+      alert('Please enter your Business / Company Name.');
       el.inputOnboardName?.focus();
       return;
     }
@@ -1395,11 +1611,13 @@
     }
 
     try {
-      showLoading('Creating Restaurant Workspace', 'Registering your restaurant and provisioning Admin privileges...');
+      showLoading('Creating Business Workspace', 'Registering your business and provisioning Admin privileges...');
       const res = await callTenancyApi('signup', {
         email: adminEmail,
         name: adminName,
-        restaurantName: restaurantName,
+        businessName: businessName,
+        restaurantName: businessName,
+        businessType: businessType,
         logoUrl: logoUrl,
         attendanceScriptUrl: attendanceTarget,
         attendanceSheetId: attendanceTarget,
@@ -1407,7 +1625,7 @@
       });
 
       if (!res.success) {
-        throw new Error(res.error || 'Failed to create restaurant workspace.');
+        throw new Error(res.error || 'Failed to create business workspace.');
       }
 
       if (res.service && !res.tenant && !res.user) {
@@ -1421,7 +1639,10 @@
         picture: adminPicture,
         role: 'admin',
         tenantId: tenant.tenantId || '',
-        restaurantName: tenant.restaurantName || restaurantName,
+        businessName: tenant.businessName || tenant.restaurantName || businessName,
+        restaurantName: tenant.businessName || tenant.restaurantName || businessName,
+        businessType: tenant.businessType || businessType,
+        businessLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : logoUrl,
         restaurantLogo: tenant.logoUrl !== undefined ? tenant.logoUrl : logoUrl,
         attendanceScriptUrl: tenant.attendanceSheetId || tenant.attendanceScriptUrl || attendanceTarget,
         timeZone: tenant.timeZone || timeZone || 'America/Los_Angeles',
@@ -1435,7 +1656,7 @@
       refreshScreenState();
 
       setTimeout(() => {
-        alert(`🎉 Welcome to CrewClock, ${adminName}!\n\nWorkspace "${restaurantName}" is ready. You can now invite staff to sign in using the Team icon in the top header.`);
+        alert(`🎉 Welcome to CrewClock, ${adminName}!\n\nWorkspace "${businessName}" is ready. You can now invite staff to sign in using the Team icon in the top header.`);
       }, 100);
     } catch (err) {
       hideLoading();
@@ -1446,7 +1667,7 @@
   // --- TEAM MANAGEMENT (ADMIN RBAC) ---
   function openTeamModal() {
     if (!currentUser || currentUser.role !== 'admin') {
-      alert('Only authorized restaurant Admins can access Team Management.');
+      alert('Only authorized business Admins can access Team Management.');
       return;
     }
     if (el.teamModal) el.teamModal.classList.remove('hidden');
@@ -1585,7 +1806,7 @@
 
   async function removeTeamMember(targetEmail, targetName) {
     const displayName = targetName ? `${targetName} (${targetEmail})` : targetEmail;
-    if (!confirm(`Are you sure you want to remove ${displayName} from your restaurant team?\n\nThey will no longer be permitted to sign in or clock in.`)) {
+    if (!confirm(`Are you sure you want to remove ${displayName} from your team?\n\nThey will no longer be permitted to sign in or clock in.`)) {
       return;
     }
 
@@ -2049,8 +2270,9 @@
   }
 
   function openSettingsModal() {
-    if (el.inputRestaurantName) el.inputRestaurantName.value = currentUser?.restaurantName || settings.restaurantName || '';
-    if (el.inputRestaurantLogo) el.inputRestaurantLogo.value = currentUser?.restaurantLogo !== undefined ? currentUser.restaurantLogo : (settings.restaurantLogo || '');
+    if (el.inputRestaurantName) el.inputRestaurantName.value = currentUser?.businessName || currentUser?.restaurantName || settings.businessName || settings.restaurantName || '';
+    if (el.inputSettingsBusinessType) el.inputSettingsBusinessType.value = currentUser?.businessType || settings.businessType || '';
+    if (el.inputRestaurantLogo) el.inputRestaurantLogo.value = currentUser?.businessLogo !== undefined ? currentUser.businessLogo : (currentUser?.restaurantLogo !== undefined ? currentUser.restaurantLogo : (settings.businessLogo || settings.restaurantLogo || ''));
     if (el.inputScriptUrl) el.inputScriptUrl.value = currentUser?.attendanceScriptUrl || settings.scriptUrl || '';
     if (el.inputSettingsTimezone) el.inputSettingsTimezone.value = currentUser?.timeZone || 'America/Los_Angeles';
 
@@ -2091,15 +2313,158 @@
   }
 
   // --- SUBSCRIPTION & BILLING (WEB APP ONLY) ---
+  const PRICING_PLANS = {
+    starter: {
+      key: 'starter',
+      name: 'Starter Crew',
+      teamSize: 'Up to 25 Employees',
+      monthlyPrice: 9.99,
+      yearlyPrice: 99.00,
+      monthlyPriceFormatted: '$9.99',
+      yearlyPriceFormatted: '$99.00',
+      monthlyPeriod: ' / mo',
+      yearlyPeriod: ' / yr',
+      monthlySubtext: 'Billed monthly',
+      yearlySubtext: '$8.25/mo (Billed $99/yr)',
+      features: [
+        'Instant Sheet sync',
+        'Unlimited punches',
+        'Mobile web/app clock-in',
+        'Up to 25 active employees'
+      ]
+    },
+    growth: {
+      key: 'growth',
+      name: 'Growth Crew',
+      teamSize: '26 – 50 Employees',
+      monthlyPrice: 19.99,
+      yearlyPrice: 199.00,
+      monthlyPriceFormatted: '$19.99',
+      yearlyPriceFormatted: '$199.00',
+      monthlyPeriod: ' / mo',
+      yearlyPeriod: ' / yr',
+      monthlySubtext: 'Billed monthly',
+      yearlySubtext: '$16.58/mo (Billed $199/yr)',
+      features: [
+        'All Starter features included',
+        'Multi-department tabs',
+        'Daily summary alerts',
+        '26 – 50 active employees'
+      ]
+    },
+    scale: {
+      key: 'scale',
+      name: 'Scale Crew',
+      teamSize: '51 – 100 Employees',
+      monthlyPrice: 29.99,
+      yearlyPrice: 299.00,
+      monthlyPriceFormatted: '$29.99',
+      yearlyPriceFormatted: '$299.00',
+      monthlyPeriod: ' / mo',
+      yearlyPeriod: ' / yr',
+      monthlySubtext: 'Billed monthly',
+      yearlySubtext: '$24.92/mo (Billed $299/yr)',
+      features: [
+        'All Growth features included',
+        'Priority support',
+        'Custom shift tagging',
+        '51 – 100 active employees'
+      ]
+    }
+  };
+
+  let selectedPlanTier = 'starter';
   let selectedBillingCycle = 'monthly';
 
+  function setBillingCycle(cycle) {
+    selectedBillingCycle = cycle === 'yearly' ? 'yearly' : 'monthly';
+    updateBillingUI();
+  }
+
+  function setPlanTier(tier) {
+    if (PRICING_PLANS[tier]) {
+      selectedPlanTier = tier;
+      updateBillingUI();
+    }
+  }
+
+  function updateBillingUI() {
+    const isYearly = selectedBillingCycle === 'yearly';
+
+    // 1. Cycle Toggle Buttons
+    if (el.btnCycleMonthly && el.btnCycleYearly) {
+      if (isYearly) {
+        el.btnCycleYearly.className = 'py-2 px-3 rounded-xl font-bold text-xs transition-all bg-white text-warmgray-900 shadow-xs flex items-center justify-center gap-1.5';
+        el.btnCycleMonthly.className = 'py-2 px-3 rounded-xl font-bold text-xs transition-all text-warmgray-600 hover:text-warmgray-900 flex items-center justify-center gap-1';
+      } else {
+        el.btnCycleMonthly.className = 'py-2 px-3 rounded-xl font-bold text-xs transition-all bg-white text-warmgray-900 shadow-xs flex items-center justify-center gap-1';
+        el.btnCycleYearly.className = 'py-2 px-3 rounded-xl font-bold text-xs transition-all text-warmgray-600 hover:text-warmgray-900 flex items-center justify-center gap-1.5';
+      }
+    }
+
+    // 2. Plan Cards Pricing & Selection Styles
+    const tiers = ['starter', 'growth', 'scale'];
+    tiers.forEach(t => {
+      const plan = PRICING_PLANS[t];
+      const capT = t.charAt(0).toUpperCase() + t.slice(1);
+      const priceEl = el[`planPrice${capT}`];
+      const periodEl = el[`planPeriod${capT}`];
+      const subtextEl = el[`planSubtext${capT}`];
+      const cardEl = el[`planCard${capT}`];
+      const checkEl = el[`planCheck${capT}`];
+
+      if (priceEl) priceEl.textContent = isYearly ? plan.yearlyPriceFormatted : plan.monthlyPriceFormatted;
+      if (periodEl) periodEl.textContent = isYearly ? plan.yearlyPeriod : plan.monthlyPeriod;
+      if (subtextEl) subtextEl.textContent = isYearly ? plan.yearlySubtext : plan.monthlySubtext;
+
+      const isSelected = selectedPlanTier === t;
+      if (cardEl) {
+        if (isSelected) {
+          cardEl.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/40 relative transition-all shadow-xs flex flex-col justify-between';
+        } else {
+          cardEl.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all hover:border-amber-400 flex flex-col justify-between';
+        }
+      }
+      if (checkEl) {
+        if (isSelected) {
+          checkEl.className = 'w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]';
+        } else {
+          checkEl.className = 'w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]';
+        }
+      }
+    });
+
+    // 3. Dynamic Features Box
+    const currentPlan = PRICING_PLANS[selectedPlanTier] || PRICING_PLANS.starter;
+    if (el.featuresPlanTitle) el.featuresPlanTitle.textContent = `${currentPlan.name} Core Features`;
+    if (el.featuresTeamSize) el.featuresTeamSize.textContent = currentPlan.teamSize;
+    if (el.featuresListContainer) {
+      el.featuresListContainer.innerHTML = currentPlan.features.map(feat => `
+        <div class="flex items-center gap-1.5 text-warmgray-700">
+          <span class="text-emerald-600 font-bold flex-shrink-0">✓</span>
+          <span class="truncate">${escapeHtml(feat)}</span>
+        </div>
+      `).join('');
+    }
+
+    // 4. Charge Summary & Submit Button Text
+    const currentPrice = isYearly ? currentPlan.yearlyPriceFormatted : currentPlan.monthlyPriceFormatted;
+    const cycleLabel = isYearly ? 'Annual' : 'Monthly';
+    if (el.billingChargeSummary) {
+      el.billingChargeSummary.textContent = `Charge: ${currentPrice}`;
+    }
+    if (el.btnSubmitPaymentText && (!el.btnSubmitPaymentSpinner || el.btnSubmitPaymentSpinner.classList.contains('hidden'))) {
+      el.btnSubmitPaymentText.textContent = `Pay ${currentPrice} & Activate ${currentPlan.name} (${cycleLabel})`;
+    }
+  }
+
   function openBillingModal() {
-    if (isNativeMobileApp()) {
-      alert('Subscription & payment processing is only supported via our Web Portal at crewclock.com.');
+    if (isNativeMobileApp() || window.innerWidth < 768) {
+      alert('Subscription and billing management is available only on our desktop Web App.');
       return;
     }
     if (!currentUser || currentUser.role !== 'admin') {
-      alert('Only restaurant administrators can access Billing & Subscription settings.');
+      alert('Only business administrators can access Billing & Subscription settings.');
       return;
     }
 
@@ -2127,7 +2492,7 @@
       }
       if (el.billingStatusChip) {
         if (sub.isPaid && sub.isValid) {
-          el.billingStatusChip.textContent = 'Active Pro';
+          el.billingStatusChip.textContent = sub.plan ? (sub.plan.includes('(') ? sub.plan.split('(')[0].trim() : sub.plan) : 'Active Plan';
           el.billingStatusChip.className = 'px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 flex-shrink-0';
         } else if (sub.isTrial && sub.isValid) {
           el.billingStatusChip.textContent = 'Trial Active';
@@ -2137,37 +2502,28 @@
           el.billingStatusChip.className = 'px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 font-bold text-xs border border-rose-200 flex-shrink-0';
         }
       }
+
+      // Pre-select billing cycle & tier if known
+      if (sub.billingCycle === 'yearly') {
+        selectedBillingCycle = 'yearly';
+      } else {
+        selectedBillingCycle = 'monthly';
+      }
+
+      if (sub.plan) {
+        const pLower = sub.plan.toLowerCase();
+        if (pLower.includes('starter')) selectedPlanTier = 'starter';
+        else if (pLower.includes('scale')) selectedPlanTier = 'scale';
+        else if (pLower.includes('growth')) selectedPlanTier = 'growth';
+      }
     }
 
-    selectBillingPlan(selectedBillingCycle || 'monthly');
+    updateBillingUI();
     if (el.billingModal) el.billingModal.classList.remove('hidden');
   }
 
   function closeBillingModal() {
     if (el.billingModal) el.billingModal.classList.add('hidden');
-  }
-
-  function selectBillingPlan(cycle) {
-    selectedBillingCycle = cycle;
-    const isYearly = cycle === 'yearly';
-
-    if (el.planCardMonthly && el.planCardYearly) {
-      if (isYearly) {
-        el.planCardYearly.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/40 relative transition-all';
-        el.planCardMonthly.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all';
-        if (el.planCheckYearly) el.planCheckYearly.className = 'w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]';
-        if (el.planCheckMonthly) el.planCheckMonthly.className = 'w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]';
-        if (el.billingChargeSummary) el.billingChargeSummary.textContent = 'Charge: $290.00';
-        if (el.btnSubmitPaymentText) el.btnSubmitPaymentText.textContent = 'Pay $290.00 & Activate Annual Pro';
-      } else {
-        el.planCardMonthly.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/40 relative transition-all';
-        el.planCardYearly.className = 'plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all';
-        if (el.planCheckMonthly) el.planCheckMonthly.className = 'w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]';
-        if (el.planCheckYearly) el.planCheckYearly.className = 'w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]';
-        if (el.billingChargeSummary) el.billingChargeSummary.textContent = 'Charge: $29.00';
-        if (el.btnSubmitPaymentText) el.btnSubmitPaymentText.textContent = 'Pay $29.00 & Activate Monthly Pro';
-      }
-    }
   }
 
   async function handlePaymentSubmit(e) {
@@ -2178,7 +2534,7 @@
     }
 
     if (!currentUser || !currentUser.tenantId) {
-      alert('Restaurant workspace information missing. Please re-login.');
+      alert('Business workspace information missing. Please re-login.');
       return;
     }
 
@@ -2202,9 +2558,10 @@
     if (el.btnSubmitPayment) el.btnSubmitPayment.disabled = true;
 
     try {
+      const planConfig = PRICING_PLANS[selectedPlanTier] || PRICING_PLANS.starter;
       const isYearly = selectedBillingCycle === 'yearly';
-      const planName = isYearly ? 'Annual Pro' : 'Monthly Pro';
-      const paidAmount = isYearly ? '$290.00' : '$29.00';
+      const planName = `${planConfig.name} (${isYearly ? 'Annual' : 'Monthly'})`;
+      const paidAmount = isYearly ? planConfig.yearlyPriceFormatted : planConfig.monthlyPriceFormatted;
       const durationDays = isYearly ? 365 : 30;
       const paymentRef = 'PAY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
@@ -2238,6 +2595,7 @@
 
       currentUser.subscription = updatedSub;
       saveUserSession(currentUser);
+      refreshScreenState();
 
       // Populate Receipt View
       if (el.receiptPlan) el.receiptPlan.textContent = planName;
@@ -2264,35 +2622,33 @@
     } finally {
       if (el.btnSubmitPayment) el.btnSubmitPayment.disabled = false;
       if (el.btnSubmitPaymentSpinner) el.btnSubmitPaymentSpinner.classList.add('hidden');
-      if (el.btnSubmitPaymentText) {
-        el.btnSubmitPaymentText.textContent = selectedBillingCycle === 'yearly' ? 'Pay $290.00 & Activate Annual Pro' : 'Pay $29.00 & Activate Monthly Pro';
-      }
+      updateBillingUI();
     }
   }
 
   // --- TRIAL EXPIRED MODAL ---
   function showTrialExpiredModal() {
-    const isMobile = isNativeMobileApp();
+    const isMobile = isNativeMobileApp() || window.innerWidth < 768;
     const isAdmin = currentUser && currentUser.role === 'admin';
 
     if (isMobile) {
       if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
       if (el.expiredMobileActions) el.expiredMobileActions.classList.remove('hidden');
       if (el.expiredModalMsg) {
-        el.expiredModalMsg.textContent = 'The 14-day free trial for this restaurant workspace has expired. To continue using CrewClock, please visit our web portal at crewclock.com in your web browser to activate your subscription.';
+        el.expiredModalMsg.textContent = 'The 14-day free trial for this business workspace has expired. To continue using CrewClock, please visit our web portal at crewclock.com in your web browser to activate your subscription.';
       }
     } else {
       if (isAdmin) {
         if (el.expiredWebActions) el.expiredWebActions.classList.remove('hidden');
         if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
         if (el.expiredModalMsg) {
-          el.expiredModalMsg.textContent = 'The 14-day free trial for your restaurant workspace has expired. Choose a monthly or annual plan to continue uninterrupted attendance tracking.';
+          el.expiredModalMsg.textContent = 'The 14-day free trial for your business workspace has expired. Choose a monthly or annual plan to continue uninterrupted attendance tracking.';
         }
       } else {
         if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
         if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
         if (el.expiredModalMsg) {
-          el.expiredModalMsg.textContent = 'The 14-day free trial for this restaurant has expired. Please notify your restaurant administrator to renew the subscription on the web portal.';
+          el.expiredModalMsg.textContent = 'The 14-day free trial for this business has expired. Please notify your business administrator to renew the subscription on the web portal.';
         }
       }
     }
@@ -2323,7 +2679,7 @@
       });
     }
 
-    // Sign-Up with Google Trigger (Restaurant Owners)
+    // Sign-Up with Google Trigger (Business Owners)
     if (el.btnSignupTrigger) {
       el.btnSignupTrigger.addEventListener('click', () => {
         triggerHaptic();
@@ -2435,21 +2791,34 @@
 
     if (el.btnSaveSettings) {
       el.btnSaveSettings.addEventListener('click', () => {
-        settings.restaurantName = el.inputRestaurantName?.value.trim() || 'Bella Bistro & Bar';
-        settings.restaurantLogo = el.inputRestaurantLogo?.value.trim() || '';
+        const updatedName = el.inputRestaurantName?.value.trim() || 'My Business';
+        const updatedType = el.inputSettingsBusinessType?.value.trim() || 'General Business';
+        const updatedLogo = el.inputRestaurantLogo?.value.trim() || '';
         const rawSheetInput = el.inputScriptUrl?.value.trim() || '';
-        settings.scriptUrl = extractSpreadsheetId(rawSheetInput);
         const selectedTimezone = el.inputSettingsTimezone?.value || currentUser?.timeZone || 'America/Los_Angeles';
 
-        // Save only tenant-customizable properties to localStorage
+        settings.businessName = updatedName;
+        settings.restaurantName = updatedName;
+        settings.businessType = updatedType;
+        settings.businessLogo = updatedLogo;
+        settings.restaurantLogo = updatedLogo;
+        settings.scriptUrl = extractSpreadsheetId(rawSheetInput);
+
+        // Save tenant-customizable properties to localStorage
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({
+          businessName: settings.businessName,
           restaurantName: settings.restaurantName,
+          businessType: settings.businessType,
+          businessLogo: settings.businessLogo,
           restaurantLogo: settings.restaurantLogo,
           scriptUrl: settings.scriptUrl
         }));
 
         if (currentUser) {
+          currentUser.businessName = settings.businessName;
           currentUser.restaurantName = settings.restaurantName;
+          currentUser.businessType = settings.businessType;
+          currentUser.businessLogo = settings.businessLogo;
           currentUser.restaurantLogo = settings.restaurantLogo;
           currentUser.attendanceScriptUrl = settings.scriptUrl;
           currentUser.timeZone = selectedTimezone;
@@ -2459,8 +2828,10 @@
           if (currentUser.role === 'admin' && settings.tenancyScriptUrl) {
             callTenancyApi('update_config', {
               adminEmail: currentUser.email,
+              businessName: settings.businessName,
               restaurantName: settings.restaurantName,
-              logoUrl: settings.restaurantLogo,
+              businessType: settings.businessType,
+              logoUrl: settings.businessLogo,
               attendanceScriptUrl: settings.scriptUrl,
               attendanceSheetId: settings.scriptUrl,
               timeZone: selectedTimezone
@@ -2476,6 +2847,21 @@
       });
     }
 
+    // Initialize Searchable Business Type Dropdowns
+    initSearchableDropdown(
+      el.inputSettingsBusinessType,
+      el.btnToggleSettingsBusinessType,
+      el.listSettingsBusinessType,
+      el.arrowSettingsBusinessType,
+      BUSINESS_TYPES
+    );
+    initSearchableDropdown(
+      el.inputOnboardBusinessType,
+      el.btnToggleOnboardBusinessType,
+      el.listOnboardBusinessType,
+      el.arrowOnboardBusinessType,
+      BUSINESS_TYPES
+    );
 
     // Mobile Bottom Navigation Events
     if (el.mobileNavClock) {
@@ -2512,11 +2898,11 @@
         if (el.billingModal) el.billingModal.classList.add('hidden');
 
         if (!currentUser) {
-          alert('Team Management:\n\nPlease sign in with Google as a Restaurant Admin to manage team members.');
+          alert('Team Management:\n\nPlease sign in with Google as a Business Admin to manage team members.');
           return;
         }
         if (currentUser.role !== 'admin') {
-          alert('Team Management:\n\nOnly authorized restaurant Admins can access Team Management.');
+          alert('Team Management:\n\nOnly authorized business Admins can access Team Management.');
           return;
         }
 
@@ -2537,11 +2923,11 @@
           return;
         }
         if (!currentUser) {
-          alert('Subscription & Billing:\n\nPlease sign in with Google as a Restaurant Admin to manage your workspace subscription.');
+          alert('Subscription & Billing:\n\nPlease sign in with Google as a Business Admin to manage your workspace subscription.');
           return;
         }
         if (currentUser.role !== 'admin') {
-          alert('Subscription & Billing:\n\nOnly restaurant administrators can manage subscription and billing.');
+          alert('Subscription & Billing:\n\nOnly business administrators can manage subscription and billing.');
           return;
         }
 
@@ -2582,11 +2968,36 @@
       });
     }
 
-    if (el.planCardMonthly) {
-      el.planCardMonthly.addEventListener('click', () => selectBillingPlan('monthly'));
+    if (el.btnCycleMonthly) {
+      el.btnCycleMonthly.addEventListener('click', () => {
+        triggerHaptic();
+        setBillingCycle('monthly');
+      });
     }
-    if (el.planCardYearly) {
-      el.planCardYearly.addEventListener('click', () => selectBillingPlan('yearly'));
+    if (el.btnCycleYearly) {
+      el.btnCycleYearly.addEventListener('click', () => {
+        triggerHaptic();
+        setBillingCycle('yearly');
+      });
+    }
+
+    if (el.planCardStarter) {
+      el.planCardStarter.addEventListener('click', () => {
+        triggerHaptic();
+        setPlanTier('starter');
+      });
+    }
+    if (el.planCardGrowth) {
+      el.planCardGrowth.addEventListener('click', () => {
+        triggerHaptic();
+        setPlanTier('growth');
+      });
+    }
+    if (el.planCardScale) {
+      el.planCardScale.addEventListener('click', () => {
+        triggerHaptic();
+        setPlanTier('scale');
+      });
     }
 
     if (el.formBillingPayment) {
@@ -2649,6 +3060,11 @@
           }
         });
       }
+    });
+
+    // Window resize listener to dynamically update desktop vs mobile role-based UI
+    window.addEventListener('resize', () => {
+      updateRoleBasedUI();
     });
   }
 

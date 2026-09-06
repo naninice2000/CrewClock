@@ -28,6 +28,8 @@ body {
   padding-left: env(safe-area-inset-left, 0);
   padding-right: env(safe-area-inset-right, 0);
   margin: 0;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 .font-serif-title {
@@ -139,17 +141,37 @@ body {
 }
 
 /* ============================================================
-   RESPONSIVE NAVIGATION ARCHITECTURE (MOBILE-FIRST)
+   RESPONSIVE NAVIGATION ARCHITECTURE (DESKTOP TOP / MOBILE BOTTOM)
    ============================================================ */
 
-/* 1. Desktop Top Navigation Buttons:
-   STRICTLY HIDDEN on mobile phones, tablets, and viewports < 1024px.
-   Only visible on widescreen desktop (>= 1024px). */
+/* Header Container & Logout Button Flex Safeguards */
+header {
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
+#btn-logout-trigger {
+  flex-shrink: 0 !important;
+}
+
+/* Header Role & Trial Plan Badges:
+   - STRICTLY HIDDEN on mobile & tablet viewports (< 1280px) to give brand title & logout full space.
+   - Visible on desktop screens (>= 1280px) when logged in. */
+@media screen and (max-width: 1279px) {
+  #header-role-pill,
+  #header-plan-pill {
+    display: none !important;
+  }
+}
+
+/* 1. Header Desktop Nav:
+   - Hidden on mobile phones (< 768px) and in native mobile apps.
+   - Displayed in top header on desktop/tablet web app (>= 768px). */
 #header-desktop-nav {
   display: none !important;
 }
 
-@media screen and (min-width: 1024px) {
+@media screen and (min-width: 768px) {
   body:not(.is-native-app) #header-desktop-nav:not(.hidden) {
     display: flex !important;
     align-items: center;
@@ -158,8 +180,8 @@ body {
 }
 
 /* 2. Mobile Bottom Navigation Dock:
-   ALWAYS DISPLAYED on mobile phones, tablets, and viewports < 1024px when user has active session.
-   Pinned fixed to bottom of screen. */
+   - Displayed fixed at bottom on mobile phones (< 768px) and in native mobile apps.
+   - STRICTLY HIDDEN on desktop web-app (>= 768px). */
 #mobile-bottom-nav,
 .mobile-dock {
   display: block !important;
@@ -178,8 +200,8 @@ body {
   margin: 0 !important;
 }
 
-/* Hide mobile bottom dock on widescreen desktop (>= 1024px) unless native app */
-@media screen and (min-width: 1024px) {
+/* Hide mobile bottom dock on widescreen desktop (>= 768px) unless in native app */
+@media screen and (min-width: 768px) {
   body:not(.is-native-app) #mobile-bottom-nav,
   body:not(.is-native-app) .mobile-dock {
     display: none !important;
@@ -192,11 +214,43 @@ body {
   display: none !important;
 }
 
-/* Ensure content on mobile/tablet does not get overlapped by bottom navigation dock */
-@media screen and (max-width: 1023px) {
+/* Ensure main content does not get overlapped by bottom navigation dock on mobile */
+@media screen and (max-width: 767px) {
   main {
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0.5rem)) !important;
   }
+}
+
+/* In native mobile app container, always add bottom padding for mobile dock */
+body.is-native-app main {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0.5rem)) !important;
+}
+
+/* Native mobile app always shows bottom dock and hides top nav */
+body.is-native-app #mobile-bottom-nav:not(.hidden),
+body.is-native-app .mobile-dock:not(.hidden) {
+  display: block !important;
+}
+
+body.is-native-app #header-desktop-nav {
+  display: none !important;
+}
+
+/* Billing & Subscription is strictly available on desktop web-app only (>= 768px); strictly hidden on mobile */
+#mobile-nav-billing {
+  display: none !important;
+}
+
+@media screen and (max-width: 767px) {
+  #settings-billing-section,
+  #billing-modal {
+    display: none !important;
+  }
+}
+
+body.is-native-app #settings-billing-section,
+body.is-native-app #billing-modal {
+  display: none !important;
 }
 
 /* Mobile Nav Dock Buttons */
@@ -268,4 +322,9 @@ body {
 ::-webkit-scrollbar-thumb {
   background: rgba(156, 163, 175, 0.4);
   border-radius: 9999px;
+}
+
+/* Universal hidden utility override (ensures .hidden always strictly hides elements regardless of responsive display utilities) */
+.hidden {
+  display: none !important;
 }

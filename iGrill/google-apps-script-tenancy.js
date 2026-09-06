@@ -129,12 +129,13 @@ function handleTenancyRequest(e) {
         });
       }
 
-      var restaurantName = data.restaurantName || "My Restaurant";
+      var businessName = data.businessName || data.restaurantName || "My Business";
+      var restaurantName = businessName;
       var logoUrl = data.logoUrl || "";
       var attendanceScriptUrl = data.attendanceSheetId || data.attendanceScriptUrl || "";
       var timeZone = data.timeZone || "America/Los_Angeles";
       var tenantId = "t_" + Utilities.getUuid().slice(0, 8);
-      var adminName = data.name || "Restaurant Admin";
+      var adminName = data.name || "Business Admin";
       
       // Calculate 14-day free trial dates
       var trialDurationMs = 14 * 24 * 60 * 60 * 1000;
@@ -174,7 +175,7 @@ function handleTenancyRequest(e) {
 
       return responseJSON({
         success: true,
-        message: "Restaurant workspace created successfully with 14-day Free Trial!",
+        message: "Business workspace created successfully with 14-day Free Trial!",
         tenant: newTenant,
         subscription: newTenant ? newTenant.subscription : null,
         user: {
@@ -202,12 +203,12 @@ function handleTenancyRequest(e) {
       // Verify caller is admin
       var adminUser = findUserByEmail(usersSheet, adminEmail);
       if (!adminUser || adminUser.role !== "admin") {
-        return responseJSON({ success: false, error: "Only an authorized restaurant Admin can invite employees." });
+        return responseJSON({ success: false, error: "Only an authorized business Admin can invite employees." });
       }
 
       var tenantId = adminUser.tenantId;
       var tenant = findTenantById(tenantsSheet, tenantId);
-      var restaurantName = tenant ? tenant.restaurantName : "the restaurant";
+      var businessName = tenant ? (tenant.businessName || tenant.restaurantName) : "the business";
 
       // Check if employee already invited
       var existingEmployee = findUserByEmail(usersSheet, inviteEmail);
@@ -215,7 +216,7 @@ function handleTenancyRequest(e) {
         if (existingEmployee.tenantId === tenantId) {
           return responseJSON({ success: false, error: "Employee is already a member of your team." });
         } else {
-          return responseJSON({ success: false, error: "This Gmail address is already registered with another restaurant." });
+          return responseJSON({ success: false, error: "This Gmail address is already registered with another business." });
         }
       }
 
@@ -232,13 +233,13 @@ function handleTenancyRequest(e) {
 
       // Send Gmail Invitation using MailApp
       try {
-        var subject = "You're invited to join " + restaurantName + " on CrewClock";
+        var subject = "You're invited to join " + businessName + " on CrewClock";
         var body = "Hello " + inviteName + ",\n\n" +
-          adminUser.name + " (" + adminEmail + ") has invited you to join " + restaurantName + " on CrewClock for attendance and time tracking.\n\n" +
+          adminUser.name + " (" + adminEmail + ") has invited you to join " + businessName + " on CrewClock for attendance and time tracking.\n\n" +
           "To access your shift portal and clock in, open the link below and Sign In with your Google account:\n" +
           appUrl + "\n\n" +
           "Best regards,\n" +
-          restaurantName + " Team";
+          businessName + " Team";
 
         MailApp.sendEmail(inviteEmail, subject, body);
       } catch (mailErr) {
@@ -305,8 +306,10 @@ function handleTenancyRequest(e) {
         return responseJSON({ success: false, error: "Unauthorized access" });
       }
 
+      var bName = data.businessName || data.restaurantName;
       var updated = updateTenant(tenantsSheet, adminUser.tenantId, {
-        restaurantName: data.restaurantName,
+        businessName: bName,
+        restaurantName: bName,
         logoUrl: data.logoUrl,
         attendanceScriptUrl: data.attendanceSheetId || data.attendanceScriptUrl,
         timeZone: data.timeZone
@@ -314,7 +317,7 @@ function handleTenancyRequest(e) {
 
       return responseJSON({
         success: true,
-        message: "Restaurant configuration updated!",
+        message: "Business configuration updated!",
         tenant: updated
       });
 
@@ -333,28 +336,30 @@ function handleTenancyRequest(e) {
       // 1. Verify user belongs to this tenant workspace
       var user = findUserByEmail(usersSheet, userEmail);
       if (!user || user.tenantId !== tenantId) {
-        return responseJSON({ success: false, error: "Unauthorized: Staff member is not registered in this restaurant workspace." });
+        return responseJSON({ success: false, error: "Unauthorized: Staff member is not registered in this business workspace." });
       }
 
       // 2. Look up tenant to get the merchant's attendanceSheetId
       var tenant = findTenantById(tenantsSheet, tenantId);
       if (!tenant) {
-        return responseJSON({ success: false, error: "Restaurant workspace not found." });
+        return responseJSON({ success: false, error: "Business workspace not found." });
       }
+
+      var bName = tenant.businessName || tenant.restaurantName || "your business";
 
       // 2.1 Verify Tenant Subscription or Free Trial is Valid
       if (tenant.subscription && !tenant.subscription.isValid) {
         return responseJSON({
           success: false,
           expired: true,
-          error: "Subscription Required: The 14-day free trial for " + tenant.restaurantName + " has expired. The restaurant administrator must activate a subscription via the CrewClock Web Portal to continue logging attendance shifts."
+          error: "Subscription Required: The 14-day free trial for " + bName + " has expired. The business administrator must activate a subscription via the CrewClock Web Portal to continue logging attendance shifts."
         });
       }
 
       var targetSheet = tenant.attendanceScriptUrl || "";
       var sheetId = extractSpreadsheetIdFromStr(targetSheet);
       if (!sheetId) {
-        return responseJSON({ success: false, error: "No valid Google Sheet ID configured for this restaurant." });
+        return responseJSON({ success: false, error: "No valid Google Sheet ID configured for this business." });
       }
 
       // 3. Open Merchant's Google Sheet
@@ -366,7 +371,7 @@ function handleTenancyRequest(e) {
         try { hostEmail = Session.getEffectiveUser().getEmail(); } catch (e) {}
         return responseJSON({
           success: false,
-          error: "Permission Denied: Could not open restaurant Google Sheet. Please ensure the restaurant Owner opened their sheet (https://docs.google.com/spreadsheets/d/" + sheetId + "/edit) and shared it with " + (hostEmail || "the platform service email") + " as Editor."
+          error: "Permission Denied: Could not open business Google Sheet. Please ensure the business Owner opened their sheet (https://docs.google.com/spreadsheets/d/" + sheetId + "/edit) and shared it with " + (hostEmail || "the platform service email") + " as Editor."
         });
       }
 
@@ -640,6 +645,7 @@ function findTenantById(tenantsSheet, tenantId) {
       return {
         tenantId: rows[i][0],
         restaurantName: rows[i][1],
+        businessName: rows[i][1],
         logoUrl: rows[i][2],
         adminEmail: rows[i][3],
         attendanceScriptUrl: rows[i][4],
@@ -733,7 +739,8 @@ function updateTenant(tenantsSheet, tenantId, updates) {
   for (var i = 0; i < rows.length; i++) {
     if ((rows[i][0] || "").toString().trim() === tenantId) {
       var rowNum = i + 2;
-      if (updates.restaurantName) tenantsSheet.getRange(rowNum, 2).setValue(updates.restaurantName);
+      var bName = updates.businessName || updates.restaurantName;
+      if (bName) tenantsSheet.getRange(rowNum, 2).setValue(bName);
       if (updates.logoUrl !== undefined) tenantsSheet.getRange(rowNum, 3).setValue(updates.logoUrl);
       if (updates.attendanceScriptUrl) tenantsSheet.getRange(rowNum, 5).setValue(updates.attendanceScriptUrl);
       if (updates.timeZone) tenantsSheet.getRange(rowNum, 6).setValue(updates.timeZone);

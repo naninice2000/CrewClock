@@ -1,5 +1,5 @@
 /**
- * Restaurant Employee Clock-In App Configuration (Multi-Tenant Enabled)
+ * Small & Medium Business Employee Clock-In App Configuration (Multi-Tenant Enabled)
  * ---------------------------------------------------------------------
  * 1. googleClientId: Google OAuth 2.0 Web Client ID
  * 2. tenancyScriptUrl: Central Google Apps Script URL for Tenants & Users Sheet
@@ -16,10 +16,12 @@ const APP_CONFIG = {
 
   // Platform Organization Name (Multi-Tenant Umbrella Entity)
   organizationName: "Lightning Ventures LLC",
+  businessName: "Lightning Ventures LLC",
   restaurantName: "Lightning Ventures LLC",
 
   // Optional: URL to platform/organization logo image
   organizationLogo: "",
+  businessLogo: "",
   restaurantLogo: "",
 
   // Default Attendance Google Apps Script Web App URL (from your Attendance Google Sheet)

@@ -8,8 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Staff Clock-In" />
   <meta name="theme-color" content="#f59e0b" />
-  <title>Staff Time Clock - Restaurant Employee Check-In</title>
-  <meta name="description" content="Quick mobile clock-in and clock-out for restaurant employees with Google Sign-In, GPS location verification, and Google Sheet sync." />
+  <title>Staff Time Clock - Small & Medium Business Employee Attendance</title>
+  <meta name="description" content="Quick mobile clock-in and clock-out for employees with Google Sign-In, GPS location verification, and Google Sheet sync for small and medium businesses." />
   
   <!-- App Icons & PWA Web Clip -->
   <link rel="icon" type="image/png" href="favicon.png" />
@@ -47,7 +47,7 @@
   </script>
 
   <!-- Google Fonts & Custom Styles -->
-  <link rel="stylesheet" href="style.css?v=20260906_5" />
+  <link rel="stylesheet" href="style.css?v=20260906_9" />
 
   <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -55,12 +55,12 @@
 <body class="bg-gradient-to-br from-amber-50 via-warmgray-50 to-orange-50 text-warmgray-900 flex flex-col justify-between min-h-screen selection:bg-amber-200">
 
   <!-- TOP APP BAR -->
-  <header class="w-full max-w-3xl mx-auto px-3 sm:px-6 pt-2.5 pb-2.5 flex items-center justify-between gap-2.5 sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-warmgray-200/80 shadow-xs">
-    <!-- Restaurant Brand Header -->
-    <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-      <div id="brand-logo-container" class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-md shadow-amber-500/20 flex items-center justify-center text-white overflow-hidden p-1.5 flex-shrink-0">
+  <header class="w-full max-w-6xl mx-auto px-2.5 sm:px-6 pt-2 pb-2 sm:pt-2.5 sm:pb-2.5 flex items-center justify-between gap-2 sm:gap-6 sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-warmgray-200/80 shadow-xs">
+    <!-- Business Brand Header -->
+    <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
+      <div id="brand-logo-container" class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-md shadow-amber-500/20 flex items-center justify-center text-white overflow-hidden p-1 sm:p-1.5 flex-shrink-0">
         <!-- Default Logo SVG -->
-        <svg id="brand-logo-svg" class="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg id="brand-logo-svg" class="w-4 h-4 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" class="hidden"/>
           <path d="M12 2a5 5 0 0 0-5 5v5a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"/>
           <path d="M8 21h8"/>
@@ -68,65 +68,69 @@
         </svg>
         <img id="brand-logo-img" src="" alt="Logo" class="w-full h-full object-cover rounded-xl hidden" />
       </div>
-      <div class="min-w-0 flex-1">
-        <h1 id="restaurant-name-display" class="font-serif-title font-bold text-sm sm:text-lg leading-snug text-warmgray-900 tracking-tight truncate">
+      <div class="min-w-0 flex-1 sm:flex-initial">
+        <h1 id="restaurant-name-display" class="font-serif-title font-bold text-xs sm:text-base leading-tight sm:leading-snug text-warmgray-900 tracking-tight truncate sm:whitespace-nowrap">
           Lightning Ventures LLC
         </h1>
-        <p class="text-[10px] sm:text-xs font-medium text-amber-700/80 flex items-center gap-1.5 truncate">
-          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+        <p class="text-[9px] sm:text-xs font-medium text-amber-700/80 flex items-center gap-1 truncate sm:whitespace-nowrap">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
           <span class="truncate">Attendance Portal</span>
         </p>
       </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="flex items-center gap-1.5 flex-shrink-0">
+    <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ml-1 sm:ml-0">
+      <!-- Desktop Navigation Buttons (Visible on desktop >= 768px; mobile uses bottom dock) -->
+      <div id="header-desktop-nav" class="hidden md:flex items-center gap-1 sm:gap-1.5">
+        <!-- 1. Shift Log Button -->
+        <button id="btn-open-history" title="View Shift Log" class="p-2 xl:px-3 xl:py-1.5 rounded-xl bg-white/90 hover:bg-amber-50 hover:text-amber-800 text-warmgray-700 shadow-2xs border border-warmgray-200/80 transition-all btn-press touch-target flex items-center gap-1.5 text-xs font-semibold">
+          <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+          <span class="hidden xl:inline">Shift Log</span>
+        </button>
+
+        <!-- 2. Team Management Button (Admin only) -->
+        <button id="btn-open-team" title="Manage Staff Teams" class="hidden p-2 xl:px-3 xl:py-1.5 rounded-xl bg-white/90 hover:bg-amber-50 hover:text-amber-800 text-warmgray-700 shadow-2xs border border-warmgray-200/80 transition-all btn-press touch-target flex items-center gap-1.5 text-xs font-semibold">
+          <svg class="w-4 h-4 text-warmgray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <span class="hidden xl:inline">Teams</span>
+        </button>
+
+        <!-- 3. Billing Button (Admin on Web App only) -->
+        <button id="btn-open-billing" title="Subscription & Billing" class="hidden p-2 xl:px-3 xl:py-1.5 rounded-xl bg-white/90 hover:bg-amber-50 hover:text-amber-800 text-warmgray-700 shadow-2xs border border-warmgray-200/80 transition-all btn-press touch-target flex items-center gap-1.5 text-xs font-semibold">
+          <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+          <span class="hidden xl:inline">Billing</span>
+        </button>
+
+        <!-- 4. Settings Button (Admin only) -->
+        <button id="btn-open-settings" title="Business Configuration" class="hidden p-2 xl:px-3 xl:py-1.5 rounded-xl bg-white/90 hover:bg-amber-50 hover:text-amber-800 text-warmgray-700 shadow-2xs border border-warmgray-200/80 transition-all btn-press touch-target flex items-center gap-1.5 text-xs font-semibold">
+          <svg class="w-4 h-4 text-warmgray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span class="hidden xl:inline">Settings</span>
+        </button>
+      </div>
+
       <!-- User Profile Badge (Visible when logged in) -->
       <div id="header-user-badge" class="hidden flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 rounded-xl bg-white/90 border border-warmgray-200/80 shadow-xs flex-shrink-0">
         <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center text-[10px] font-bold overflow-hidden flex-shrink-0">
           <span id="header-user-initials">U</span>
           <img id="header-user-img" src="" alt="Avatar" referrerpolicy="no-referrer" class="w-full h-full object-cover hidden" />
         </div>
-        <div class="flex items-center gap-1">
-          <span id="header-user-name" class="text-xs font-bold text-warmgray-800 max-w-[70px] sm:max-w-[110px] truncate">User</span>
-          <span id="header-role-pill" class="hidden lg:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
-          <span id="header-plan-pill" class="hidden lg:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-100 text-emerald-800 border border-emerald-300">14d Trial</span>
+        <div class="flex items-center gap-1 min-w-0">
+          <span id="header-user-name" class="text-xs font-bold text-warmgray-800 max-w-[65px] sm:max-w-[110px] truncate">User</span>
+          <span id="header-role-pill" class="hidden xl:inline-block"></span>
+          <span id="header-plan-pill" class="hidden xl:inline-block"></span>
         </div>
-        <button id="btn-logout-trigger" title="Sign Out" class="text-warmgray-400 hover:text-rose-600 p-1 transition-colors touch-target" aria-label="Sign Out">
+        <button id="btn-logout-trigger" title="Sign Out" class="text-warmgray-400 hover:text-rose-600 p-1 sm:p-1.5 rounded-lg hover:bg-rose-50 transition-colors flex-shrink-0 flex items-center justify-center min-w-[28px] min-h-[28px]" aria-label="Sign Out">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-        </button>
-      </div>
- 
-      <!-- Desktop-only Top Navigation Buttons (Completely hidden on mobile phones & tablets < 1024px; mobile uses bottom dock) -->
-      <div id="header-desktop-nav" class="hidden lg:flex items-center gap-1.5">
-        <!-- Team Management Button (Visible only to Admin on desktop) -->
-        <button id="btn-open-team" title="Manage Staff Team" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        </button>
-
-        <!-- Subscription & Billing Button (Visible only on Web App to Admin) -->
-        <button id="btn-open-billing" title="Subscription & Billing" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-amber-700 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-          </svg>
-        </button>
-
-        <!-- Recent Records Button (Visible on desktop) -->
-        <button id="btn-open-history" title="View Shift Log" class="p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
-
-        <!-- Settings Button (Visible only to Admin on desktop) -->
-        <button id="btn-open-settings" title="Restaurant Configuration" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
       </div>
@@ -181,7 +185,7 @@
           <span class="text-xl">🚫</span>
           <div>
             <p class="font-bold text-xs text-rose-900">Access Restricted</p>
-            <p id="uninvited-user-text" class="text-[11px] text-rose-800 mt-0.5">Your Google account is not associated with any restaurant workspace. Please ask your manager for an invite, or register as a new restaurant owner below.</p>
+            <p id="uninvited-user-text" class="text-[11px] text-rose-800 mt-0.5">Your Google account is not associated with any business workspace. Please ask your manager for an invite, or register as a new business owner below.</p>
           </div>
         </div>
       </div>
@@ -220,16 +224,16 @@
       <!-- DIVIDER -->
       <div class="my-4 flex items-center gap-3">
         <div class="h-px flex-1 bg-warmgray-200"></div>
-        <span class="text-[10px] font-bold text-warmgray-400 uppercase tracking-wider">Restaurant Owners</span>
+        <span class="text-[10px] font-bold text-warmgray-400 uppercase tracking-wider">Business Owners</span>
         <div class="h-px flex-1 bg-warmgray-200"></div>
       </div>
 
-      <!-- SIGN UP FOR RESTAURANT ADMIN -->
+      <!-- SIGN UP FOR BUSINESS ADMIN -->
       <button id="btn-signup-trigger" class="w-full py-3 px-5 rounded-2xl bg-amber-50 hover:bg-amber-100 active:bg-amber-200 text-amber-900 font-bold text-sm border border-amber-300/80 btn-press flex items-center justify-center gap-2 shadow-xs">
         <svg class="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
-        <span>Sign Up Your Restaurant with Google</span>
+        <span>Sign Up Your Business with Google</span>
       </button>
     </div>
 
@@ -261,7 +265,7 @@
           <!-- Prominent Role & Subscription Badges -->
           <div class="flex items-center justify-center gap-1.5 mt-2 flex-wrap">
             <span id="ready-role-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-              👑 Restaurant Admin
+              👑 Business Admin
             </span>
             <span id="ready-plan-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
               14d Free Trial
@@ -498,7 +502,7 @@
           </div>
           <div>
             <h3 class="font-bold text-base text-warmgray-900">App Configuration</h3>
-            <p class="text-xs text-warmgray-500">Customize restaurant branding & Google connections</p>
+            <p class="text-xs text-warmgray-500">Customize business branding & Google connections</p>
           </div>
         </div>
         <button id="btn-close-settings" class="p-2 rounded-xl text-warmgray-500 hover:bg-warmgray-100 touch-target" aria-label="Close">
@@ -509,17 +513,33 @@
       </div>
 
       <div class="py-4 space-y-4 text-xs">
-        <!-- Restaurant Name -->
+        <!-- Business Name -->
         <div>
-          <label class="block font-semibold text-warmgray-800 mb-1">Restaurant Name</label>
-          <input id="input-restaurant-name" type="text" placeholder="e.g. Bella Bistro & Bar" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
+          <label class="block font-semibold text-warmgray-800 mb-1">Business Name</label>
+          <input id="input-restaurant-name" type="text" placeholder="e.g. Acme Retail, Apex Contracting, Bella Bistro" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
         </div>
 
-        <!-- Restaurant Logo URL -->
+        <!-- Type of Business (Searchable Dropdown) -->
+        <div class="relative" id="settings-business-type-container">
+          <label class="block font-semibold text-warmgray-800 mb-1">Type of Business</label>
+          <div class="relative">
+            <input id="input-settings-business-type" type="text" autocomplete="off" placeholder="Search or select business type..." class="w-full px-3 py-2 pr-8 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-xs" />
+            <button type="button" id="btn-toggle-settings-business-type" class="absolute right-2.5 top-2 text-warmgray-400 hover:text-warmgray-600 focus:outline-none p-0.5" aria-label="Toggle options">
+              <svg class="w-4 h-4 transition-transform duration-200" id="arrow-settings-business-type" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <ul id="list-settings-business-type" class="hidden absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-warmgray-200 rounded-xl shadow-lg py-1 text-xs modal-scroll divide-y divide-warmgray-50">
+            <!-- Populated via JS -->
+          </ul>
+        </div>
+
+        <!-- Business Logo URL -->
         <div>
-          <label class="block font-semibold text-warmgray-800 mb-1">Restaurant Logo URL (optional)</label>
+          <label class="block font-semibold text-warmgray-800 mb-1">Business Logo URL (optional)</label>
           <input id="input-restaurant-logo" type="url" placeholder="https://example.com/logo.png" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
-          <p class="text-[11px] text-warmgray-500 mt-1">Leave empty to use the built-in elegant restaurant icon.</p>
+          <p class="text-[11px] text-warmgray-500 mt-1">Leave empty to use the built-in elegant icon.</p>
         </div>
 
         <!-- Attendance Google Sheet ID or URL -->
@@ -534,9 +554,9 @@
           </p>
         </div>
 
-        <!-- Restaurant Operational Time Zone -->
+        <!-- Operational Time Zone -->
         <div class="pt-2 border-t border-warmgray-200">
-          <label class="block font-semibold text-warmgray-800 mb-1">Restaurant Operational Time Zone</label>
+          <label class="block font-semibold text-warmgray-800 mb-1">Operational Time Zone</label>
           <select id="input-settings-timezone" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-xs">
             <option value="America/New_York">Eastern Time (ET)</option>
             <option value="America/Chicago">Central Time (CT)</option>
@@ -551,8 +571,8 @@
           <p class="text-[11px] text-warmgray-500 mt-1">Official timezone used for shift calculation and cutoffs.</p>
         </div>
 
-        <!-- Workspace Subscription & Plan -->
-        <div class="pt-2 border-t border-warmgray-200">
+        <!-- Workspace Subscription & Plan (Desktop Web App Only - Hidden on Mobile) -->
+        <div id="settings-billing-section" class="hidden md:block pt-2 border-t border-warmgray-200">
           <div class="flex items-center justify-between mb-1.5">
             <label class="font-semibold text-warmgray-800">Workspace Subscription</label>
             <span id="settings-sub-badge" class="text-[10px] text-emerald-800 bg-emerald-100 font-bold px-2 py-0.5 rounded-full border border-emerald-200">14-Day Free Trial</span>
@@ -563,13 +583,9 @@
               <p id="settings-sub-expiry" class="text-[11px] text-warmgray-600 mt-0.5 truncate">14 days left in trial</p>
             </div>
             <!-- Web App only: Manage/Upgrade button -->
-            <button id="btn-settings-upgrade" type="button" class="hidden px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs shadow-xs btn-press flex-shrink-0 touch-target">
+            <button id="btn-settings-upgrade" type="button" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs shadow-xs btn-press flex-shrink-0 touch-target">
               Manage Plan
             </button>
-            <!-- Mobile App: informational note -->
-            <p id="settings-mobile-sub-note" class="hidden text-[10px] text-warmgray-500 max-w-[140px] text-right flex-shrink-0">
-              Billing managed on Web App
-            </p>
           </div>
         </div>
       </div>
@@ -586,7 +602,7 @@
   </div>
 
   <!-- ============================================== -->
-  <!-- MODAL: RESTAURANT OWNER ONBOARDING            -->
+  <!-- MODAL: BUSINESS OWNER ONBOARDING               -->
   <!-- ============================================== -->
   <div id="onboarding-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
     <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -599,10 +615,12 @@
             </svg>
           </div>
           <div>
-            <h3 class="font-bold text-lg text-warmgray-900">Create Restaurant Workspace</h3>
-            <p class="text-xs text-warmgray-500">Welcome! Set up your restaurant details as Admin</p>
+            <h3 class="font-bold text-lg text-warmgray-900">Create Business Workspace</h3>
+            <p class="text-xs text-warmgray-500">Welcome! Set up your business details as Admin</p>
           </div>
         </div>
+      </div>
+
       <!-- 14-Day Free Trial Callout Banner -->
       <div class="mt-3 p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 rounded-2xl flex items-start gap-2.5 shadow-xs">
         <span class="text-xl flex-shrink-0">🎁</span>
@@ -612,19 +630,37 @@
             <span class="px-1.5 py-0.2 bg-emerald-200 text-emerald-900 rounded text-[9px] font-bold uppercase">Free</span>
           </div>
           <p id="onboard-trial-desc" class="text-[11px] text-emerald-900 mt-1 leading-relaxed">
-            Every new restaurant workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via the Web Portal.
+            Every new business workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via the Web Portal.
           </p>
         </div>
       </div>
 
       <div class="py-4 space-y-4 text-xs">
+        <!-- Business / Company Name -->
         <div>
-          <label class="block font-semibold text-warmgray-800 mb-1">Restaurant / Location Name *</label>
-          <input id="input-onboard-name" type="text" placeholder="e.g. Bella Bistro & Bar" class="w-full px-3 py-2.5 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-medium" />
+          <label class="block font-semibold text-warmgray-800 mb-1">Business / Company Name *</label>
+          <input id="input-onboard-name" type="text" placeholder="e.g. Acme Retail, Apex Contracting, Bella Bistro" class="w-full px-3 py-2.5 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-medium" />
         </div>
 
+        <!-- Type of Business (Searchable Dropdown) -->
+        <div class="relative" id="onboard-business-type-container">
+          <label class="block font-semibold text-warmgray-800 mb-1">Type of Business *</label>
+          <div class="relative">
+            <input id="input-onboard-business-type" type="text" autocomplete="off" placeholder="Search or select business type..." class="w-full px-3 py-2.5 pr-8 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white font-medium text-xs" />
+            <button type="button" id="btn-toggle-onboard-business-type" class="absolute right-2.5 top-2.5 text-warmgray-400 hover:text-warmgray-600 focus:outline-none p-0.5" aria-label="Toggle options">
+              <svg class="w-4 h-4 transition-transform duration-200" id="arrow-onboard-business-type" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <ul id="list-onboard-business-type" class="hidden absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-warmgray-200 rounded-xl shadow-lg py-1 text-xs modal-scroll divide-y divide-warmgray-50">
+            <!-- Populated via JS -->
+          </ul>
+        </div>
+
+        <!-- Business Logo Image URL -->
         <div>
-          <label class="block font-semibold text-warmgray-800 mb-1">Restaurant Logo Image URL (optional)</label>
+          <label class="block font-semibold text-warmgray-800 mb-1">Business Logo Image URL (optional)</label>
           <input id="input-onboard-logo" type="url" placeholder="https://example.com/logo.png" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
         </div>
 
@@ -639,8 +675,9 @@
           </p>
         </div>
 
+        <!-- Operational Time Zone -->
         <div>
-          <label class="block font-semibold text-warmgray-800 mb-1">Restaurant Time Zone</label>
+          <label class="block font-semibold text-warmgray-800 mb-1">Operational Time Zone</label>
           <select id="input-onboard-timezone" class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
             <option value="America/New_York">Eastern Time (ET)</option>
             <option value="America/Chicago">Central Time (CT)</option>
@@ -681,7 +718,7 @@
             </svg>
           </div>
           <div>
-            <h3 class="font-bold text-base text-warmgray-900">Manage Restaurant Team</h3>
+            <h3 class="font-bold text-base text-warmgray-900">Manage Team</h3>
             <p class="text-xs text-warmgray-500">Invite staff by Gmail to allow clock-in access</p>
           </div>
         </div>
@@ -730,7 +767,7 @@
   <!-- MODAL: BILLING & SUBSCRIPTION (WEB APP ONLY)   -->
   <!-- ============================================== -->
   <div id="billing-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[94dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl flex flex-col max-h-[94dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       
       <!-- Modal Header -->
@@ -743,7 +780,7 @@
           </div>
           <div>
             <h3 class="font-bold text-lg text-warmgray-900">Subscription & Billing</h3>
-            <p class="text-xs text-warmgray-500">Manage plan, trial status & payments</p>
+            <p class="text-xs text-warmgray-500">Manage plan, team capacity & payments</p>
           </div>
         </div>
         <button id="btn-close-billing" class="p-2 rounded-xl text-warmgray-500 hover:bg-warmgray-100 touch-target" aria-label="Close">
@@ -769,48 +806,119 @@
       <div id="billing-checkout-container" class="py-4 space-y-4 text-xs">
         <!-- Choose Billing Cycle -->
         <div>
-          <label class="block font-semibold text-warmgray-800 mb-2">Select Your Plan</label>
-          <div class="grid grid-cols-2 gap-3">
-            <!-- Monthly Plan Card -->
-            <div id="plan-card-monthly" class="plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/40 relative transition-all">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-warmgray-900 text-sm">Monthly Pro</span>
-                <span id="plan-check-monthly" class="w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">✓</span>
-              </div>
-              <p class="text-lg font-extrabold text-warmgray-900 mt-1">$29<span class="text-xs font-normal text-warmgray-500"> / mo</span></p>
-              <p class="text-[10px] text-warmgray-500 mt-1">Billed monthly. Cancel anytime.</p>
-            </div>
-
-            <!-- Annual Plan Card -->
-            <div id="plan-card-yearly" class="plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all">
-              <span class="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-wider shadow-xs">Save $58</span>
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-warmgray-900 text-sm">Annual Pro</span>
-                <span id="plan-check-yearly" class="w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]">✓</span>
-              </div>
-              <p class="text-lg font-extrabold text-warmgray-900 mt-1">$290<span class="text-xs font-normal text-warmgray-500"> / yr</span></p>
-              <p class="text-[10px] text-warmgray-500 mt-1">$24.17/mo. 2 Months Free!</p>
-            </div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block font-bold text-warmgray-800 text-xs">Select Billing Cycle</label>
+            <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              Save ~17% with Annual
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5 p-1 bg-warmgray-100 rounded-2xl border border-warmgray-200">
+            <button id="btn-cycle-monthly" type="button" class="py-2 px-3 rounded-xl font-bold text-xs transition-all bg-white text-warmgray-900 shadow-xs flex items-center justify-center gap-1">
+              <span>Monthly</span>
+            </button>
+            <button id="btn-cycle-yearly" type="button" class="py-2 px-3 rounded-xl font-bold text-xs transition-all text-warmgray-600 hover:text-warmgray-900 flex items-center justify-center gap-1.5">
+              <span>Annual</span>
+              <span class="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">~17% Off</span>
+            </button>
           </div>
         </div>
 
-        <!-- Plan Features Inclusion -->
-        <div class="p-3 bg-warmgray-50 rounded-xl border border-warmgray-200/80 space-y-1.5 text-[11px] text-warmgray-700">
-          <div class="flex items-center gap-1.5 font-medium">
-            <span class="text-emerald-600 font-bold">✓</span>
-            <span>Unlimited employee invitations & shift tracking</span>
+        <!-- Plan Selection Cards -->
+        <div>
+          <label class="block font-bold text-warmgray-800 mb-2 text-xs">Select Team Plan</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            
+            <!-- 1. Starter Crew -->
+            <div id="plan-card-starter" class="plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/40 relative transition-all shadow-xs flex flex-col justify-between">
+              <span class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-amber-600 text-white text-[9px] font-bold uppercase tracking-wider shadow-xs">Popular</span>
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-warmgray-900 text-sm">Starter Crew</span>
+                  <span id="plan-check-starter" class="w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">✓</span>
+                </div>
+                <div class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-amber-100/80 text-[10px] font-semibold text-amber-900">
+                  Up to 25 Employees
+                </div>
+                <div class="mt-2.5">
+                  <span id="plan-price-starter" class="text-xl font-extrabold text-warmgray-900">$9.99</span>
+                  <span id="plan-period-starter" class="text-xs font-normal text-warmgray-500"> / mo</span>
+                </div>
+                <p id="plan-subtext-starter" class="text-[10px] text-warmgray-500 mt-0.5">Billed monthly</p>
+              </div>
+              <p class="text-[10px] text-warmgray-600 mt-2 pt-2 border-t border-amber-200/60 leading-snug">
+                Instant Sheet sync, unlimited punches, mobile web/app clock-in
+              </p>
+            </div>
+
+            <!-- 2. Growth Crew -->
+            <div id="plan-card-growth" class="plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all hover:border-amber-400 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-warmgray-900 text-sm">Growth Crew</span>
+                  <span id="plan-check-growth" class="w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]">✓</span>
+                </div>
+                <div class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-warmgray-100 text-[10px] font-semibold text-warmgray-600">
+                  26 – 50 Employees
+                </div>
+                <div class="mt-2.5">
+                  <span id="plan-price-growth" class="text-xl font-extrabold text-warmgray-900">$19.99</span>
+                  <span id="plan-period-growth" class="text-xs font-normal text-warmgray-500"> / mo</span>
+                </div>
+                <p id="plan-subtext-growth" class="text-[10px] text-warmgray-500 mt-0.5">Billed monthly</p>
+              </div>
+              <p class="text-[10px] text-warmgray-600 mt-2 pt-2 border-t border-warmgray-100 leading-snug">
+                All Starter features, multi-department tabs, daily summary alerts
+              </p>
+            </div>
+
+            <!-- 3. Scale Crew -->
+            <div id="plan-card-scale" class="plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all hover:border-amber-400 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-warmgray-900 text-sm">Scale Crew</span>
+                  <span id="plan-check-scale" class="w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]">✓</span>
+                </div>
+                <div class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-warmgray-100 text-[10px] font-semibold text-warmgray-600">
+                  51 – 100 Employees
+                </div>
+                <div class="mt-2.5">
+                  <span id="plan-price-scale" class="text-xl font-extrabold text-warmgray-900">$29.99</span>
+                  <span id="plan-period-scale" class="text-xs font-normal text-warmgray-500"> / mo</span>
+                </div>
+                <p id="plan-subtext-scale" class="text-[10px] text-warmgray-500 mt-0.5">Billed monthly</p>
+              </div>
+              <p class="text-[10px] text-warmgray-600 mt-2 pt-2 border-t border-warmgray-100 leading-snug">
+                All Growth features, priority support, custom shift tagging
+              </p>
+            </div>
+
           </div>
-          <div class="flex items-center gap-1.5 font-medium">
-            <span class="text-emerald-600 font-bold">✓</span>
-            <span>Tamper-proof proxy logging directly to your Google Sheet</span>
+        </div>
+
+        <!-- 4. Enterprise / Multi-Location Row -->
+        <div id="plan-card-enterprise" class="p-3.5 bg-gradient-to-r from-warmgray-50 to-amber-50/40 rounded-2xl border border-warmgray-200 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-warmgray-900 text-xs">Enterprise / Multi-Location</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warmgray-200 text-warmgray-800">100+ Staff</span>
+            </div>
+            <p class="text-[11px] text-warmgray-600 mt-1 leading-snug">
+              Dedicated spreadsheet architectures, multi-location routing & custom SLA.
+            </p>
           </div>
-          <div class="flex items-center gap-1.5 font-medium">
-            <span class="text-emerald-600 font-bold">✓</span>
-            <span>GPS geofencing & map pin verification on every shift</span>
+          <a href="mailto:support@crewclock.com?subject=Enterprise%20Plan%20Quote%20Request" class="px-3.5 py-2 rounded-xl bg-warmgray-900 hover:bg-warmgray-800 text-white text-xs font-bold flex-shrink-0 touch-target whitespace-nowrap shadow-xs btn-press">
+            Custom Quote ↗
+          </a>
+        </div>
+
+        <!-- Dynamic Core Features Box -->
+        <div class="p-3.5 bg-warmgray-50 rounded-2xl border border-warmgray-200/90 space-y-2 text-[11px] text-warmgray-700">
+          <div class="flex items-center justify-between pb-1.5 border-b border-warmgray-200">
+            <span id="features-plan-title" class="font-bold text-warmgray-900">Starter Crew Core Features</span>
+            <span id="features-team-size" class="text-[10px] font-semibold text-warmgray-500">Up to 25 Employees</span>
           </div>
-          <div class="flex items-center gap-1.5 font-medium">
-            <span class="text-emerald-600 font-bold">✓</span>
-            <span>Full iOS & Android native app access for your entire staff</span>
+          <div id="features-list-container" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            <!-- Injected via JavaScript -->
           </div>
         </div>
 
@@ -851,13 +959,13 @@
               <span>🔒</span>
               <span>256-Bit SSL Encrypted</span>
             </span>
-            <span id="billing-charge-summary" class="font-bold text-warmgray-900">Charge: $29.00</span>
+            <span id="billing-charge-summary" class="font-bold text-warmgray-900">Charge: $9.99</span>
           </div>
 
           <div id="billing-error-msg" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium"></div>
 
           <button id="btn-submit-payment" type="submit" class="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-sm shadow-md btn-press flex items-center justify-center gap-2 touch-target">
-            <span id="btn-submit-payment-text">Pay & Activate Subscription</span>
+            <span id="btn-submit-payment-text">Pay $9.99 & Activate Starter Crew (Monthly)</span>
             <span id="btn-submit-payment-spinner" class="hidden animate-spin">⏳</span>
           </button>
         </form>
@@ -910,21 +1018,21 @@
       <div>
         <h3 class="font-bold text-lg text-warmgray-900">14-Day Free Trial Ended</h3>
         <p id="expired-modal-msg" class="text-xs text-warmgray-600 mt-1.5 leading-relaxed">
-          The 14-day free trial for your restaurant workspace has expired.
+          The 14-day free trial for your business workspace has expired.
         </p>
       </div>
 
       <!-- Web-specific upgrade trigger -->
       <div id="expired-web-actions" class="space-y-2">
         <button id="btn-expired-upgrade" class="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md btn-press touch-target">
-          Choose a Plan & Continue ($29/mo)
+          Choose a Plan & Continue
         </button>
       </div>
 
       <!-- Mobile-specific guidance -->
       <div id="expired-mobile-actions" class="hidden p-3 bg-amber-50 rounded-xl border border-amber-200 text-left">
         <p class="text-[11px] text-amber-900 font-medium leading-relaxed">
-          To continue using CrewClock for your restaurant, please visit our web portal at <b>crewclock.com</b> in your web browser to activate your subscription.
+          To continue using CrewClock for your business, please visit our web portal at <b>crewclock.com</b> in your web browser to activate your subscription.
         </p>
       </div>
 
@@ -935,10 +1043,10 @@
   </div>
 
   <!-- ============================================== -->
-  <!-- MOBILE BOTTOM NAVIGATION DOCK (PHONES ONLY)    -->
+  <!-- MOBILE BOTTOM NAVIGATION DOCK                  -->
   <!-- ============================================== -->
   <nav id="mobile-bottom-nav" class="mobile-dock" aria-label="Mobile Navigation">
-    <div class="max-w-md mx-auto flex items-center justify-around px-1 py-0.5">
+    <div class="max-w-xl mx-auto flex items-center justify-around px-2 py-1">
       <!-- 1. Shift Tab -->
       <button id="mobile-nav-clock" class="mobile-dock-btn text-amber-600 font-bold" title="Shift View">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -952,27 +1060,19 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
-        <span>History</span>
+        <span>Shift Log</span>
       </button>
 
       <!-- 3. Team Management (Admin) -->
-      <button id="mobile-nav-team" class="mobile-dock-btn" title="Manage Staff Team">
+      <button id="mobile-nav-team" class="mobile-dock-btn" title="Manage Staff Teams">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
-        <span>Team</span>
+        <span>Teams</span>
       </button>
 
-      <!-- 4. Billing Tab (Web App only) -->
-      <button id="mobile-nav-billing" class="mobile-dock-btn" title="Subscription & Billing">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-        </svg>
-        <span>Billing</span>
-      </button>
-
-      <!-- 5. Settings -->
-      <button id="mobile-nav-settings" class="mobile-dock-btn" title="Restaurant Settings">
+      <!-- 4. Settings (Admin) -->
+      <button id="mobile-nav-settings" class="mobile-dock-btn" title="Business Settings">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -984,6 +1084,6 @@
 
   <!-- Configuration & Application Logic -->
   <script src="config.js?v=20260905_1"></script>
-  <script src="app.js?v=20260906_5"></script>
+  <script src="app.js?v=20260906_10"></script>
 </body>
 </html>
