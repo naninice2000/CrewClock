@@ -399,8 +399,16 @@
     const isAdmin = currentUser && currentUser.role === 'admin';
     const isMobileApp = isNativeMobileApp();
     const canAccessBilling = isAdmin && !isMobileApp;
+    const hasSession = !!getUserSession();
 
-    // Admin role pill in header
+    // Mark body if native mobile app container (iOS/Android)
+    if (isMobileApp) {
+      document.body.classList.add('is-native-app');
+    } else {
+      document.body.classList.remove('is-native-app');
+    }
+
+    // Header role pill (desktop only)
     if (el.headerRolePill) {
       if (isAdmin) {
         el.headerRolePill.classList.remove('hidden');
@@ -409,43 +417,27 @@
       }
     }
 
-    // Desktop Top Navigation Buttons (Visible on desktop when logged in; hidden on mobile via sm:flex)
-    const hasSession = !!getUserSession();
+    // Desktop Top Navigation Buttons (Only visible on widescreen desktop >= 1024px when user has active session; hidden on native mobile apps)
     if (el.headerDesktopNav) {
-      if (hasSession) {
+      if (hasSession && !isMobileApp) {
         el.headerDesktopNav.classList.remove('hidden');
-        el.headerDesktopNav.classList.add('sm:flex');
       } else {
         el.headerDesktopNav.classList.add('hidden');
-        el.headerDesktopNav.classList.remove('sm:flex');
       }
     }
 
-    // Team management button (Admin only, desktop)
+    // Desktop button permissions
     if (el.btnOpenTeam) {
-      if (isAdmin) {
-        el.btnOpenTeam.classList.remove('hidden');
-      } else {
-        el.btnOpenTeam.classList.add('hidden');
-      }
+      if (isAdmin) el.btnOpenTeam.classList.remove('hidden');
+      else el.btnOpenTeam.classList.add('hidden');
     }
-
-    // Subscription & Billing button (Admin on Web App only, desktop)
     if (el.btnOpenBilling) {
-      if (canAccessBilling) {
-        el.btnOpenBilling.classList.remove('hidden');
-      } else {
-        el.btnOpenBilling.classList.add('hidden');
-      }
+      if (canAccessBilling) el.btnOpenBilling.classList.remove('hidden');
+      else el.btnOpenBilling.classList.add('hidden');
     }
-
-    // App Configuration button (Admin only, desktop)
     if (el.btnOpenSettings) {
-      if (isAdmin) {
-        el.btnOpenSettings.classList.remove('hidden');
-      } else {
-        el.btnOpenSettings.classList.add('hidden');
-      }
+      if (isAdmin) el.btnOpenSettings.classList.remove('hidden');
+      else el.btnOpenSettings.classList.add('hidden');
     }
 
     // Mobile Bottom Navigation Dock (Visible on mobile whenever user is logged in, both BEFORE and AFTER clock-in)
@@ -464,29 +456,20 @@
 
     // Team management tab (Admin only)
     if (el.mobileNavTeam) {
-      if (isAdmin) {
-        el.mobileNavTeam.classList.remove('hidden');
-      } else {
-        el.mobileNavTeam.classList.add('hidden');
-      }
+      if (isAdmin) el.mobileNavTeam.classList.remove('hidden');
+      else el.mobileNavTeam.classList.add('hidden');
     }
 
     // Restaurant Settings tab (Admin only)
     if (el.mobileNavSettings) {
-      if (isAdmin) {
-        el.mobileNavSettings.classList.remove('hidden');
-      } else {
-        el.mobileNavSettings.classList.add('hidden');
-      }
+      if (isAdmin) el.mobileNavSettings.classList.remove('hidden');
+      else el.mobileNavSettings.classList.add('hidden');
     }
 
     // Mobile Nav Billing Tab: Shown for Admin on Web App mobile view; hidden in native apps for App Store compliance
     if (el.mobileNavBilling) {
-      if (canAccessBilling) {
-        el.mobileNavBilling.classList.remove('hidden');
-      } else {
-        el.mobileNavBilling.classList.add('hidden');
-      }
+      if (canAccessBilling) el.mobileNavBilling.classList.remove('hidden');
+      else el.mobileNavBilling.classList.add('hidden');
     }
 
     // Settings Modal billing management button vs mobile informational note

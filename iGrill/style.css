@@ -138,37 +138,65 @@ body {
   animation: fadeIn 0.2s ease-out forwards;
 }
 
-/* Mobile Bottom Navigation Dock (Phones & small screens) */
+/* ============================================================
+   RESPONSIVE NAVIGATION ARCHITECTURE (MOBILE-FIRST)
+   ============================================================ */
+
+/* 1. Desktop Top Navigation Buttons:
+   STRICTLY HIDDEN on mobile phones, tablets, and viewports < 1024px.
+   Only visible on widescreen desktop (>= 1024px). */
+#header-desktop-nav {
+  display: none !important;
+}
+
+@media screen and (min-width: 1024px) {
+  body:not(.is-native-app) #header-desktop-nav:not(.hidden) {
+    display: flex !important;
+    align-items: center;
+    gap: 0.375rem;
+  }
+}
+
+/* 2. Mobile Bottom Navigation Dock:
+   ALWAYS DISPLAYED on mobile phones, tablets, and viewports < 1024px when user has active session.
+   Pinned fixed to bottom of screen. */
 #mobile-bottom-nav,
 .mobile-dock {
-  display: block;
+  display: block !important;
   position: fixed !important;
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
   width: 100% !important;
   z-index: 50 !important;
-  background-color: rgba(255, 255, 255, 0.97) !important;
+  background-color: rgba(255, 255, 255, 0.98) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
   border-top: 1px solid rgba(231, 229, 228, 0.95) !important;
-  box-shadow: 0 -4px 20px -2px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 -4px 25px -3px rgba(0, 0, 0, 0.1) !important;
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem)) !important;
   margin: 0 !important;
 }
 
-/* Hide mobile bottom dock on tablet / desktop (>= 640px) */
-@media screen and (min-width: 640px) {
-  #mobile-bottom-nav,
-  .mobile-dock {
+/* Hide mobile bottom dock on widescreen desktop (>= 1024px) unless native app */
+@media screen and (min-width: 1024px) {
+  body:not(.is-native-app) #mobile-bottom-nav,
+  body:not(.is-native-app) .mobile-dock {
     display: none !important;
   }
 }
 
-/* When hidden by JavaScript */
+/* When logged out, hide mobile dock */
 #mobile-bottom-nav.hidden,
 .mobile-dock.hidden {
   display: none !important;
+}
+
+/* Ensure content on mobile/tablet does not get overlapped by bottom navigation dock */
+@media screen and (max-width: 1023px) {
+  main {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0.5rem)) !important;
+  }
 }
 
 /* Mobile Nav Dock Buttons */

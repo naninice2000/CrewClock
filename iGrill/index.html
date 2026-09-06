@@ -47,7 +47,7 @@
   </script>
 
   <!-- Google Fonts & Custom Styles -->
-  <link rel="stylesheet" href="style.css?v=20260906_4" />
+  <link rel="stylesheet" href="style.css?v=20260906_5" />
 
   <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -88,9 +88,9 @@
           <img id="header-user-img" src="" alt="Avatar" referrerpolicy="no-referrer" class="w-full h-full object-cover hidden" />
         </div>
         <div class="flex items-center gap-1">
-          <span id="header-user-name" class="text-xs font-bold text-warmgray-800 max-w-[50px] sm:max-w-[90px] truncate">User</span>
-          <span id="header-role-pill" class="hidden px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
-          <span id="header-plan-pill" class="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-100 text-emerald-800 border border-emerald-300">14d Trial</span>
+          <span id="header-user-name" class="text-xs font-bold text-warmgray-800 max-w-[70px] sm:max-w-[110px] truncate">User</span>
+          <span id="header-role-pill" class="hidden lg:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
+          <span id="header-plan-pill" class="hidden lg:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-100 text-emerald-800 border border-emerald-300">14d Trial</span>
         </div>
         <button id="btn-logout-trigger" title="Sign Out" class="text-warmgray-400 hover:text-rose-600 p-1 transition-colors touch-target" aria-label="Sign Out">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,8 +99,8 @@
         </button>
       </div>
  
-      <!-- Desktop-only Top Navigation Buttons (Completely hidden on mobile phones; mobile uses bottom dock) -->
-      <div id="header-desktop-nav" class="hidden sm:flex items-center gap-1.5">
+      <!-- Desktop-only Top Navigation Buttons (Completely hidden on mobile phones & tablets < 1024px; mobile uses bottom dock) -->
+      <div id="header-desktop-nav" class="hidden lg:flex items-center gap-1.5">
         <!-- Team Management Button (Visible only to Admin on desktop) -->
         <button id="btn-open-team" title="Manage Staff Team" class="hidden p-2.5 rounded-xl bg-white/80 hover:bg-white text-warmgray-700 hover:text-warmgray-900 shadow-sm border border-warmgray-200/80 transition-all btn-press touch-target">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -984,6 +984,6 @@
 
   <!-- Configuration & Application Logic -->
   <script src="config.js?v=20260905_1"></script>
-  <script src="app.js?v=20260906_4"></script>
+  <script src="app.js?v=20260906_5"></script>
 </body>
 </html>
