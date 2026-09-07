@@ -320,3 +320,34 @@ body.is-native-app #header-desktop-nav {
 .hidden {
   display: none !important;
 }
+
+/* Punch Sync Badge (Optimistic UI & Jitter Queue) */
+.sync-badge-syncing {
+  background-color: rgba(254, 243, 199, 0.8) !important;
+  color: #92400e !important;
+  border: 1px solid rgba(251, 191, 36, 0.7) !important;
+}
+.sync-badge-syncing .sync-dot {
+  background-color: #f59e0b !important;
+  animation: sync-pulse 1.2s infinite ease-in-out;
+}
+.sync-badge-synced {
+  background-color: rgba(209, 250, 229, 0.8) !important;
+  color: #065f46 !important;
+  border: 1px solid rgba(110, 231, 183, 0.7) !important;
+}
+.sync-badge-synced .sync-dot {
+  background-color: #10b981 !important;
+}
+.sync-badge-queued {
+  background-color: rgba(239, 246, 255, 0.85) !important;
+  color: #1e40af !important;
+  border: 1px solid rgba(147, 197, 253, 0.7) !important;
+}
+.sync-badge-queued .sync-dot {
+  background-color: #3b82f6 !important;
+}
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}

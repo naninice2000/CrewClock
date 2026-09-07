@@ -1,6 +1,6 @@
-# 🤖 CrewClock - Native Android Application
+# 🤖 SheetPunch - Native Android Application
 
-A high-performance native Android application for **CrewClock** built with Kotlin, Android Jetpack, and `WebView`. It wraps your live hosted web app at `https://naninice2000.github.io/CrewClock/iGrill/`, providing a complete native app experience while ensuring **any changes pushed to your GitHub repository appear immediately in the Android app without needing Google Play re-submission or APK updates**.
+A high-performance native Android application for **SheetPunch** built with Kotlin, Android Jetpack, and `WebView`. It wraps your live hosted web app at `https://naninice2000.github.io/CrewClock/iGrill/`, providing a complete native app experience while ensuring **any changes pushed to your GitHub repository appear immediately in the Android app without needing Google Play re-submission or APK updates**.
 
 ---
 
@@ -60,13 +60,13 @@ iGrill/android/app/build/outputs/apk/debug/app-debug.apk
    ```bash
    adb install -r iGrill/android/app/build/outputs/apk/debug/app-debug.apk
    ```
-4. The app will appear on your home screen and app drawer under **CrewClock** with an amber clock icon.
+4. The app will appear on your home screen and app drawer under **SheetPunch** with an amber clock icon.
 
 ### Option B: Direct Sideloading (No computer needed after copying)
 1. Copy `app-debug.apk` to Google Drive, WhatsApp, Slack, or send it via email to yourself.
 2. Open the file on your Android phone.
 3. Tap **Install** (if prompted, allow installing apps from this source).
-4. Launch **CrewClock**!
+4. Launch **SheetPunch**!
 
 
 ---

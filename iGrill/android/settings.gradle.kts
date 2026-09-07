@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CrewClock"
+rootProject.name = "SheetPunch"
 include(":app")

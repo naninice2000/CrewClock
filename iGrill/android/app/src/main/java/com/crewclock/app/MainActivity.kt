@@ -127,7 +127,7 @@ class MainActivity : AppCompatActivity() {
 
         // Custom User Agent to satisfy Google Identity Services and identify native app
         val defaultUserAgent = settings.userAgentString
-        val cleanUserAgent = defaultUserAgent.replace("; wv", "").replace("Version/4.0 ", "") + " CrewClockApp/1.0 (Android)"
+        val cleanUserAgent = defaultUserAgent.replace("; wv", "").replace("Version/4.0 ", "") + " SheetPunchApp/1.0 (Android) CrewClockApp/1.0"
         settings.userAgentString = cleanUserAgent
 
         // Cookie Management for Google OAuth
@@ -352,7 +352,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                Log.d("CrewClockOAuth", "[${consoleMessage?.messageLevel()}] ${consoleMessage?.message()} -- line ${consoleMessage?.lineNumber()} of ${consoleMessage?.sourceId()}")
+                Log.d("SheetPunchOAuth", "[${consoleMessage?.messageLevel()}] ${consoleMessage?.message()} -- line ${consoleMessage?.lineNumber()} of ${consoleMessage?.sourceId()}")
                 return true
             }
         }

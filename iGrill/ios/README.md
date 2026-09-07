@@ -1,6 +1,6 @@
-# 📱 CrewClock - Native iOS Application
+# 📱 SheetPunch - Native iOS Application
 
-A high-performance native iOS application for **CrewClock** built with Swift, SwiftUI, and WebKit (`WKWebView`). It wraps your live hosted web app at `https://naninice2000.github.io/CrewClock/iGrill/`, providing a complete native app experience while ensuring **any changes pushed to your GitHub repository appear immediately in the iOS app without needing App Store re-submission or app updates**.
+A high-performance native iOS application for **SheetPunch** built with Swift, SwiftUI, and WebKit (`WKWebView`). It wraps your live hosted web app at `https://naninice2000.github.io/CrewClock/iGrill/`, providing a complete native app experience while ensuring **any changes pushed to your GitHub repository appear immediately in the iOS app without needing App Store re-submission or app updates**.
 
 ---
 
@@ -74,7 +74,7 @@ xcodebuild -project iGrill/ios/CrewClock.xcodeproj -scheme CrewClock -destinatio
 
 ## 📲 How to Install onto Your Physical Dev iPhone (100% Free)
 
-You can install CrewClock directly onto your personal or development iPhone using Xcode with a free personal Apple ID:
+You can install SheetPunch directly onto your personal or development iPhone using Xcode with a free personal Apple ID:
 
 ### Step 1: Connect Your iPhone
 1. Connect your iPhone to your Mac using a USB cable.
@@ -113,7 +113,7 @@ When the app installs for the first time, iOS prevents opening untrusted develop
 1. On your iPhone, go to **Settings > General > VPN & Device Management**.
 2. Under **Developer App**, tap your Apple ID email.
 3. Tap **Trust "[Your Apple ID]"** and confirm **Trust**.
-4. Now tap the **CrewClock** icon on your home screen to use the app!
+4. Now tap the **SheetPunch** icon on your home screen to use the app!
 
 ---
 
@@ -122,4 +122,4 @@ When the app installs for the first time, iOS prevents opening untrusted develop
 1. Open `iGrill/ios/CrewClock.xcodeproj` in Xcode.
 2. In the top device selector, choose any iPhone simulator (e.g., **iPhone 16 Pro** or **iPhone 17**).
 3. Click **Run (▶️)** or press `⌘ + R`.
-4. The simulator will boot, install, and launch **CrewClock**.
+4. The simulator will boot, install, and launch **SheetPunch**.

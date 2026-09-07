@@ -155,6 +155,11 @@
         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
         <span id="location-pill-text">GPS Location Ready</span>
       </div>
+      <!-- OPTIMISTIC UI / CLOUD SYNC BADGE -->
+      <div id="punch-sync-badge" class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 hidden">
+        <span id="punch-sync-dot" class="sync-dot w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span id="punch-sync-text">✓ Synced</span>
+      </div>
     </div>
 
     <!-- ============================================== -->
@@ -163,7 +168,7 @@
     <div id="screen-login" class="glass-card rounded-2xl sm:rounded-3xl p-5 sm:p-8 transition-all">
       <div class="text-center space-y-2 mb-5 sm:mb-6">
         <div class="w-28 h-28 sm:w-32 sm:h-32 mx-auto rounded-3xl bg-white flex items-center justify-center shadow-md p-1.5 border border-warmgray-200/80 overflow-hidden">
-          <img src="assets/CrewClockLogo.png" alt="CrewClock Logo" class="w-full h-full object-contain" />
+          <img src="assets/SheetPunchLogo.png" alt="SheetPunch Logo" class="w-full h-full object-contain" />
         </div>
         <h2 class="text-xl sm:text-2xl font-bold text-warmgray-900">Staff Shift Portal</h2>
         <p class="text-xs sm:text-sm text-warmgray-600 max-w-sm mx-auto">
@@ -834,7 +839,7 @@
               <span id="billing-platform-badge" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-200 text-amber-900">+15% Store Fee Included</span>
             </div>
             <p id="billing-platform-desc" class="text-[11px] text-warmgray-600 mt-0.5 leading-snug">
-              Prices reflect Apple App Store & Google Play processing fees. <b>Tip:</b> You can also subscribe on our web portal at <a href="https://crewclock.com" target="_blank" class="text-amber-700 underline font-semibold">crewclock.com</a> for direct base rates ($9.99/mo).
+              Prices reflect Apple App Store & Google Play processing fees. <b>Tip:</b> You can also subscribe on our web portal at <a href="https://sheetpunch.com" target="_blank" class="text-amber-700 underline font-semibold">sheetpunch.com</a> for direct base rates ($9.99/mo).
             </p>
           </div>
         </div>
@@ -853,7 +858,7 @@
                   <span id="plan-check-starter" class="w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">✓</span>
                 </div>
                 <div class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-amber-100/80 text-[10px] font-semibold text-amber-900">
-                  Up to 25 Employees
+                  Up to 15 Employees
                 </div>
                 <div class="mt-2.5">
                   <span id="plan-price-starter" class="text-xl font-extrabold text-warmgray-900">$9.99</span>
@@ -874,7 +879,7 @@
                   <span id="plan-check-growth" class="w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]">✓</span>
                 </div>
                 <div class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-warmgray-100 text-[10px] font-semibold text-warmgray-600">
-                  26 – 50 Employees
+                  16 – 35 Employees
                 </div>
                 <div class="mt-2.5">
                   <span id="plan-price-growth" class="text-xl font-extrabold text-warmgray-900">$19.99</span>
@@ -887,18 +892,18 @@
               </p>
             </div>
 
-            <!-- 3. Scale Crew -->
+            <!-- 3. Pro Crew -->
             <div id="plan-card-scale" class="plan-card cursor-pointer p-3.5 rounded-2xl border-2 border-warmgray-200 bg-white relative transition-all hover:border-amber-400 flex flex-col justify-between">
               <div>
                 <div class="flex items-center justify-between">
-                  <span class="font-bold text-warmgray-900 text-sm">Scale Crew</span>
+                  <span class="font-bold text-warmgray-900 text-sm">Pro Crew</span>
                   <span id="plan-check-scale" class="w-4 h-4 rounded-full border border-warmgray-300 text-transparent flex items-center justify-center text-[10px]">✓</span>
                 </div>
                 <div class="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-warmgray-100 text-[10px] font-semibold text-warmgray-600">
-                  51 – 100 Employees
+                  36 – 50 Employees
                 </div>
                 <div class="mt-2.5">
-                  <span id="plan-price-scale" class="text-xl font-extrabold text-warmgray-900">$29.99</span>
+                  <span id="plan-price-scale" class="text-xl font-extrabold text-warmgray-900">$24.99</span>
                   <span id="plan-period-scale" class="text-xs font-normal text-warmgray-500"> / mo</span>
                 </div>
                 <p id="plan-subtext-scale" class="text-[10px] text-warmgray-500 mt-0.5">Billed monthly</p>
@@ -916,13 +921,13 @@
           <div class="min-w-0">
             <div class="flex items-center gap-2">
               <span class="font-bold text-warmgray-900 text-xs">Enterprise / Multi-Location</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warmgray-200 text-warmgray-800">100+ Staff</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warmgray-200 text-warmgray-800">50+ Staff</span>
             </div>
             <p class="text-[11px] text-warmgray-600 mt-1 leading-snug">
-              Dedicated spreadsheet architectures, multi-location routing & custom SLA.
+              Dedicated spreadsheet architectures, multi-location routing & custom SLA for 50+ staff.
             </p>
           </div>
-          <a href="mailto:support@crewclock.com?subject=Enterprise%20Plan%20Quote%20Request" class="px-3.5 py-2 rounded-xl bg-warmgray-900 hover:bg-warmgray-800 text-white text-xs font-bold flex-shrink-0 touch-target whitespace-nowrap shadow-xs btn-press">
+          <a href="mailto:support@sheetpunch.com?subject=Enterprise%20Plan%20Quote%20Request" class="px-3.5 py-2 rounded-xl bg-warmgray-900 hover:bg-warmgray-800 text-white text-xs font-bold flex-shrink-0 touch-target whitespace-nowrap shadow-xs btn-press">
             Custom Quote ↗
           </a>
         </div>
@@ -931,7 +936,7 @@
         <div class="p-3.5 bg-warmgray-50 rounded-2xl border border-warmgray-200/90 space-y-2 text-[11px] text-warmgray-700">
           <div class="flex items-center justify-between pb-1.5 border-b border-warmgray-200">
             <span id="features-plan-title" class="font-bold text-warmgray-900">Starter Crew Core Features</span>
-            <span id="features-team-size" class="text-[10px] font-semibold text-warmgray-500">Up to 25 Employees</span>
+            <span id="features-team-size" class="text-[10px] font-semibold text-warmgray-500">Up to 15 Employees</span>
           </div>
           <div id="features-list-container" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             <!-- Injected via JavaScript -->
@@ -1048,7 +1053,7 @@
       <!-- Mobile-specific guidance / savings tip -->
       <div id="expired-mobile-actions" class="hidden p-3 bg-amber-50 rounded-xl border border-amber-200 text-left">
         <p class="text-[11px] text-amber-900 font-medium leading-relaxed">
-          💡 <b>Tip:</b> You can activate your plan right here on mobile, or visit our direct web portal at <b>crewclock.com</b> to save 15% on direct web rates.
+          💡 <b>Tip:</b> You can activate your plan right here on mobile, or visit our direct web portal at <b>sheetpunch.com</b> to save 15% on direct web rates.
         </p>
       </div>
 

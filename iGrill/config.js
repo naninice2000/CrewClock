@@ -25,5 +25,9 @@ const APP_CONFIG = {
   restaurantLogo: "",
 
   // Default Attendance Google Apps Script Web App URL (from your Attendance Google Sheet)
-  googleScriptUrl: "https://script.google.com/macros/s/AKfycbxWH25K2PA2X2xDDTYvz28cnq09NslsGVgPBT1-SCJ0ID_wjzoP1BS_3QhNAYI8Psk-/exec"
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbxWH25K2PA2X2xDDTYvz28cnq09NslsGVgPBT1-SCJ0ID_wjzoP1BS_3QhNAYI8Psk-/exec",
+
+  // Optional: Decoupled High-Throughput Buffer Microservice URL (e.g. Firebase / Cloud Run)
+  // When provided, punches are buffered and micro-batched; if empty, defaults to direct Apps Script
+  bufferEndpointUrl: ""
 };

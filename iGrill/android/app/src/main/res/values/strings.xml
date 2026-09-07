@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">CrewClock</string>
+    <string name="app_name">SheetPunch</string>
     <string name="app_url">https://naninice2000.github.io/CrewClock/iGrill/</string>
     <string name="offline_title">No Internet Connection</string>
     <string name="offline_message">Please check your cellular or Wi-Fi network connection to access your staff time clock.</string>
     <string name="retry">Try Again</string>
-    <string name="location_permission_rationale">CrewClock needs GPS location permission to verify attendance when clocking in.</string>
+    <string name="location_permission_rationale">SheetPunch needs GPS location permission to verify attendance when clocking in.</string>
 </resources>

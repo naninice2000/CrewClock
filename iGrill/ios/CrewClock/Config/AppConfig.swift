@@ -12,6 +12,6 @@ struct AppConfig {
     static let brandBackground = Color(red: 254/255, green: 252/255, blue: 247/255)
     
     // App Meta
-    static let appName = "CrewClock"
+    static let appName = "SheetPunch"
     static let appVersion = "1.0.0"
 }
