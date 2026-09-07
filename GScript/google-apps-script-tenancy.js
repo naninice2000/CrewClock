@@ -197,7 +197,7 @@ function handleTenancyRequest(e) {
       var adminEmail = (data.adminEmail || "").trim().toLowerCase();
       var inviteEmail = (data.inviteEmail || "").trim().toLowerCase();
       var inviteName = data.inviteName || "Staff Member";
-      var appUrl = data.appUrl || "https://naninice2000.github.io/CrewClock/iGrill/";
+      var appUrl = data.appUrl || "https://naninice2000.github.io/CrewClock/";
 
       if (!adminEmail || !inviteEmail) {
         return responseJSON({ success: false, error: "Both adminEmail and inviteEmail are required" });
@@ -844,6 +844,9 @@ function refreshDynamicSubscription(tenant) {
   tenant.subscription.isPaid = isPaidActive;
   tenant.subscription.isValid = isValid;
   tenant.subscription.daysRemaining = daysRemaining;
+  tenant.subscription.createdAt = tenant.createdAt;
+  tenant.subscription.trialEndsAt = trialEndsAt;
+  tenant.subscription.subscriptionEndsAt = subscriptionEndsAt;
   return tenant;
 }
 
@@ -944,6 +947,7 @@ function findTenantById(tenantsSheet, tenantId) {
           isPaid: isPaidActive,
           isValid: isValid,
           daysRemaining: daysRemaining,
+          createdAt: createdAt,
           trialEndsAt: trialEndsAt,
           subscriptionEndsAt: subscriptionEndsAt,
           paidAmount: paidAmount,
