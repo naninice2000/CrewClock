@@ -1,6 +1,6 @@
 # Restaurant Staff Attendance & Time Clock Web App (Multi-Tenant)
 
-A 100% serverless Employee Clock-In & Attendance Web App hosted directly on **GitHub Pages**, combining **Google Gmail Authentication** with **Google Apps Script** for automatic, secure logging to **Google Sheets**.
+A 100% serverless Employee Clock-In & Attendance Web App hosted directly on **GitHub Pages**, combining **Google Authentication (Gmail & Google Workspace)** with **Google Apps Script** for automatic, secure logging to **Google Sheets**.
 
 Now features **Multi-Tenancy & Role-Based Access Control (RBAC)**: Multiple restaurants and locations can use the same system, manage their own branding and team rosters, and log clock-ins to their own dedicated Attendance Sheets.
 
@@ -16,7 +16,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
 │                  Managed by: google-apps-script-tenancy.js              │
 │                                                                         │
 │   [Tenants Sheet]                               [Users Sheet]           │
-│   • Tenant ID                                   • User Email (Gmail)    │
+│   • Tenant ID                                   • User Email (Google)   │
 │   • Restaurant Name                             • User Name             │
 │   • Logo URL                                    • Role (admin/employee) │
 │   • Admin Email                                 • Tenant ID             │
@@ -27,7 +27,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
               ┌────────────────────┴────────────────────┐
               ▼                                         ▼
    [Restaurant A Portal]                     [Restaurant B Portal]
-   • Admin: alice@gmail.com                  • Admin: bob@gmail.com
+   • Admin: alice@company.com                • Admin: bob@gmail.com
    • Employees: staff1, staff2               • Employees: chef1, waiter1
    • Attendance Sheet URL: Script A          • Attendance Sheet URL: Script B
               │                                         │
@@ -42,7 +42,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
 1. **Restaurant Owners (Admins)**:
    - Click **"Sign Up Your Restaurant with Google"**.
    - Create and name their restaurant workspace, logo URL, and provide their restaurant's Attendance Sheet Script URL.
-   - Access to **Team Management** (👥): Invite employees by Gmail (sends automated email invitation via Google MailApp) and remove staff.
+   - Access to **Team Management** (👥): Invite employees by Google / Google Workspace email (sends automated email invitation via Google MailApp) and remove staff.
    - Access to **App Configuration** (⚙️): Update branding and sheet settings.
 2. **Employees (Staff Members)**:
    - Click **"Sign In with Google"**.
@@ -50,7 +50,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
    - Simplified UI: Only Clock-In, Clock-Out, and personal shift history are visible.
    - **No App Configuration or Team Management access**.
 3. **Uninvited Users**:
-   - If an uninvited Gmail user tries to sign in, they are blocked with an "Access Restricted" alert instructing them to contact their manager.
+   - If an uninvited Google user tries to sign in, they are blocked with an "Access Restricted" alert instructing them to contact their manager.
 
 ---
 
@@ -60,7 +60,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
 [Employee Phone / Mobile App]
    │
    ├─► 1. "Sign In with Google" (One-Time Login)
-   │      └─ Authenticates Gmail identity via Google Identity Services (GIS OAuth 2.0)
+   │      └─ Authenticates Google identity via Google Identity Services (GIS OAuth 2.0)
    │      └─ Validates role and tenant against Central Tenancy Directory
    │      └─ Saves persistent 7-day session in localStorage
    │

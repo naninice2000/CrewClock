@@ -1442,7 +1442,7 @@
     }
 
     try {
-      showLoading('Verifying Gmail Account', 'Checking authenticated Google credentials...');
+      showLoading('Verifying Google Account', 'Checking authenticated Google credentials...');
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       });
@@ -1493,7 +1493,7 @@
               // User NOT registered in Directory -> Block sign-in with clear notice
               hideLoading();
               if (el.uninvitedUserText) {
-                el.uninvitedUserText.textContent = `Account "${email}" is not registered in any business workspace. Please ask your business manager to invite this Gmail, or sign up as a business owner below.`;
+                el.uninvitedUserText.textContent = `Account "${email}" is not registered in any business workspace. Please ask your business manager to invite this Google account, or sign up as a business owner below.`;
               }
               if (el.uninvitedUserAlert) el.uninvitedUserAlert.classList.remove('hidden');
               return;
@@ -1712,7 +1712,7 @@
         el.teamListContainer.innerHTML = `
           <div class="text-center py-8 text-warmgray-500 text-xs">
             <p class="font-medium">No team members invited yet.</p>
-            <p class="text-warmgray-400 text-[11px] mt-1">Invite your staff by Gmail using the form above!</p>
+            <p class="text-warmgray-400 text-[11px] mt-1">Invite your staff using their Google or Google Workspace email above!</p>
           </div>
         `;
         return;
@@ -1777,7 +1777,7 @@
     const name = (el.inputInviteName?.value || '').trim() || 'Staff Member';
 
     if (!email) {
-      if (el.inviteStatusMsg) el.inviteStatusMsg.textContent = 'Please enter a Gmail address.';
+      if (el.inviteStatusMsg) el.inviteStatusMsg.textContent = 'Please enter a Google or Workspace email address.';
       el.inputInviteEmail?.focus();
       return;
     }

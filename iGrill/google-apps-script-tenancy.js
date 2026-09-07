@@ -191,7 +191,7 @@ function handleTenancyRequest(e) {
       });
 
     // ============================================================
-    // ACTION 2: INVITE EMPLOYEE (Admin invites staff by Gmail)
+    // ACTION 2: INVITE EMPLOYEE (Admin invites staff by Google / Workspace email)
     // ============================================================
     } else if (action === "invite_employee") {
       var adminEmail = (data.adminEmail || "").trim().toLowerCase();
@@ -219,7 +219,7 @@ function handleTenancyRequest(e) {
         if (existingEmployee.tenantId === tenantId) {
           return responseJSON({ success: false, error: "Employee is already a member of your team." });
         } else {
-          return responseJSON({ success: false, error: "This Gmail address is already registered with another business." });
+          return responseJSON({ success: false, error: "This Google account is already registered with another business." });
         }
       }
 
@@ -236,7 +236,7 @@ function handleTenancyRequest(e) {
 
       removeCached("user:" + inviteEmail);
 
-      // Send Gmail Invitation using MailApp
+      // Send Invitation Email using MailApp
       try {
         var subject = "You're invited to join " + businessName + " on SheetPunch";
         var body = "Hello " + inviteName + ",\n\n" +
