@@ -1,6 +1,6 @@
 # 📱 SheetPunch - Native iOS Application
 
-A high-performance native iOS application for **SheetPunch** built with Swift, SwiftUI, and WebKit (`WKWebView`). It wraps your live hosted web app at `https://naninice2000.github.io/CrewClock/iGrill/`, providing a complete native app experience while ensuring **any changes pushed to your GitHub repository appear immediately in the iOS app without needing App Store re-submission or app updates**.
+A high-performance native iOS application for **SheetPunch** built with Swift, SwiftUI, and WebKit (`WKWebView`). It wraps your live hosted web app at `https://naninice2000.github.io/CrewClock/`, providing a complete native app experience while ensuring **any changes pushed to your GitHub repository appear immediately in the iOS app without needing App Store re-submission or app updates**.
 
 ---
 
@@ -29,7 +29,7 @@ A high-performance native iOS application for **SheetPunch** built with Swift, S
 ## 🛠️ Project Structure
 
 ```
-iGrill/ios/
+ios/
 ├── CrewClock.xcodeproj/
 │   └── project.pbxproj            # Xcode project configuration
 ├── CrewClock/
@@ -62,12 +62,12 @@ To test compilation for a physical device or simulator without opening Xcode:
 
 **For Physical iPhone (`arm64`):**
 ```bash
-xcodebuild -project iGrill/ios/CrewClock.xcodeproj -scheme CrewClock -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project ios/CrewClock.xcodeproj -scheme CrewClock -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
 **For iOS Simulator:**
 ```bash
-xcodebuild -project iGrill/ios/CrewClock.xcodeproj -scheme CrewClock -destination 'generic/platform=iOS Simulator' build
+xcodebuild -project ios/CrewClock.xcodeproj -scheme CrewClock -destination 'generic/platform=iOS Simulator' build
 ```
 
 ---
@@ -91,7 +91,7 @@ Apple requires Developer Mode to be enabled to run sideloaded apps on modern iOS
 ### Step 3: Open the Project in Xcode
 Run the following command in terminal or double-click `CrewClock.xcodeproj` in Finder:
 ```bash
-open iGrill/ios/CrewClock.xcodeproj
+open ios/CrewClock.xcodeproj
 ```
 
 ### Step 4: Configure Free Code Signing
@@ -119,7 +119,7 @@ When the app installs for the first time, iOS prevents opening untrusted develop
 
 ## 💻 How to Run in iOS Simulator
 
-1. Open `iGrill/ios/CrewClock.xcodeproj` in Xcode.
+1. Open `ios/CrewClock.xcodeproj` in Xcode.
 2. In the top device selector, choose any iPhone simulator (e.g., **iPhone 16 Pro** or **iPhone 17**).
 3. Click **Run (▶️)** or press `⌘ + R`.
 4. The simulator will boot, install, and launch **SheetPunch**.

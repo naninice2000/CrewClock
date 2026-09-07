@@ -1,0 +1,20 @@
+{
+  "name": "sheetpunch-buffer-service",
+  "version": "1.0.0",
+  "description": "High-Throughput Decoupled Ingestion & Micro-Batching Buffer for SheetPunch",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "SheetPunch Engineering",
+  "license": "ISC"
+}

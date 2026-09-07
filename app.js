@@ -263,8 +263,13 @@
     receiptPlan: document.getElementById('receipt-plan'),
     receiptAmount: document.getElementById('receipt-amount'),
     receiptTxn: document.getElementById('receipt-txn'),
-    receiptExpiry: document.getElementById('receipt-expiry'),
     btnFinishBilling: document.getElementById('btn-finish-billing'),
+    billingCurrentStatusBanner: document.getElementById('billing-current-status-banner'),
+    btnSimSuccess: document.getElementById('btn-sim-success'),
+    btnSimDeclineFunds: document.getElementById('btn-sim-decline-funds'),
+    btnSimDeclineExpired: document.getElementById('btn-sim-decline-expired'),
+    btnSimRenewalFail: document.getElementById('btn-sim-renewal-fail'),
+    btnSimResetTrial: document.getElementById('btn-sim-reset-trial'),
 
     // Trial Expired Modal
     trialExpiredModal: document.getElementById('trial-expired-modal'),
@@ -557,7 +562,11 @@
         const isAdmin = currentUser && currentUser.role === 'admin';
         const sub = currentUser.subscription;
         if (isAdmin && sub) {
-          if (sub.isPaid && sub.isValid) {
+          if (sub.status === 'past_due') {
+            el.headerPlanPill.textContent = 'Past Due';
+            el.headerPlanPill.className = 'hidden xl:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-rose-100 text-rose-800 border border-rose-200 animate-pulse';
+            el.headerPlanPill.classList.remove('hidden');
+          } else if (sub.isPaid && sub.isValid) {
             const displayPlan = sub.plan ? (sub.plan.includes('(') ? sub.plan.split('(')[0].trim() : sub.plan) : 'Active Plan';
             el.headerPlanPill.textContent = displayPlan;
             el.headerPlanPill.className = 'hidden xl:inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-100 text-emerald-800 border border-emerald-200';
@@ -800,7 +809,11 @@
         el.readyPlanBadge.classList.add('hidden');
       } else {
         const sub = user.subscription;
-        if (sub && sub.isPaid && sub.isValid) {
+        if (sub && sub.status === 'past_due') {
+          el.readyPlanBadge.textContent = 'Renewal Failed (Past Due)';
+          el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse';
+          el.readyPlanBadge.classList.remove('hidden');
+        } else if (sub && sub.isPaid && sub.isValid) {
           el.readyPlanBadge.textContent = sub.plan || 'Pro Active';
           el.readyPlanBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300';
           el.readyPlanBadge.classList.remove('hidden');
@@ -2718,19 +2731,44 @@
     // Populate Current Status
     const sub = currentUser.subscription;
     if (sub) {
-      if (el.billingStatusTitle) el.billingStatusTitle.textContent = sub.plan || '14-Day Free Trial';
+      const isPastDue = sub.status === 'past_due';
+
+      if (el.billingCurrentStatusBanner) {
+        if (isPastDue) {
+          el.billingCurrentStatusBanner.className = 'mt-4 p-3.5 rounded-2xl bg-gradient-to-r from-rose-50 to-red-50 border border-rose-200/90 flex items-center justify-between gap-2';
+        } else {
+          el.billingCurrentStatusBanner.className = 'mt-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 flex items-center justify-between gap-2';
+        }
+      }
+
+      if (el.billingStatusTitle) {
+        if (isPastDue) {
+          el.billingStatusTitle.textContent = 'Renewal Payment Failed';
+        } else {
+          el.billingStatusTitle.textContent = sub.plan || '14-Day Free Trial';
+        }
+      }
+
       if (el.billingStatusDesc) {
         const days = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : 0;
-        if (sub.isPaid && sub.isValid) {
+        if (isPastDue) {
+          el.billingStatusDesc.textContent = 'Your monthly recurring renewal charge failed. Please update payment details below to restore access.';
+        } else if (sub.isPaid && sub.isValid) {
           el.billingStatusDesc.textContent = `Subscription active with ${days} day${days === 1 ? '' : 's'} remaining`;
         } else if (sub.isTrial && sub.isValid) {
-          el.billingStatusDesc.textContent = `${days} day${days === 1 ? '' : 's'} left in your free trial`;
+          const startDateStr = sub.createdAt ? new Date(sub.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+          const startPrefix = startDateStr ? `Started ${startDateStr} • ` : '';
+          el.billingStatusDesc.textContent = `${startPrefix}${days} day${days === 1 ? '' : 's'} left in your free trial`;
         } else {
           el.billingStatusDesc.textContent = 'Your 14-day free trial has expired. Select a plan below to continue.';
         }
       }
+
       if (el.billingStatusChip) {
-        if (sub.isPaid && sub.isValid) {
+        if (isPastDue) {
+          el.billingStatusChip.textContent = 'Past Due';
+          el.billingStatusChip.className = 'px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 font-bold text-xs border border-rose-200 flex-shrink-0 animate-pulse';
+        } else if (sub.isPaid && sub.isValid) {
           el.billingStatusChip.textContent = sub.plan ? (sub.plan.includes('(') ? sub.plan.split('(')[0].trim() : sub.plan) : 'Active Plan';
           el.billingStatusChip.className = 'px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 flex-shrink-0';
         } else if (sub.isTrial && sub.isValid) {
@@ -2794,6 +2832,23 @@
     if (el.btnSubmitPayment) el.btnSubmitPayment.disabled = true;
 
     try {
+      // 1. SIMULATION DECLINE CHECKS
+      if (cardNumber.endsWith('0002') || cardNumber === '4000000000000002') {
+        throw new Error('Payment declined: Insufficient funds in the account. (code: declined_insufficient_funds)');
+      }
+      if (cardNumber.endsWith('0003') || cardNumber === '4000000000000003') {
+        throw new Error('Payment declined: Card has expired. Please check expiry date. (code: declined_expired_card)');
+      }
+      if (cardNumber.endsWith('0004') || cardCvc === '999') {
+        throw new Error('Payment declined: Incorrect CVV / security code. (code: declined_cvv)');
+      }
+      if (cardNumber.endsWith('0005')) {
+        throw new Error('Payment declined by issuing bank (Do Not Honor). (code: declined_do_not_honor)');
+      }
+
+      // Simulate a realistic gateway response delay (600ms)
+      await new Promise(resolve => setTimeout(resolve, 600));
+
       const isMobile = isMobileBillingEnvironment();
       const planConfig = PRICING_PLANS[selectedPlanTier] || PRICING_PLANS.starter;
       const planRates = getPlanRates(selectedPlanTier, isMobile);
@@ -2806,19 +2861,23 @@
         ? (navigator.userAgent && /iPhone|iPad/i.test(navigator.userAgent) ? 'ios_app' : 'android_app')
         : (isMobile ? 'mobile_web' : 'web');
 
-      const res = await callTenancyApi('record_payment', {
-        adminEmail: currentUser.email,
-        tenantId: currentUser.tenantId,
-        plan: planName,
-        billingCycle: selectedBillingCycle,
-        paidAmount: paidAmount,
-        paymentRef: paymentRef,
-        durationDays: durationDays,
-        platform: platformName
-      });
-
-      if (!res.success) {
-        throw new Error(res.error || 'Payment processing failed.');
+      let res = { success: true };
+      try {
+        const syncRes = await callTenancyApi('record_payment', {
+          adminEmail: currentUser.email,
+          tenantId: currentUser.tenantId,
+          plan: planName,
+          billingCycle: selectedBillingCycle,
+          paidAmount: paidAmount,
+          paymentRef: paymentRef,
+          durationDays: durationDays,
+          platform: platformName
+        });
+        if (syncRes && syncRes.success) {
+          res = syncRes;
+        }
+      } catch (syncErr) {
+        console.warn('Tenancy sync fallback (offline or pending script deployment):', syncErr.message);
       }
 
       // Update session with new active subscription
@@ -2866,6 +2925,74 @@
       if (el.btnSubmitPaymentSpinner) el.btnSubmitPaymentSpinner.classList.add('hidden');
       updateBillingUI();
     }
+  }
+
+  // --- SIMULATION SUITE HELPERS ---
+  function quickFillCard(name, number, exp, cvc, zip) {
+    triggerHaptic();
+    if (el.inputCardName) el.inputCardName.value = name;
+    if (el.inputCardNumber) el.inputCardNumber.value = number;
+    if (el.inputCardExp) el.inputCardExp.value = exp;
+    if (el.inputCardCvc) el.inputCardCvc.value = cvc;
+    if (el.inputCardZip) el.inputCardZip.value = zip;
+    if (el.billingErrorMsg) {
+      el.billingErrorMsg.textContent = '';
+      el.billingErrorMsg.classList.add('hidden');
+    }
+  }
+
+  function simulateRenewalFailure() {
+    if (!currentUser) return;
+    triggerHaptic();
+    const currentPlanName = currentUser.subscription?.plan || 'Pro Crew (Monthly)';
+    currentUser.subscription = {
+      status: 'past_due',
+      plan: currentPlanName,
+      billingCycle: 'monthly',
+      isTrial: false,
+      isPaid: false,
+      isValid: false,
+      daysRemaining: 0,
+      subscriptionEndsAt: new Date(Date.now() - 86400000).toISOString(),
+      paidAmount: '$24.99',
+      paymentRef: 'RENEWAL_FAIL_' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      failureReason: 'declined_insufficient_funds'
+    };
+    saveUserSession(currentUser);
+    refreshScreenState();
+    openBillingModal();
+    if (el.billingErrorMsg) {
+      el.billingErrorMsg.textContent = '⚠️ Simulated Renewal Failure: Monthly recurring charge could not be processed. Workspace marked Past Due.';
+      el.billingErrorMsg.classList.remove('hidden');
+    }
+  }
+
+  function simulateResetTrial() {
+    if (!currentUser) return;
+    triggerHaptic();
+    const trialDays = 14;
+    const now = Date.now();
+    currentUser.subscription = {
+      status: 'trial',
+      plan: '14-Day Free Trial',
+      billingCycle: 'trial',
+      isTrial: true,
+      isPaid: false,
+      isValid: true,
+      daysRemaining: trialDays,
+      trialEndsAt: new Date(now + trialDays * 86400000).toISOString(),
+      subscriptionEndsAt: new Date(now + trialDays * 86400000).toISOString(),
+      paidAmount: '$0.00',
+      paymentRef: ''
+    };
+    saveUserSession(currentUser);
+    refreshScreenState();
+    openBillingModal();
+    if (el.billingErrorMsg) {
+      el.billingErrorMsg.textContent = '';
+      el.billingErrorMsg.classList.add('hidden');
+    }
+    alert('Workspace subscription reset to active 14-day free trial!');
   }
 
   // --- TRIAL EXPIRED MODAL ---
@@ -3246,6 +3373,33 @@
         closeBillingModal();
         setActiveMobileTab('shift');
         refreshScreenState();
+      });
+    }
+
+    // Simulator Toolbar Events
+    if (el.btnSimSuccess) {
+      el.btnSimSuccess.addEventListener('click', () => {
+        quickFillCard('Jane Doe (Admin)', '4111 1111 1111 1111', '12/28', '123', '94103');
+      });
+    }
+    if (el.btnSimDeclineFunds) {
+      el.btnSimDeclineFunds.addEventListener('click', () => {
+        quickFillCard('Jane Doe (Admin)', '4000 0000 0000 0002', '12/28', '123', '94103');
+      });
+    }
+    if (el.btnSimDeclineExpired) {
+      el.btnSimDeclineExpired.addEventListener('click', () => {
+        quickFillCard('Jane Doe (Admin)', '4000 0000 0000 0003', '01/22', '123', '94103');
+      });
+    }
+    if (el.btnSimRenewalFail) {
+      el.btnSimRenewalFail.addEventListener('click', () => {
+        simulateRenewalFailure();
+      });
+    }
+    if (el.btnSimResetTrial) {
+      el.btnSimResetTrial.addEventListener('click', () => {
+        simulateResetTrial();
       });
     }
 

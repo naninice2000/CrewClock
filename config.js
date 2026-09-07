@@ -29,5 +29,9 @@ const APP_CONFIG = {
 
   // Optional: Decoupled High-Throughput Buffer Microservice URL (e.g. Firebase / Cloud Run)
   // When provided, punches are buffered and micro-batched; if empty, defaults to direct Apps Script
-  bufferEndpointUrl: ""
+  bufferEndpointUrl: "",
+
+  // Dedicated Payments & Billing Google Apps Script URL (Q PaymentZ Integration)
+  // Deploy google-apps-script-payments.js to your "Payments Ledger" Google Sheet and paste URL here:
+  paymentsScriptUrl: ""
 };

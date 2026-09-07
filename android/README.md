@@ -1,6 +1,6 @@
 # 🤖 SheetPunch - Native Android Application
 
-A high-performance native Android application for **SheetPunch** built with Kotlin, Android Jetpack, and `WebView`. It wraps your live hosted web app at `https://naninice2000.github.io/CrewClock/iGrill/`, providing a complete native app experience while ensuring **any changes pushed to your GitHub repository appear immediately in the Android app without needing Google Play re-submission or APK updates**.
+A high-performance native Android application for **SheetPunch** built with Kotlin, Android Jetpack, and `WebView`. It wraps your live hosted web app at `https://naninice2000.github.io/CrewClock/`, providing a complete native app experience while ensuring **any changes pushed to your GitHub repository appear immediately in the Android app without needing Google Play re-submission or APK updates**.
 
 ---
 
@@ -36,17 +36,17 @@ You can compile the Android application whenever you are ready using the Gradle 
 
 ### Command Line:
 ```bash
-cd iGrill/android
+cd android
 ./gradlew assembleDebug
 ```
 
 Once built, the APK will be generated at:
 ```
-iGrill/android/app/build/outputs/apk/debug/app-debug.apk
+android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ### Android Studio:
-1. Open the `iGrill/android` folder in **Android Studio**.
+1. Open the `android` folder in **Android Studio**.
 2. Select **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
 
 ---
@@ -58,7 +58,7 @@ iGrill/android/app/build/outputs/apk/debug/app-debug.apk
 2. Connect your phone to your computer via USB.
 3. Run:
    ```bash
-   adb install -r iGrill/android/app/build/outputs/apk/debug/app-debug.apk
+   adb install -r android/app/build/outputs/apk/debug/app-debug.apk
    ```
 4. The app will appear on your home screen and app drawer under **SheetPunch** with an amber clock icon.
 
