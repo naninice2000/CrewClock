@@ -13,10 +13,11 @@
 
   // --- LOCAL STORAGE KEYS ---
   const STORAGE_KEYS = {
-    SETTINGS: 'crewclock_settings_v3',
-    SESSION: 'crewclock_user_session',
+    SETTINGS: 'sheetpunch_settings_v3',
+    SESSION: 'sheetpunch_user_session',
     ACTIVE_SHIFT: 'clockin_active_shift',
-    HISTORY: 'clockin_history'
+    HISTORY: 'clockin_history',
+    PUNCH_QUEUE: 'sheetpunch_punch_queue'
   };
 
   // Default Session Duration: 7 days
@@ -25,8 +26,9 @@
   // Base configuration loaded from config.js
   const fileConfig = (typeof APP_CONFIG !== 'undefined') ? APP_CONFIG : {};
 
-  // Default Settings merging config.js and localStorage
-  const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || '{}');
+  // Default Settings merging config.js and localStorage (with backwards compatibility for legacy keys)
+  const savedSettingsRaw = localStorage.getItem(STORAGE_KEYS.SETTINGS) || localStorage.getItem('crewclock_settings_v3') || '{}';
+  const savedSettings = JSON.parse(savedSettingsRaw);
   const defaultOrgName = fileConfig.organizationName || fileConfig.businessName || fileConfig.restaurantName || 'Lightning Ventures LLC';
   let settings = {
     businessName: savedSettings.businessName || savedSettings.restaurantName || defaultOrgName,
@@ -38,7 +40,9 @@
     clientId: (fileConfig.googleClientId || '').trim(),
     tenancyScriptUrl: (fileConfig.tenancyScriptUrl || '').trim(),
     // Tenant attendance target:
-    scriptUrl: savedSettings.scriptUrl || fileConfig.googleScriptUrl || ''
+    scriptUrl: savedSettings.scriptUrl || fileConfig.googleScriptUrl || '',
+    // Optional Decoupled High-Throughput Buffer Endpoint:
+    bufferEndpointUrl: (savedSettings.bufferEndpointUrl || fileConfig.bufferEndpointUrl || '').trim()
   };
 
   // Runtime State
@@ -89,6 +93,9 @@
     liveDate: document.getElementById('live-date'),
     locationPill: document.getElementById('location-pill'),
     locationPillText: document.getElementById('location-pill-text'),
+    punchSyncBadge: document.getElementById('punch-sync-badge'),
+    punchSyncDot: document.getElementById('punch-sync-dot'),
+    punchSyncText: document.getElementById('punch-sync-text'),
 
     // Header User Profile & Navigation
     headerUserBadge: document.getElementById('header-user-badge'),
@@ -216,6 +223,11 @@
     billingStatusDesc: document.getElementById('billing-status-desc'),
     billingStatusChip: document.getElementById('billing-status-chip'),
     billingCheckoutContainer: document.getElementById('billing-checkout-container'),
+    billingPlatformNotice: document.getElementById('billing-platform-notice'),
+    billingPlatformIcon: document.getElementById('billing-platform-icon'),
+    billingPlatformTitle: document.getElementById('billing-platform-title'),
+    billingPlatformBadge: document.getElementById('billing-platform-badge'),
+    billingPlatformDesc: document.getElementById('billing-platform-desc'),
     btnCycleMonthly: document.getElementById('btn-cycle-monthly'),
     btnCycleYearly: document.getElementById('btn-cycle-yearly'),
     planCardStarter: document.getElementById('plan-card-starter'),
@@ -428,9 +440,9 @@
   // --- NATIVE MOBILE APP DETECTION ---
   function isNativeMobileApp() {
     if (typeof window !== 'undefined') {
-      if (window.__CREWCLOCK_NATIVE_APP__ === true) return true;
+      if (window.__SHEETPUNCH_NATIVE_APP__ === true || window.__CREWCLOCK_NATIVE_APP__ === true) return true;
       if (window.AndroidBridge !== undefined) return true;
-      if (navigator.userAgent && /CrewClockApp/i.test(navigator.userAgent)) return true;
+      if (navigator.userAgent && /(SheetPunchApp|CrewClockApp)/i.test(navigator.userAgent)) return true;
     }
     return false;
   }
@@ -438,7 +450,7 @@
   // --- USER SESSION MANAGEMENT ---
   function getUserSession() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
+      const raw = localStorage.getItem(STORAGE_KEYS.SESSION) || localStorage.getItem('crewclock_user_session');
       if (!raw) return null;
       const session = JSON.parse(raw);
       if (!session || !session.email) return null;
@@ -506,6 +518,7 @@
     currentUser = null;
     currentAccessToken = null;
     localStorage.removeItem(STORAGE_KEYS.SESSION);
+    localStorage.removeItem('crewclock_user_session');
     applyBrandSettings();
     updateHeaderUserUI();
     updateRoleBasedUI();
@@ -629,7 +642,7 @@
       else el.btnOpenTeam.classList.add('hidden');
     }
     if (el.btnOpenBilling) {
-      if (canAccessBilling) el.btnOpenBilling.classList.remove('hidden');
+      if (isAdmin && isDesktopWebApp) el.btnOpenBilling.classList.remove('hidden');
       else el.btnOpenBilling.classList.add('hidden');
     }
     if (el.btnOpenSettings) {
@@ -657,20 +670,21 @@
       else el.mobileNavTeam.classList.add('hidden');
     }
 
+    // Mobile Nav Billing Tab (Admin only - now enabled with 15% store fee pricing)
+    if (el.mobileNavBilling) {
+      if (isAdmin && hasSession) el.mobileNavBilling.classList.remove('hidden');
+      else el.mobileNavBilling.classList.add('hidden');
+    }
+
     // Business Settings tab (Admin only)
     if (el.mobileNavSettings) {
       if (isAdmin) el.mobileNavSettings.classList.remove('hidden');
       else el.mobileNavSettings.classList.add('hidden');
     }
 
-    // Mobile Nav Billing Tab: ALWAYS hidden on mobile (Billing is strictly desktop web-app only)
-    if (el.mobileNavBilling) {
-      el.mobileNavBilling.classList.add('hidden');
-    }
-
-    // Settings Modal Billing Section: strictly hidden on mobile; visible for Admin on desktop web app
+    // Settings Modal Billing Section: visible for Admin across desktop and mobile
     if (el.settingsBillingSection) {
-      if (canAccessBilling) {
+      if (isAdmin && hasSession) {
         el.settingsBillingSection.classList.remove('hidden');
       } else {
         el.settingsBillingSection.classList.add('hidden');
@@ -678,7 +692,7 @@
     }
 
     if (el.btnSettingsUpgrade) {
-      if (canAccessBilling) {
+      if (isAdmin && hasSession) {
         el.btnSettingsUpgrade.classList.remove('hidden');
       } else {
         el.btnSettingsUpgrade.classList.add('hidden');
@@ -695,6 +709,7 @@
       { id: 'shift', el: el.mobileNavClock },
       { id: 'history', el: el.mobileNavHistory },
       { id: 'team', el: el.mobileNavTeam },
+      { id: 'billing', el: el.mobileNavBilling },
       { id: 'settings', el: el.mobileNavSettings }
     ];
     tabs.forEach(tab => {
@@ -1427,7 +1442,7 @@
     }
 
     try {
-      showLoading('Verifying Gmail Account', 'Checking authenticated Google credentials...');
+      showLoading('Verifying Google Account', 'Checking authenticated Google credentials...');
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       });
@@ -1478,7 +1493,7 @@
               // User NOT registered in Directory -> Block sign-in with clear notice
               hideLoading();
               if (el.uninvitedUserText) {
-                el.uninvitedUserText.textContent = `Account "${email}" is not registered in any business workspace. Please ask your business manager to invite this Gmail, or sign up as a business owner below.`;
+                el.uninvitedUserText.textContent = `Account "${email}" is not registered in any business workspace. Please ask your business manager to invite this Google account, or sign up as a business owner below.`;
               }
               if (el.uninvitedUserAlert) el.uninvitedUserAlert.classList.remove('hidden');
               return;
@@ -1567,7 +1582,7 @@
     if (el.inputOnboardAttendanceUrl) el.inputOnboardAttendanceUrl.value = settings.scriptUrl || '';
     if (el.onboardTrialDesc) {
       if (isNativeMobileApp()) {
-        el.onboardTrialDesc.textContent = 'Every new business workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via our Web Portal at crewclock.com (subscription purchase is not available inside mobile apps).';
+        el.onboardTrialDesc.textContent = 'Every new business workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via our Web Portal at sheetpunch.com (subscription purchase is not available inside mobile apps).';
       } else {
         el.onboardTrialDesc.textContent = 'Every new business workspace gets 2 weeks of full free trial access. After your trial, continuing your subscription is handled securely via the Web Portal.';
       }
@@ -1656,7 +1671,7 @@
       refreshScreenState();
 
       setTimeout(() => {
-        alert(`🎉 Welcome to CrewClock, ${adminName}!\n\nWorkspace "${businessName}" is ready. You can now invite staff to sign in using the Team icon in the top header.`);
+        alert(`🎉 Welcome to SheetPunch, ${adminName}!\n\nWorkspace "${businessName}" is ready. You can now invite staff to sign in using the Team icon in the top header.`);
       }, 100);
     } catch (err) {
       hideLoading();
@@ -1697,7 +1712,7 @@
         el.teamListContainer.innerHTML = `
           <div class="text-center py-8 text-warmgray-500 text-xs">
             <p class="font-medium">No team members invited yet.</p>
-            <p class="text-warmgray-400 text-[11px] mt-1">Invite your staff by Gmail using the form above!</p>
+            <p class="text-warmgray-400 text-[11px] mt-1">Invite your staff using their Google or Google Workspace email above!</p>
           </div>
         `;
         return;
@@ -1762,7 +1777,7 @@
     const name = (el.inputInviteName?.value || '').trim() || 'Staff Member';
 
     if (!email) {
-      if (el.inviteStatusMsg) el.inviteStatusMsg.textContent = 'Please enter a Gmail address.';
+      if (el.inviteStatusMsg) el.inviteStatusMsg.textContent = 'Please enter a Google or Workspace email address.';
       el.inputInviteEmail?.focus();
       return;
     }
@@ -1829,7 +1844,205 @@
     }
   }
 
-  // --- CLOCK-IN FLOW ---
+  // ============================================================
+  // PUNCH QUEUE MANAGER (Optimistic UI, Jitter & Offline Queue)
+  // ============================================================
+  const PunchQueueManager = (() => {
+    let isProcessing = false;
+    let syncHideTimeout = null;
+
+    function getQueue() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.PUNCH_QUEUE) || localStorage.getItem('crewclock_punch_queue');
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveQueue(queue) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.PUNCH_QUEUE, JSON.stringify(queue));
+      } catch (e) {
+        console.warn('[Queue] Storage error:', e);
+      }
+    }
+
+    function updateSyncBadge(state, message) {
+      if (!el.punchSyncBadge) return;
+      el.punchSyncBadge.classList.remove('hidden', 'sync-badge-syncing', 'sync-badge-synced', 'sync-badge-queued');
+
+      if (state === 'syncing') {
+        el.punchSyncBadge.classList.add('sync-badge-syncing');
+        if (el.punchSyncText) el.punchSyncText.textContent = message || '⟳ Syncing...';
+      } else if (state === 'synced') {
+        el.punchSyncBadge.classList.add('sync-badge-synced');
+        if (el.punchSyncText) el.punchSyncText.textContent = message || '✓ Cloud Synced';
+        clearTimeout(syncHideTimeout);
+        syncHideTimeout = setTimeout(() => {
+          if (getQueue().length === 0 && el.punchSyncBadge) {
+            el.punchSyncBadge.classList.add('hidden');
+          }
+        }, 4000);
+      } else if (state === 'queued') {
+        el.punchSyncBadge.classList.add('sync-badge-queued');
+        if (el.punchSyncText) el.punchSyncText.textContent = message || '⚡ Saved Offline (Syncing)';
+      } else {
+        el.punchSyncBadge.classList.add('hidden');
+      }
+    }
+
+    function enqueuePunch(punch) {
+      const queue = getQueue();
+      const jitterMs = Math.floor(Math.random() * 2000 + 500); // 500ms - 2500ms jitter
+      const item = {
+        id: punch.id || ('punch_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
+        type: punch.type, // 'clockin' | 'clockout'
+        destination: punch.destination, // 'buffer' | 'webhook' | 'tenancy'
+        targetUrl: punch.targetUrl || '',
+        payload: punch.payload,
+        attempts: 0,
+        nextAttemptAt: Date.now() + jitterMs,
+        createdAt: Date.now()
+      };
+      queue.push(item);
+      saveQueue(queue);
+
+      updateSyncBadge('syncing', '⟳ Syncing in background...');
+      scheduleQueueFlush(jitterMs);
+      return item;
+    }
+
+    function scheduleQueueFlush(delayMs) {
+      const delay = (typeof delayMs === 'number') ? delayMs : Math.floor(Math.random() * 1500 + 500);
+      setTimeout(() => {
+        processQueue();
+      }, delay);
+    }
+
+    async function processQueue() {
+      if (isProcessing) return;
+      const queue = getQueue();
+      if (queue.length === 0) {
+        return;
+      }
+
+      const now = Date.now();
+      const readyIdx = queue.findIndex(item => !item.nextAttemptAt || item.nextAttemptAt <= now);
+      if (readyIdx === -1) {
+        const nextTime = Math.min(...queue.map(i => i.nextAttemptAt || 0));
+        const wait = Math.max(500, nextTime - now);
+        setTimeout(() => processQueue(), wait);
+        return;
+      }
+
+      isProcessing = true;
+      const item = queue[readyIdx];
+      updateSyncBadge('syncing', `⟳ Syncing ${item.type === 'clockin' ? 'Clock-In' : 'Clock-Out'}...`);
+
+      try {
+        let success = false;
+
+        // Path 1: Decoupled High-Throughput Buffer Service (if configured)
+        if (settings.bufferEndpointUrl && settings.bufferEndpointUrl.trim().length > 0) {
+          try {
+            const bufRes = await fetch(settings.bufferEndpointUrl.replace(/\/+$/, '') + '/api/v1/punch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                punchId: item.id,
+                type: item.type,
+                ...item.payload
+              })
+            });
+            if (bufRes.status === 429) throw new Error('HTTP 429: Buffer Rate Limit');
+            if (bufRes.ok) {
+              success = true;
+            }
+          } catch (bufErr) {
+            console.warn('[Queue] Buffer service unavailable, falling back to direct route:', bufErr);
+          }
+        }
+
+        // Path 2: Direct Customer Apps Script Webhook (Choice B)
+        if (!success && item.destination === 'webhook' && item.targetUrl) {
+          await postToGoogleAppsScript(item.targetUrl, {
+            action: item.type,
+            ...item.payload
+          });
+          success = true;
+        }
+
+        // Path 3: Central Tenancy Script Proxy (Choice A)
+        if (!success && settings.tenancyScriptUrl) {
+          const res = await callTenancyApi('log_shift', {
+            subAction: item.type,
+            tenantId: item.payload.tenantId,
+            email: item.payload.email,
+            ...item.payload
+          });
+          if (res && res.success) {
+            success = true;
+            if (item.type === 'clockin' && res.rowNumber && activeShift) {
+              activeShift.sheetRow = res.rowNumber;
+              activeShift.sheetTab = res.tabName || 'Attendance';
+              localStorage.setItem(STORAGE_KEYS.ACTIVE_SHIFT, JSON.stringify(activeShift));
+            }
+          } else if (res && res.expired) {
+            success = true; // Remove from queue so it does not loop
+            if (currentUser && currentUser.subscription) {
+              currentUser.subscription.isValid = false;
+              saveUserSession(currentUser);
+              showTrialExpiredModal();
+            }
+          } else {
+            throw new Error((res && res.error) || 'Could not log shift to central directory');
+          }
+        }
+
+        if (success) {
+          const currentQ = getQueue();
+          const updatedQ = currentQ.filter(q => q.id !== item.id);
+          saveQueue(updatedQ);
+
+          if (updatedQ.length === 0) {
+            updateSyncBadge('synced', '✓ Synced with Google Sheet');
+          } else {
+            isProcessing = false;
+            scheduleQueueFlush(Math.floor(Math.random() * 800 + 400));
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('[Queue] Punch delivery exception:', err);
+        item.attempts = (item.attempts || 0) + 1;
+        const backoff = Math.min(30000, Math.pow(2, item.attempts) * 1500);
+        const jitter = Math.floor(Math.random() * 1500);
+        item.nextAttemptAt = Date.now() + backoff + jitter;
+
+        const currentQ = getQueue();
+        const idx = currentQ.findIndex(q => q.id === item.id);
+        if (idx !== -1) {
+          currentQ[idx] = item;
+          saveQueue(currentQ);
+        }
+
+        updateSyncBadge('queued', `⚡ Saved Offline (Retrying in ${Math.round((backoff + jitter) / 1000)}s)`);
+        scheduleQueueFlush(backoff + jitter);
+      } finally {
+        isProcessing = false;
+      }
+    }
+
+    return {
+      enqueuePunch,
+      processQueue,
+      getQueue,
+      updateSyncBadge
+    };
+  })();
+
+  // --- CLOCK-IN FLOW (Optimistic UI + Jittered Background Queue) ---
   async function triggerClockIn() {
     const session = getUserSession();
     if (!session) {
@@ -1850,16 +2063,6 @@
     const targetScriptUrl = !isSheetApi && isGoogleAppsScriptUrl(rawTarget) ? rawTarget : null;
 
     try {
-      // Sync server time if not already synced
-      if (!isServerTimeSynced && (targetScriptUrl || isSheetApi)) {
-        try {
-          await Promise.race([
-            syncServerTime(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500))
-          ]);
-        } catch (e) {}
-      }
-
       // 1. Capture exact GPS Geolocation at the click moment
       const location = await getDeviceLocation();
 
@@ -1869,66 +2072,7 @@
       const dateStr = formatDateOnly(now);
       const mapsUrl = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
 
-      let sheetRow = null;
-      let sheetTab = 'Attendance';
-
-      // 3. Send payload: Choice B (Custom Apps Script Webhook) or Choice A (Tamper-Proof Central Proxy)
-      if (targetScriptUrl && isGoogleAppsScriptUrl(targetScriptUrl)) {
-        // Choice B: Custom Google Apps Script Webhook
-        showLoading('Updating Attendance Sheet', 'Recording clock-in with Google Server Time...');
-        try {
-          await postToGoogleAppsScript(targetScriptUrl, {
-            action: 'clockin',
-            email: session.email,
-            name: session.name,
-            latitude: location.latitude.toFixed(5),
-            longitude: location.longitude.toFixed(5),
-            accuracy: Math.round(location.accuracy),
-            timestamp: timestampStr,
-            clockInIso: now.toISOString()
-          });
-        } catch (err) {
-          console.warn('Apps Script submission note:', err);
-        } finally {
-          hideLoading();
-        }
-      } else if (settings.tenancyScriptUrl) {
-        // Choice A: Tamper-Proof Central Proxy to Merchant Sheet
-        // Staff members have 0 direct edit or view access to the spreadsheet!
-        showLoading('Updating Attendance Sheet', 'Recording tamper-proof clock-in to Google Sheet...');
-        try {
-          const res = await callTenancyApi('log_shift', {
-            subAction: 'clockin',
-            tenantId: session.tenantId,
-            email: session.email,
-            name: session.name,
-            latitude: location.latitude.toFixed(5),
-            longitude: location.longitude.toFixed(5),
-            accuracy: Math.round(location.accuracy),
-            timestamp: timestampStr,
-            clockInIso: now.toISOString()
-          });
-
-          if (!res.success) {
-            if (res.expired) {
-              if (session.subscription) session.subscription.isValid = false;
-              saveUserSession(session);
-              showTrialExpiredModal();
-              return;
-            }
-            throw new Error(res.error || 'Could not record clock-in.');
-          }
-          sheetRow = res.rowNumber;
-          sheetTab = res.tabName || 'Attendance';
-        } catch (proxyErr) {
-          console.error('Tamper-Proof Attendance Sync Error:', proxyErr);
-          alert('Attendance Sync Notice:\n\n' + proxyErr.message + '\n\nYour shift has been recorded locally on your device.');
-        } finally {
-          hideLoading();
-        }
-      }
-
-      // 4. Save Active Shift
+      // 3. OPTIMISTIC UI: Save Active Shift immediately (0ms wait for the worker!)
       const shiftData = {
         id: 'shift_' + Date.now(),
         email: session.email,
@@ -1943,8 +2087,8 @@
         mapsUrl: mapsUrl,
         status: 'Clocked In',
         serverSynced: isServerTimeSynced,
-        sheetRow: sheetRow,
-        sheetTab: sheetTab,
+        sheetRow: null,
+        sheetTab: 'Attendance',
         sheetId: sheetId
       };
 
@@ -1952,16 +2096,33 @@
       localStorage.setItem(STORAGE_KEYS.ACTIVE_SHIFT, JSON.stringify(shiftData));
       appendHistoryRecord(shiftData);
 
-      // 5. Present Screen 2 (Active Shift)
+      // 4. Flip to Active Shift View immediately
       refreshScreenState();
 
+      // 5. Enqueue punch with Jitter for resilient background network delivery
+      PunchQueueManager.enqueuePunch({
+        id: shiftData.id,
+        type: 'clockin',
+        destination: (targetScriptUrl && isGoogleAppsScriptUrl(targetScriptUrl)) ? 'webhook' : 'tenancy',
+        targetUrl: targetScriptUrl || '',
+        payload: {
+          tenantId: session.tenantId,
+          email: session.email,
+          name: session.name,
+          latitude: location.latitude.toFixed(5),
+          longitude: location.longitude.toFixed(5),
+          accuracy: Math.round(location.accuracy),
+          timestamp: timestampStr,
+          clockInIso: now.toISOString()
+        }
+      });
+
     } catch (err) {
-      hideLoading();
-      alert('Clock-In Error: ' + err.message);
+      alert('Clock-In Notice: ' + err.message);
     }
   }
 
-  // --- CLOCK-OUT FLOW ---
+  // --- CLOCK-OUT FLOW (Optimistic UI + Jittered Background Queue) ---
   async function triggerClockOut() {
     if (!activeShift) return;
 
@@ -1983,8 +2144,6 @@
     try {
       // 1. Capture exact GPS Geolocation at clock-out moment
       const location = await getDeviceLocation();
-
-      showLoading('Clocking Out', 'Updating Google Sheet with server clock-out time & location...');
 
       const now = getNow();
       const clockOutTimeStr = formatDateTime(now);
@@ -2010,66 +2169,13 @@
         }
       }
 
-      // 2. Send clockout: Choice B (Custom Apps Script Webhook) or Choice A (Tamper-Proof Central Proxy)
-      if (targetScriptUrl && isGoogleAppsScriptUrl(targetScriptUrl)) {
-        try {
-          await postToGoogleAppsScript(targetScriptUrl, {
-            action: 'clockout',
-            email: activeShift.email,
-            name: activeShift.name,
-            latitude: location.latitude.toFixed(5),
-            longitude: location.longitude.toFixed(5),
-            accuracy: Math.round(location.accuracy),
-            timestamp: clockOutTimeStr,
-            duration: durationStr,
-            clockInIso: activeShift.clockInIso,
-            clockOutIso: now.toISOString()
-          });
-        } catch (err) {
-          console.warn('Google Apps Script clockout warning:', err);
-        }
-      } else if (settings.tenancyScriptUrl) {
-        try {
-          const res = await callTenancyApi('log_shift', {
-            subAction: 'clockout',
-            tenantId: session.tenantId,
-            email: activeShift.email,
-            name: activeShift.name,
-            sheetRow: activeShift.sheetRow,
-            clockInDate: activeShift.clockInDate || formatDateOnly(now),
-            clockInTime: activeShift.clockInTime,
-            inCoords: `${activeShift.latitude}, ${activeShift.longitude}`,
-            inMapsUrl: activeShift.mapsUrl,
-            latitude: location.latitude.toFixed(5),
-            longitude: location.longitude.toFixed(5),
-            accuracy: Math.round(location.accuracy),
-            timestamp: clockOutTimeStr,
-            duration: durationStr,
-            clockInIso: activeShift.clockInIso,
-            clockOutIso: now.toISOString()
-          });
+      // Snapshot active shift data for background punch and history
+      const shiftSnapshot = { ...activeShift };
 
-          if (!res.success) {
-            throw new Error(res.error || 'Failed to update clock-out.');
-          }
-        } catch (proxyErr) {
-          console.error('Tamper-Proof Clock-Out Sync Error:', proxyErr);
-          alert('Clock-Out Sync Notice:\n\n' + proxyErr.message + '\n\nYour clock-out has been recorded locally on your device.');
-        }
-      }
+      // 2. Update Local History immediately
+      updateHistoryClockOut(shiftSnapshot.id, clockOutTimeStr, durationStr, location, outMapsUrl);
 
-      // 3. Update Local History
-      updateHistoryClockOut(activeShift.id, clockOutTimeStr, durationStr, location, outMapsUrl);
-
-      hideLoading();
-
-      // 4. Show farewell summary
-      if (el.farewellMessage) {
-        el.farewellMessage.textContent = `Great work today, ${activeShift.name}! You worked ${durationStr}. Your clock-out was recorded at ${clockOutTimeStr}.`;
-      }
-      if (el.farewellModal) el.farewellModal.classList.remove('hidden');
-
-      // 5. Reset active shift ONLY (user stays logged in)
+      // 3. Reset active shift and interval immediately (Optimistic UI)
       if (shiftTimerInterval) {
         clearInterval(shiftTimerInterval);
         shiftTimerInterval = null;
@@ -2077,9 +2183,40 @@
       activeShift = null;
       localStorage.removeItem(STORAGE_KEYS.ACTIVE_SHIFT);
 
+      // 4. Show farewell summary and flip UI immediately
+      if (el.farewellMessage) {
+        el.farewellMessage.textContent = `Great work today, ${shiftSnapshot.name}! You worked ${durationStr}. Your clock-out was recorded at ${clockOutTimeStr}.`;
+      }
+      if (el.farewellModal) el.farewellModal.classList.remove('hidden');
+      refreshScreenState();
+
+      // 5. Enqueue Clock-Out punch with Jitter for background delivery
+      PunchQueueManager.enqueuePunch({
+        id: 'out_' + Date.now(),
+        type: 'clockout',
+        destination: (targetScriptUrl && isGoogleAppsScriptUrl(targetScriptUrl)) ? 'webhook' : 'tenancy',
+        targetUrl: targetScriptUrl || '',
+        payload: {
+          tenantId: session.tenantId,
+          email: shiftSnapshot.email,
+          name: shiftSnapshot.name,
+          sheetRow: shiftSnapshot.sheetRow,
+          clockInDate: shiftSnapshot.clockInDate || formatDateOnly(now),
+          clockInTime: shiftSnapshot.clockInTime,
+          inCoords: `${shiftSnapshot.latitude}, ${shiftSnapshot.longitude}`,
+          inMapsUrl: shiftSnapshot.mapsUrl,
+          latitude: location.latitude.toFixed(5),
+          longitude: location.longitude.toFixed(5),
+          accuracy: Math.round(location.accuracy),
+          timestamp: clockOutTimeStr,
+          duration: durationStr,
+          clockInIso: shiftSnapshot.clockInIso,
+          clockOutIso: now.toISOString()
+        }
+      });
+
     } catch (err) {
-      hideLoading();
-      alert('Clock-Out Error: ' + err.message);
+      alert('Clock-Out Notice: ' + err.message);
     }
   }
 
@@ -2312,12 +2449,39 @@
     if (el.settingsModal) el.settingsModal.classList.remove('hidden');
   }
 
-  // --- SUBSCRIPTION & BILLING (WEB APP ONLY) ---
+  // --- SUBSCRIPTION & BILLING (DUAL-PLATFORM: WEB BASE & MOBILE STORE OPTION B) ---
+  function isMobileBillingEnvironment() {
+    if (isNativeMobileApp()) return true;
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return true;
+    return false;
+  }
+
   const PRICING_PLANS = {
     starter: {
       key: 'starter',
       name: 'Starter Crew',
-      teamSize: 'Up to 25 Employees',
+      teamSize: 'Up to 15 Employees',
+      web: {
+        monthlyPrice: 9.99,
+        yearlyPrice: 99.00,
+        monthlyPriceFormatted: '$9.99',
+        yearlyPriceFormatted: '$99.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly',
+        yearlySubtext: '$8.25/mo (Billed $99/yr)'
+      },
+      mobile: {
+        monthlyPrice: 11.99,
+        yearlyPrice: 119.00,
+        monthlyPriceFormatted: '$11.99',
+        yearlyPriceFormatted: '$119.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly (includes 15% store fee)',
+        yearlySubtext: '$9.92/mo (Billed $119/yr, includes 15% store fee)'
+      },
+      // Root-level backward compatibility properties
       monthlyPrice: 9.99,
       yearlyPrice: 99.00,
       monthlyPriceFormatted: '$9.99',
@@ -2330,13 +2494,33 @@
         'Instant Sheet sync',
         'Unlimited punches',
         'Mobile web/app clock-in',
-        'Up to 25 active employees'
+        'Up to 15 active employees'
       ]
     },
     growth: {
       key: 'growth',
       name: 'Growth Crew',
-      teamSize: '26 – 50 Employees',
+      teamSize: '16 – 35 Employees',
+      web: {
+        monthlyPrice: 19.99,
+        yearlyPrice: 199.00,
+        monthlyPriceFormatted: '$19.99',
+        yearlyPriceFormatted: '$199.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly',
+        yearlySubtext: '$16.58/mo (Billed $199/yr)'
+      },
+      mobile: {
+        monthlyPrice: 23.99,
+        yearlyPrice: 239.00,
+        monthlyPriceFormatted: '$23.99',
+        yearlyPriceFormatted: '$239.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly (includes 15% store fee)',
+        yearlySubtext: '$19.92/mo (Billed $239/yr, includes 15% store fee)'
+      },
       monthlyPrice: 19.99,
       yearlyPrice: 199.00,
       monthlyPriceFormatted: '$19.99',
@@ -2349,29 +2533,56 @@
         'All Starter features included',
         'Multi-department tabs',
         'Daily summary alerts',
-        '26 – 50 active employees'
+        '16 – 35 active employees'
       ]
     },
     scale: {
       key: 'scale',
-      name: 'Scale Crew',
-      teamSize: '51 – 100 Employees',
-      monthlyPrice: 29.99,
-      yearlyPrice: 299.00,
-      monthlyPriceFormatted: '$29.99',
-      yearlyPriceFormatted: '$299.00',
+      name: 'Pro Crew',
+      teamSize: '36 – 50 Employees',
+      web: {
+        monthlyPrice: 24.99,
+        yearlyPrice: 249.00,
+        monthlyPriceFormatted: '$24.99',
+        yearlyPriceFormatted: '$249.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly',
+        yearlySubtext: '$20.75/mo (Billed $249/yr)'
+      },
+      mobile: {
+        monthlyPrice: 29.99,
+        yearlyPrice: 299.00,
+        monthlyPriceFormatted: '$29.99',
+        yearlyPriceFormatted: '$299.00',
+        monthlyPeriod: ' / mo',
+        yearlyPeriod: ' / yr',
+        monthlySubtext: 'Billed monthly (includes 15% store fee)',
+        yearlySubtext: '$24.92/mo (Billed $299/yr, includes 15% store fee)'
+      },
+      monthlyPrice: 24.99,
+      yearlyPrice: 249.00,
+      monthlyPriceFormatted: '$24.99',
+      yearlyPriceFormatted: '$249.00',
       monthlyPeriod: ' / mo',
       yearlyPeriod: ' / yr',
       monthlySubtext: 'Billed monthly',
-      yearlySubtext: '$24.92/mo (Billed $299/yr)',
+      yearlySubtext: '$20.75/mo (Billed $249/yr)',
       features: [
         'All Growth features included',
         'Priority support',
         'Custom shift tagging',
-        '51 – 100 active employees'
+        '36 – 50 active employees'
       ]
     }
   };
+  PRICING_PLANS.pro = PRICING_PLANS.scale;
+
+  function getPlanRates(tierKey, isMobile = isMobileBillingEnvironment()) {
+    const plan = PRICING_PLANS[tierKey] || PRICING_PLANS.starter;
+    const rates = isMobile ? plan.mobile : plan.web;
+    return rates || plan.web || plan;
+  }
 
   let selectedPlanTier = 'starter';
   let selectedBillingCycle = 'monthly';
@@ -2390,6 +2601,32 @@
 
   function updateBillingUI() {
     const isYearly = selectedBillingCycle === 'yearly';
+    const isMobile = isMobileBillingEnvironment();
+
+    // 0. Update Platform Notice Banner
+    if (el.billingPlatformNotice) {
+      if (isMobile) {
+        if (el.billingPlatformIcon) el.billingPlatformIcon.textContent = '📱';
+        if (el.billingPlatformTitle) el.billingPlatformTitle.textContent = 'Mobile App Store Pricing';
+        if (el.billingPlatformBadge) {
+          el.billingPlatformBadge.textContent = '+15% Store Fee Included';
+          el.billingPlatformBadge.className = 'px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-200 text-amber-900';
+        }
+        if (el.billingPlatformDesc) {
+          el.billingPlatformDesc.innerHTML = 'Prices reflect Apple App Store &amp; Google Play store processing fees. <b>Tip:</b> You can also subscribe on our web portal at <a href="https://sheetpunch.com" target="_blank" class="text-amber-700 underline font-semibold">sheetpunch.com</a> for direct base rates ($9.99/mo).';
+        }
+      } else {
+        if (el.billingPlatformIcon) el.billingPlatformIcon.textContent = '💻';
+        if (el.billingPlatformTitle) el.billingPlatformTitle.textContent = 'Web Direct Pricing';
+        if (el.billingPlatformBadge) {
+          el.billingPlatformBadge.textContent = 'Best Value · 0% App Store Fee';
+          el.billingPlatformBadge.className = 'px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
+        }
+        if (el.billingPlatformDesc) {
+          el.billingPlatformDesc.textContent = 'Direct web billing with 0% app store markups. Subscription works across all devices, including iOS and Android.';
+        }
+      }
+    }
 
     // 1. Cycle Toggle Buttons
     if (el.btnCycleMonthly && el.btnCycleYearly) {
@@ -2406,6 +2643,7 @@
     const tiers = ['starter', 'growth', 'scale'];
     tiers.forEach(t => {
       const plan = PRICING_PLANS[t];
+      const rates = getPlanRates(t, isMobile);
       const capT = t.charAt(0).toUpperCase() + t.slice(1);
       const priceEl = el[`planPrice${capT}`];
       const periodEl = el[`planPeriod${capT}`];
@@ -2413,9 +2651,9 @@
       const cardEl = el[`planCard${capT}`];
       const checkEl = el[`planCheck${capT}`];
 
-      if (priceEl) priceEl.textContent = isYearly ? plan.yearlyPriceFormatted : plan.monthlyPriceFormatted;
-      if (periodEl) periodEl.textContent = isYearly ? plan.yearlyPeriod : plan.monthlyPeriod;
-      if (subtextEl) subtextEl.textContent = isYearly ? plan.yearlySubtext : plan.monthlySubtext;
+      if (priceEl) priceEl.textContent = isYearly ? rates.yearlyPriceFormatted : rates.monthlyPriceFormatted;
+      if (periodEl) periodEl.textContent = isYearly ? rates.yearlyPeriod : rates.monthlyPeriod;
+      if (subtextEl) subtextEl.textContent = isYearly ? rates.yearlySubtext : rates.monthlySubtext;
 
       const isSelected = selectedPlanTier === t;
       if (cardEl) {
@@ -2436,6 +2674,7 @@
 
     // 3. Dynamic Features Box
     const currentPlan = PRICING_PLANS[selectedPlanTier] || PRICING_PLANS.starter;
+    const currentRates = getPlanRates(selectedPlanTier, isMobile);
     if (el.featuresPlanTitle) el.featuresPlanTitle.textContent = `${currentPlan.name} Core Features`;
     if (el.featuresTeamSize) el.featuresTeamSize.textContent = currentPlan.teamSize;
     if (el.featuresListContainer) {
@@ -2448,7 +2687,7 @@
     }
 
     // 4. Charge Summary & Submit Button Text
-    const currentPrice = isYearly ? currentPlan.yearlyPriceFormatted : currentPlan.monthlyPriceFormatted;
+    const currentPrice = isYearly ? currentRates.yearlyPriceFormatted : currentRates.monthlyPriceFormatted;
     const cycleLabel = isYearly ? 'Annual' : 'Monthly';
     if (el.billingChargeSummary) {
       el.billingChargeSummary.textContent = `Charge: ${currentPrice}`;
@@ -2459,11 +2698,11 @@
   }
 
   function openBillingModal() {
-    if (isNativeMobileApp() || window.innerWidth < 768) {
-      alert('Subscription and billing management is available only on our desktop Web App.');
+    if (!currentUser) {
+      alert('Subscription & Billing:\n\nPlease sign in with Google as a Business Admin to manage your workspace subscription.');
       return;
     }
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (currentUser.role !== 'admin') {
       alert('Only business administrators can access Billing & Subscription settings.');
       return;
     }
@@ -2524,14 +2763,11 @@
 
   function closeBillingModal() {
     if (el.billingModal) el.billingModal.classList.add('hidden');
+    setActiveMobileTab('shift');
   }
 
   async function handlePaymentSubmit(e) {
     if (e && e.preventDefault) e.preventDefault();
-    if (isNativeMobileApp()) {
-      alert('Payments cannot be processed within mobile apps. Please visit our web portal.');
-      return;
-    }
 
     if (!currentUser || !currentUser.tenantId) {
       alert('Business workspace information missing. Please re-login.');
@@ -2558,12 +2794,17 @@
     if (el.btnSubmitPayment) el.btnSubmitPayment.disabled = true;
 
     try {
+      const isMobile = isMobileBillingEnvironment();
       const planConfig = PRICING_PLANS[selectedPlanTier] || PRICING_PLANS.starter;
+      const planRates = getPlanRates(selectedPlanTier, isMobile);
       const isYearly = selectedBillingCycle === 'yearly';
       const planName = `${planConfig.name} (${isYearly ? 'Annual' : 'Monthly'})`;
-      const paidAmount = isYearly ? planConfig.yearlyPriceFormatted : planConfig.monthlyPriceFormatted;
+      const paidAmount = isYearly ? planRates.yearlyPriceFormatted : planRates.monthlyPriceFormatted;
       const durationDays = isYearly ? 365 : 30;
       const paymentRef = 'PAY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      const platformName = isNativeMobileApp()
+        ? (navigator.userAgent && /iPhone|iPad/i.test(navigator.userAgent) ? 'ios_app' : 'android_app')
+        : (isMobile ? 'mobile_web' : 'web');
 
       const res = await callTenancyApi('record_payment', {
         adminEmail: currentUser.email,
@@ -2572,7 +2813,8 @@
         billingCycle: selectedBillingCycle,
         paidAmount: paidAmount,
         paymentRef: paymentRef,
-        durationDays: durationDays
+        durationDays: durationDays,
+        platform: platformName
       });
 
       if (!res.success) {
@@ -2631,25 +2873,20 @@
     const isMobile = isNativeMobileApp() || window.innerWidth < 768;
     const isAdmin = currentUser && currentUser.role === 'admin';
 
-    if (isMobile) {
-      if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
-      if (el.expiredMobileActions) el.expiredMobileActions.classList.remove('hidden');
+    if (isAdmin) {
+      if (el.expiredWebActions) el.expiredWebActions.classList.remove('hidden');
+      if (el.expiredMobileActions) {
+        if (isMobile) el.expiredMobileActions.classList.remove('hidden');
+        else el.expiredMobileActions.classList.add('hidden');
+      }
       if (el.expiredModalMsg) {
-        el.expiredModalMsg.textContent = 'The 14-day free trial for this business workspace has expired. To continue using CrewClock, please visit our web portal at crewclock.com in your web browser to activate your subscription.';
+        el.expiredModalMsg.textContent = 'The 14-day free trial for your business workspace has expired. Choose a monthly or annual plan to continue uninterrupted attendance tracking.';
       }
     } else {
-      if (isAdmin) {
-        if (el.expiredWebActions) el.expiredWebActions.classList.remove('hidden');
-        if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
-        if (el.expiredModalMsg) {
-          el.expiredModalMsg.textContent = 'The 14-day free trial for your business workspace has expired. Choose a monthly or annual plan to continue uninterrupted attendance tracking.';
-        }
-      } else {
-        if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
-        if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
-        if (el.expiredModalMsg) {
-          el.expiredModalMsg.textContent = 'The 14-day free trial for this business has expired. Please notify your business administrator to renew the subscription on the web portal.';
-        }
+      if (el.expiredWebActions) el.expiredWebActions.classList.add('hidden');
+      if (el.expiredMobileActions) el.expiredMobileActions.classList.add('hidden');
+      if (el.expiredModalMsg) {
+        el.expiredModalMsg.textContent = 'The 14-day free trial for this business has expired. Please notify your business administrator to renew the workspace subscription.';
       }
     }
 
@@ -2918,10 +3155,6 @@
         if (el.teamModal) el.teamModal.classList.add('hidden');
         if (el.settingsModal) el.settingsModal.classList.add('hidden');
 
-        if (isNativeMobileApp()) {
-          alert('Subscription Notice:\n\nSubscription & payment management is only supported via our Web Portal at crewclock.com.');
-          return;
-        }
         if (!currentUser) {
           alert('Subscription & Billing:\n\nPlease sign in with Google as a Business Admin to manage your workspace subscription.');
           return;
@@ -3065,6 +3298,13 @@
     // Window resize listener to dynamically update desktop vs mobile role-based UI
     window.addEventListener('resize', () => {
       updateRoleBasedUI();
+    });
+
+    // Start Punch Queue processing on launch & on network reconnect
+    PunchQueueManager.processQueue();
+    window.addEventListener('online', () => {
+      console.log('[Network] Device back online, processing punch queue...');
+      PunchQueueManager.processQueue();
     });
   }
 

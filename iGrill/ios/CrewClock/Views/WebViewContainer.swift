@@ -25,7 +25,7 @@ struct WebViewContainer: UIViewRepresentable {
         
         // Native App Environment Flag for Web App
         let nativeScript = WKUserScript(
-            source: "window.__CREWCLOCK_NATIVE_APP__ = true; window.__CREWCLOCK_PLATFORM__ = 'ios';",
+            source: "window.__SHEETPUNCH_NATIVE_APP__ = true; window.__CREWCLOCK_NATIVE_APP__ = true; window.__SHEETPUNCH_PLATFORM__ = 'ios'; window.__CREWCLOCK_PLATFORM__ = 'ios';",
             injectionTime: .atDocumentStart,
             forMainFrameOnly: false
         )
@@ -40,7 +40,7 @@ struct WebViewContainer: UIViewRepresentable {
         webView.isOpaque = false
         
         // 2. Pure Standard Mobile Safari User-Agent (Prevents Google's 403 disallowed_useragent and identifies app)
-        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1 CrewClockApp/1.0 (iOS)"
+        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1 SheetPunchApp/1.0 CrewClockApp/1.0 (iOS)"
         
         // 3. Setup Native Pull-to-Refresh with Amber Tint
         let refreshControl = UIRefreshControl()

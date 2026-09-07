@@ -1,14 +1,14 @@
 /**
- * Google Apps Script for CrewClock Multi-Tenant Platform
+ * Google Apps Script for SheetPunch Multi-Tenant Platform
  * -------------------------------------------------------------
  * INSTRUCTIONS:
  * 1. Open Google Sheets and create a NEW spreadsheet (https://sheets.new).
- *    Name it: "CrewClock - Tenants & Users Directory"
+ *    Name it: "SheetPunch - Tenants & Users Directory"
  * 2. In the top menu, click Extensions > Apps Script.
  * 3. Delete any code in the editor and paste this entire script.
  * 4. Click "Deploy" (top right blue button) > "New deployment".
  * 5. Click the gear icon next to "Select type" and choose "Web app".
- *    - Description: "CrewClock Multi-Tenancy & RBAC Directory"
+ *    - Description: "SheetPunch Multi-Tenancy & RBAC Directory"
  *    - Execute as: "Me (your email)"
  *    - Who has access: "Anyone"
  * 6. Click "Deploy", authorize access, and copy the "Web app URL".
@@ -77,7 +77,7 @@ function handleTenancyRequest(e) {
       } catch (e) {}
       return responseJSON({
         success: true,
-        service: "CrewClock Multi-Tenant Directory",
+        service: "SheetPunch Multi-Tenant Directory",
         serviceEmail: serviceEmail,
         serverTimeIso: nowIso,
         timeZone: ss.getSpreadsheetTimeZone(),
@@ -171,6 +171,9 @@ function handleTenancyRequest(e) {
         nowIso
       ]);
 
+      removeCached("user:" + email);
+      removeCached("tenant:" + tenantId);
+
       var newTenant = findTenantById(tenantsSheet, tenantId);
 
       return responseJSON({
@@ -188,7 +191,7 @@ function handleTenancyRequest(e) {
       });
 
     // ============================================================
-    // ACTION 2: INVITE EMPLOYEE (Admin invites staff by Gmail)
+    // ACTION 2: INVITE EMPLOYEE (Admin invites staff by Google / Workspace email)
     // ============================================================
     } else if (action === "invite_employee") {
       var adminEmail = (data.adminEmail || "").trim().toLowerCase();
@@ -216,7 +219,7 @@ function handleTenancyRequest(e) {
         if (existingEmployee.tenantId === tenantId) {
           return responseJSON({ success: false, error: "Employee is already a member of your team." });
         } else {
-          return responseJSON({ success: false, error: "This Gmail address is already registered with another business." });
+          return responseJSON({ success: false, error: "This Google account is already registered with another business." });
         }
       }
 
@@ -231,11 +234,13 @@ function handleTenancyRequest(e) {
         nowIso
       ]);
 
-      // Send Gmail Invitation using MailApp
+      removeCached("user:" + inviteEmail);
+
+      // Send Invitation Email using MailApp
       try {
-        var subject = "You're invited to join " + businessName + " on CrewClock";
+        var subject = "You're invited to join " + businessName + " on SheetPunch";
         var body = "Hello " + inviteName + ",\n\n" +
-          adminUser.name + " (" + adminEmail + ") has invited you to join " + businessName + " on CrewClock for attendance and time tracking.\n\n" +
+          adminUser.name + " (" + adminEmail + ") has invited you to join " + businessName + " on SheetPunch for attendance and time tracking.\n\n" +
           "To access your shift portal and clock in, open the link below and Sign In with your Google account:\n" +
           appUrl + "\n\n" +
           "Best regards,\n" +
@@ -352,7 +357,7 @@ function handleTenancyRequest(e) {
         return responseJSON({
           success: false,
           expired: true,
-          error: "Subscription Required: The 14-day free trial for " + bName + " has expired. The business administrator must activate a subscription via the CrewClock Web Portal to continue logging attendance shifts."
+          error: "Subscription Required: The 14-day free trial for " + bName + " has expired. The business administrator must activate a subscription via the SheetPunch Web Portal to continue logging attendance shifts."
         });
       }
 
@@ -485,8 +490,186 @@ function handleTenancyRequest(e) {
     }
 
     // ============================================================
-    // ACTION 7: RECORD PAYMENT / ACTIVATE SUBSCRIPTION (Admin Web Only)
+    // ACTION 6b: BATCH LOG ATTENDANCE SHIFTS (High-Throughput Buffer Flush)
     // ============================================================
+    else if (action === "batch_log_shifts") {
+      var rawShifts = data.shifts || [];
+      if (!Array.isArray(rawShifts) || rawShifts.length === 0) {
+        return responseJSON({ success: false, error: "shifts array is required and cannot be empty" });
+      }
+
+      var results = [];
+      var tenantCacheMap = {};
+      var userCacheMap = {};
+      var sheetGroups = {}; // sheetId -> { tenant, items: [] }
+
+      // 1. Validate permissions and group punches by merchant Google Sheet
+      for (var s = 0; s < rawShifts.length; s++) {
+        var shift = rawShifts[s];
+        var uEmail = (shift.email || "").trim().toLowerCase();
+        var tId = (shift.tenantId || "").trim();
+        var sAction = (shift.subAction || "clockin").toLowerCase();
+
+        if (!uEmail || !tId) {
+          results.push({ id: shift.id || ("shift_" + s), success: false, error: "Missing email or tenantId" });
+          continue;
+        }
+
+        // Cached lookup
+        var user = userCacheMap[uEmail] || findUserByEmail(usersSheet, uEmail);
+        if (user) userCacheMap[uEmail] = user;
+        if (!user || user.tenantId !== tId) {
+          results.push({ id: shift.id || ("shift_" + s), success: false, error: "Unauthorized: User not found in workspace" });
+          continue;
+        }
+
+        var tenant = tenantCacheMap[tId] || findTenantById(tenantsSheet, tId);
+        if (tenant) tenantCacheMap[tId] = tenant;
+        if (!tenant) {
+          results.push({ id: shift.id || ("shift_" + s), success: false, error: "Business workspace not found" });
+          continue;
+        }
+
+        if (tenant.subscription && !tenant.subscription.isValid) {
+          results.push({ id: shift.id || ("shift_" + s), success: false, expired: true, error: "Subscription expired" });
+          continue;
+        }
+
+        var targetSheet = tenant.attendanceScriptUrl || "";
+        var sheetId = extractSpreadsheetIdFromStr(targetSheet);
+        if (!sheetId) {
+          results.push({ id: shift.id || ("shift_" + s), success: false, error: "No valid Google Sheet configured" });
+          continue;
+        }
+
+        if (!sheetGroups[sheetId]) {
+          sheetGroups[sheetId] = {
+            tenant: tenant,
+            items: []
+          };
+        }
+        sheetGroups[sheetId].items.push({
+          shift: shift,
+          user: user,
+          tenant: tenant,
+          subAction: sAction,
+          userEmail: uEmail
+        });
+      }
+
+      // 2. Execute batched writes per merchant sheet in a single open session
+      var attHeaders = [
+        "Date", "Employee Name", "Email", "Clock In Time", "Clock In Coordinates",
+        "Clock In Map", "Clock Out Time", "Shift Duration", "Clock Out Coordinates",
+        "Clock Out Map", "Status"
+      ];
+
+      for (var sId in sheetGroups) {
+        if (!sheetGroups.hasOwnProperty(sId)) continue;
+        var group = sheetGroups[sId];
+        var merchantSs;
+        try {
+          merchantSs = SpreadsheetApp.openById(sId);
+        } catch (openErr) {
+          for (var eIdx = 0; eIdx < group.items.length; eIdx++) {
+            results.push({
+              id: group.items[eIdx].shift.id || ("shift_" + eIdx),
+              success: false,
+              error: "Permission Denied: Could not open sheet ID " + sId
+            });
+          }
+          continue;
+        }
+
+        var attSheet = getOrCreateSheet(merchantSs, "Attendance", attHeaders);
+        var tz = group.tenant.timeZone || "America/Los_Angeles";
+        var serverNow = new Date();
+
+        for (var i = 0; i < group.items.length; i++) {
+          var item = group.items[i];
+          var raw = item.shift;
+          var dateFormatted = Utilities.formatDate(serverNow, tz, "MMM dd, yyyy");
+          var timeFormatted = Utilities.formatDate(serverNow, tz, "MMM dd, yyyy hh:mm:ss a");
+          var lat = raw.latitude || "";
+          var lng = raw.longitude || "";
+          var coords = (lat && lng) ? (lat + ", " + lng) : "";
+          var mapsUrl = (lat && lng) ? ("https://www.google.com/maps?q=" + lat + "," + lng) : "";
+
+          if (item.subAction === "clockin") {
+            attSheet.appendRow([
+              dateFormatted,
+              raw.name || item.user.name || "Staff Member",
+              item.userEmail,
+              raw.timestamp || timeFormatted,
+              coords,
+              mapsUrl,
+              "", "", "", "",
+              "Clocked In"
+            ]);
+            results.push({
+              id: raw.id || ("shift_" + i),
+              success: true,
+              action: "clockin",
+              rowNumber: attSheet.getLastRow(),
+              tabName: "Attendance",
+              serverTimeIso: serverNow.toISOString()
+            });
+          } else {
+            // Clock-out
+            var targetRow = parseInt(raw.sheetRow, 10);
+            if (!targetRow || targetRow < 2 || targetRow > attSheet.getLastRow()) {
+              targetRow = findOpenShiftRowIndex(attSheet, item.userEmail);
+            }
+            var durationStr = raw.duration || "0m";
+            if (targetRow && targetRow >= 2) {
+              attSheet.getRange(targetRow, 7, 1, 5).setValues([[
+                raw.timestamp || timeFormatted,
+                durationStr,
+                coords,
+                mapsUrl,
+                "Completed"
+              ]]);
+              results.push({
+                id: raw.id || ("shift_" + i),
+                success: true,
+                action: "clockout",
+                rowNumber: targetRow,
+                tabName: "Attendance",
+                serverTimeIso: serverNow.toISOString()
+              });
+            } else {
+              attSheet.appendRow([
+                dateFormatted,
+                raw.name || item.user.name || "Staff Member",
+                item.userEmail,
+                raw.clockInTime || timeFormatted,
+                "", "",
+                raw.timestamp || timeFormatted,
+                durationStr,
+                coords,
+                mapsUrl,
+                "Completed"
+              ]);
+              results.push({
+                id: raw.id || ("shift_" + i),
+                success: true,
+                action: "clockout",
+                rowNumber: attSheet.getLastRow(),
+                tabName: "Attendance",
+                note: "Appended new row (no open shift found)"
+              });
+            }
+          }
+        }
+      }
+
+      return responseJSON({
+        success: true,
+        action: "batch_log_shifts",
+        processed: results.length,
+        results: results
+      });
+    }
     else if (action === "record_payment") {
       var adminEmail = (data.adminEmail || "").trim().toLowerCase();
       var tenantId = (data.tenantId || "").trim();
@@ -495,6 +678,7 @@ function handleTenancyRequest(e) {
       var paidAmount = data.paidAmount || (billingCycle === "yearly" ? "$290.00" : "$29.00");
       var paymentRef = data.paymentRef || ("PAY_" + Utilities.getUuid().slice(0, 8).toUpperCase());
       var durationDays = parseInt(data.durationDays || (billingCycle === "yearly" ? 365 : 30), 10);
+      var platform = (data.platform || "web").toLowerCase();
 
       if (!adminEmail || !tenantId) {
         return responseJSON({ success: false, error: "Both adminEmail and tenantId are required to record payment" });
@@ -543,6 +727,7 @@ function handleTenancyRequest(e) {
           billingCycle: billingCycle,
           paidAmount: paidAmount,
           paymentRef: paymentRef,
+          platform: platform,
           paymentDate: nowIso,
           subscriptionEndsAt: newSubscriptionEnd
         }
@@ -586,13 +771,95 @@ function getOrCreateSheet(ss, name, headers) {
   return sheet;
 }
 
+// ============================================================
+// CACHE SERVICE HELPERS (Server-Side In-Memory Cache)
+// ============================================================
+var CACHE_TTL_SECONDS = 900; // 15 minutes default TTL
+
+function getCacheStore() {
+  try {
+    if (typeof CacheService !== "undefined" && CacheService.getScriptCache) {
+      return CacheService.getScriptCache();
+    }
+  } catch (e) {
+    console.warn("CacheService not available in current runtime:", e);
+  }
+  return null;
+}
+
+function getCached(key) {
+  try {
+    var cache = getCacheStore();
+    if (!cache) return null;
+    var val = cache.get(key);
+    if (!val) return null;
+    return JSON.parse(val);
+  } catch (e) {
+    return null;
+  }
+}
+
+function setCached(key, data, ttlSeconds) {
+  try {
+    var cache = getCacheStore();
+    if (!cache) return;
+    var ttl = ttlSeconds || CACHE_TTL_SECONDS;
+    cache.put(key, JSON.stringify(data), ttl);
+  } catch (e) {
+    console.warn("Error setting cache for key " + key, e);
+  }
+}
+
+function removeCached(key) {
+  try {
+    var cache = getCacheStore();
+    if (!cache) return;
+    cache.remove(key);
+  } catch (e) {
+    console.warn("Error removing cache for key " + key, e);
+  }
+}
+
+function refreshDynamicSubscription(tenant) {
+  if (!tenant) return null;
+  var now = new Date();
+  var trialEndsAt = tenant.trialEndsAt;
+  var subscriptionEndsAt = tenant.subscriptionEndsAt || trialEndsAt;
+  var trialEndDate = new Date(trialEndsAt);
+  var subEndDate = new Date(subscriptionEndsAt);
+  var rawStatus = (tenant.subscriptionStatus || "trial").toString().toLowerCase();
+  var isPaid = rawStatus === "active";
+  var isPaidActive = isPaid && subEndDate.getTime() > now.getTime();
+  var isTrialActive = !isPaid && trialEndDate.getTime() > now.getTime();
+  var isValid = isPaidActive || isTrialActive;
+
+  var effectiveEndDate = isPaidActive ? subEndDate : trialEndDate;
+  var daysRemaining = Math.max(0, Math.ceil((effectiveEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  var dynamicStatus = isPaidActive ? "active" : (isTrialActive ? "trial" : "expired");
+
+  tenant.subscriptionStatus = dynamicStatus;
+  if (!tenant.subscription) tenant.subscription = {};
+  tenant.subscription.status = dynamicStatus;
+  tenant.subscription.isTrial = isTrialActive;
+  tenant.subscription.isPaid = isPaidActive;
+  tenant.subscription.isValid = isValid;
+  tenant.subscription.daysRemaining = daysRemaining;
+  return tenant;
+}
+
 function findUserByEmail(usersSheet, email) {
+  if (!email) return null;
+  var cleanEmail = email.trim().toLowerCase();
+  var cacheKey = "user:" + cleanEmail;
+  var cached = getCached(cacheKey);
+  if (cached) return cached;
+
   var lastRow = usersSheet.getLastRow();
   if (lastRow <= 1) return null;
   var rows = usersSheet.getRange(2, 1, lastRow - 1, 7).getValues();
   for (var i = 0; i < rows.length; i++) {
-    if ((rows[i][0] || "").toString().trim().toLowerCase() === email) {
-      return {
+    if ((rows[i][0] || "").toString().trim().toLowerCase() === cleanEmail) {
+      var user = {
         email: rows[i][0],
         name: rows[i][1],
         role: rows[i][2],
@@ -601,18 +868,28 @@ function findUserByEmail(usersSheet, email) {
         invitedBy: rows[i][5],
         createdAt: rows[i][6]
       };
+      setCached(cacheKey, user, CACHE_TTL_SECONDS);
+      return user;
     }
   }
   return null;
 }
 
 function findTenantById(tenantsSheet, tenantId) {
+  if (!tenantId) return null;
+  var cleanTenantId = tenantId.trim();
+  var cacheKey = "tenant:" + cleanTenantId;
+  var cached = getCached(cacheKey);
+  if (cached) {
+    return refreshDynamicSubscription(cached);
+  }
+
   var lastRow = tenantsSheet.getLastRow();
   if (lastRow <= 1) return null;
   var colCount = Math.max(15, tenantsSheet.getLastColumn());
   var rows = tenantsSheet.getRange(2, 1, lastRow - 1, colCount).getValues();
   for (var i = 0; i < rows.length; i++) {
-    if ((rows[i][0] || "").toString().trim() === tenantId) {
+    if ((rows[i][0] || "").toString().trim() === cleanTenantId) {
       var createdAt = rows[i][6] || new Date().toISOString();
       var trialEndsAt = rows[i][8];
       if (!trialEndsAt) {
@@ -642,7 +919,7 @@ function findTenantById(tenantsSheet, tenantId) {
       var daysRemaining = Math.max(0, Math.ceil((effectiveEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
       var dynamicStatus = isPaidActive ? "active" : (isTrialActive ? "trial" : "expired");
 
-      return {
+      var tenant = {
         tenantId: rows[i][0],
         restaurantName: rows[i][1],
         businessName: rows[i][1],
@@ -673,6 +950,8 @@ function findTenantById(tenantsSheet, tenantId) {
           paymentRef: paymentRef
         }
       };
+      setCached(cacheKey, tenant, CACHE_TTL_SECONDS);
+      return tenant;
     }
   }
   return null;
@@ -692,6 +971,7 @@ function updateTenantSubscription(tenantsSheet, tenantId, sub) {
       tenantsSheet.getRange(rowNum, 13).setValue(sub.paymentDate);
       tenantsSheet.getRange(rowNum, 14).setValue(sub.paymentRef);
       tenantsSheet.getRange(rowNum, 15).setValue(sub.subscriptionEndsAt);
+      removeCached("tenant:" + tenantId.trim());
       return findTenantById(tenantsSheet, tenantId);
     }
   }
@@ -722,10 +1002,12 @@ function getTeamByTenantId(usersSheet, tenantId) {
 function removeUser(usersSheet, email, tenantId) {
   var lastRow = usersSheet.getLastRow();
   if (lastRow <= 1) return false;
+  var cleanEmail = (email || "").toString().trim().toLowerCase();
   var rows = usersSheet.getRange(2, 1, lastRow - 1, 7).getValues();
   for (var i = 0; i < rows.length; i++) {
-    if ((rows[i][0] || "").toString().trim().toLowerCase() === email && (rows[i][3] || "").toString().trim() === tenantId) {
+    if ((rows[i][0] || "").toString().trim().toLowerCase() === cleanEmail && (rows[i][3] || "").toString().trim() === tenantId) {
       usersSheet.deleteRow(i + 2);
+      removeCached("user:" + cleanEmail);
       return true;
     }
   }
@@ -735,15 +1017,17 @@ function removeUser(usersSheet, email, tenantId) {
 function updateTenant(tenantsSheet, tenantId, updates) {
   var lastRow = tenantsSheet.getLastRow();
   if (lastRow <= 1) return null;
+  var cleanTenantId = (tenantId || "").toString().trim();
   var rows = tenantsSheet.getRange(2, 1, lastRow - 1, 7).getValues();
   for (var i = 0; i < rows.length; i++) {
-    if ((rows[i][0] || "").toString().trim() === tenantId) {
+    if ((rows[i][0] || "").toString().trim() === cleanTenantId) {
       var rowNum = i + 2;
       var bName = updates.businessName || updates.restaurantName;
       if (bName) tenantsSheet.getRange(rowNum, 2).setValue(bName);
       if (updates.logoUrl !== undefined) tenantsSheet.getRange(rowNum, 3).setValue(updates.logoUrl);
       if (updates.attendanceScriptUrl) tenantsSheet.getRange(rowNum, 5).setValue(updates.attendanceScriptUrl);
       if (updates.timeZone) tenantsSheet.getRange(rowNum, 6).setValue(updates.timeZone);
+      removeCached("tenant:" + cleanTenantId);
       return findTenantById(tenantsSheet, tenantId);
     }
   }

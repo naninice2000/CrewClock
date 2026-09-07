@@ -1,6 +1,6 @@
 # Restaurant Staff Attendance & Time Clock Web App (Multi-Tenant)
 
-A 100% serverless Employee Clock-In & Attendance Web App hosted directly on **GitHub Pages**, combining **Google Gmail Authentication** with **Google Apps Script** for automatic, secure logging to **Google Sheets**.
+A 100% serverless Employee Clock-In & Attendance Web App hosted directly on **GitHub Pages**, combining **Google Authentication (Gmail & Google Workspace)** with **Google Apps Script** for automatic, secure logging to **Google Sheets**.
 
 Now features **Multi-Tenancy & Role-Based Access Control (RBAC)**: Multiple restaurants and locations can use the same system, manage their own branding and team rosters, and log clock-ins to their own dedicated Attendance Sheets.
 
@@ -16,7 +16,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
 │                  Managed by: google-apps-script-tenancy.js              │
 │                                                                         │
 │   [Tenants Sheet]                               [Users Sheet]           │
-│   • Tenant ID                                   • User Email (Gmail)    │
+│   • Tenant ID                                   • User Email (Google)   │
 │   • Restaurant Name                             • User Name             │
 │   • Logo URL                                    • Role (admin/employee) │
 │   • Admin Email                                 • Tenant ID             │
@@ -27,7 +27,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
               ┌────────────────────┴────────────────────┐
               ▼                                         ▼
    [Restaurant A Portal]                     [Restaurant B Portal]
-   • Admin: alice@gmail.com                  • Admin: bob@gmail.com
+   • Admin: alice@company.com                • Admin: bob@gmail.com
    • Employees: staff1, staff2               • Employees: chef1, waiter1
    • Attendance Sheet URL: Script A          • Attendance Sheet URL: Script B
               │                                         │
@@ -42,7 +42,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
 1. **Restaurant Owners (Admins)**:
    - Click **"Sign Up Your Restaurant with Google"**.
    - Create and name their restaurant workspace, logo URL, and provide their restaurant's Attendance Sheet Script URL.
-   - Access to **Team Management** (👥): Invite employees by Gmail (sends automated email invitation via Google MailApp) and remove staff.
+   - Access to **Team Management** (👥): Invite employees by Google / Google Workspace email (sends automated email invitation via Google MailApp) and remove staff.
    - Access to **App Configuration** (⚙️): Update branding and sheet settings.
 2. **Employees (Staff Members)**:
    - Click **"Sign In with Google"**.
@@ -50,7 +50,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
    - Simplified UI: Only Clock-In, Clock-Out, and personal shift history are visible.
    - **No App Configuration or Team Management access**.
 3. **Uninvited Users**:
-   - If an uninvited Gmail user tries to sign in, they are blocked with an "Access Restricted" alert instructing them to contact their manager.
+   - If an uninvited Google user tries to sign in, they are blocked with an "Access Restricted" alert instructing them to contact their manager.
 
 ---
 
@@ -60,7 +60,7 @@ The system utilizes two Google Sheets for complete isolation between tenant dire
 [Employee Phone / Mobile App]
    │
    ├─► 1. "Sign In with Google" (One-Time Login)
-   │      └─ Authenticates Gmail identity via Google Identity Services (GIS OAuth 2.0)
+   │      └─ Authenticates Google identity via Google Identity Services (GIS OAuth 2.0)
    │      └─ Validates role and tenant against Central Tenancy Directory
    │      └─ Saves persistent 7-day session in localStorage
    │
@@ -97,12 +97,12 @@ Each shift is recorded as a single row with full dual-location auditing:
 ## Setup Guide: 1. Central Multi-Tenant Directory Sheet (Platform Level)
 
 1. Open [sheets.new](https://sheets.new) to create a new Google Sheet.
-2. Name it: **`CrewClock - Tenants & Users Directory`**.
+2. Name it: **`SheetPunch - Tenants & Users Directory`**.
 3. In the top menu, click **Extensions > Apps Script**.
 4. Delete any existing code and paste [`google-apps-script-tenancy.js`](google-apps-script-tenancy.js).
 5. Click **Deploy** (top right blue button) > **New deployment**.
 6. Click the gear icon next to "Select type" and choose **Web app**:
-   - **Description**: `CrewClock Central Directory & RBAC`
+   - **Description**: `SheetPunch Central Directory & RBAC`
    - **Execute as**: `Me (your email)`
    - **Who has access**: `Anyone`
 7. Click **Deploy**, click **Authorize access**, and copy your **Web app URL**.
@@ -119,15 +119,15 @@ Restaurant owners keep 100% ownership of their data in their personal Google Dri
 1. Open [sheets.new](https://sheets.new) and name it: `[Restaurant Name] - Staff Attendance`.
 2. Ensure the sheet time zone matches the restaurant: **File > Settings > Time zone**.
 3. **Share with Platform Email**: Click **Share** (top right) and share with your platform service email (the Gmail hosting `google-apps-script-tenancy.js`) as **Editor**. 
-   > *Security Note: Do NOT share this sheet with your employees. The CrewClock app will securely record clock-in/out records via the central backend. Employees never have direct edit or view permissions!*
+   > *Security Note: Do NOT share this sheet with your employees. The SheetPunch app will securely record clock-in/out records via the central backend. Employees never have direct edit or view permissions!*
 4. **Copy the Sheet ID or URL**: Copy the browser URL or copy the ID between `/d/` and `/edit` (e.g. `1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms`).
 5. Enter this Sheet ID or URL when signing up under **Attendance Google Sheet ID or URL**.
-   > *CrewClock automatically initializes the `Attendance` tab with the 11 auditing header columns on the first clock-in.*
+   > *SheetPunch automatically initializes the `Attendance` tab with the 11 auditing header columns on the first clock-in.*
 
 ### ⚙️ Choice B (Optional): Custom Google Apps Script Webhook
 If a merchant prefers running their own independent Apps Script Webhook:
 1. In their Google Sheet, open **Extensions > Apps Script**, paste [`google-apps-script.js`](google-apps-script.js), and deploy as a Web App (`Execute as: Me`, `Who has access: Anyone`).
-2. Paste the resulting Web App URL (`https://script.google.com/macros/s/.../exec`) into the **Attendance Google Sheet ID or URL** field. CrewClock detects the URL format and posts directly to it!
+2. Paste the resulting Web App URL (`https://script.google.com/macros/s/.../exec`) into the **Attendance Google Sheet ID or URL** field. SheetPunch detects the URL format and posts directly to it!
 
 ---
 
