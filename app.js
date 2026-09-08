@@ -162,6 +162,14 @@
     loadingTitle: document.getElementById('loading-title'),
     loadingSubtitle: document.getElementById('loading-subtitle'),
 
+    // Confirm Dialog Modal
+    confirmModal: document.getElementById('confirm-modal'),
+    confirmTitle: document.getElementById('confirm-title'),
+    confirmMessage: document.getElementById('confirm-message'),
+    confirmIconContainer: document.getElementById('confirm-icon-container'),
+    btnConfirmCancel: document.getElementById('btn-confirm-cancel'),
+    btnConfirmOk: document.getElementById('btn-confirm-ok'),
+
     farewellModal: document.getElementById('farewell-modal'),
     farewellMessage: document.getElementById('farewell-message'),
     btnCloseFarewell: document.getElementById('btn-close-farewell'),
@@ -169,6 +177,7 @@
     settingsModal: document.getElementById('settings-modal'),
     btnCloseSettings: document.getElementById('btn-close-settings'),
     btnCancelSettings: document.getElementById('btn-cancel-settings'),
+    btnSettingsLogout: document.getElementById('btn-settings-logout'),
     btnSaveSettings: document.getElementById('btn-save-settings'),
     inputRestaurantName: document.getElementById('input-restaurant-name'),
     inputSettingsBusinessType: document.getElementById('input-settings-business-type'),
@@ -1024,7 +1033,7 @@
     }
   }
 
-  function getDeviceLocation() {
+  function getDeviceLocation(timeoutMs = 15000) {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         return reject(new Error('Geolocation is not supported by your device browser.'));
@@ -1032,8 +1041,20 @@
 
       showLoading('Acquiring GPS Location', 'Capturing device coordinates for attendance verification...');
 
+      let finished = false;
+      const watchdog = setTimeout(() => {
+        if (!finished) {
+          finished = true;
+          hideLoading();
+          reject(new Error('GPS location request timed out.'));
+        }
+      }, timeoutMs + 500);
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(watchdog);
           hideLoading();
           resolve({
             latitude: position.coords.latitude,
@@ -1043,6 +1064,9 @@
           });
         },
         (error) => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(watchdog);
           hideLoading();
           let msg = 'Could not access device location.';
           if (error.code === error.PERMISSION_DENIED) {
@@ -1056,7 +1080,7 @@
         },
         {
           enableHighAccuracy: true,
-          timeout: 15000,
+          timeout: timeoutMs,
           maximumAge: 0
         }
       );
@@ -1834,9 +1858,14 @@
 
   async function removeTeamMember(targetEmail, targetName) {
     const displayName = targetName ? `${targetName} (${targetEmail})` : targetEmail;
-    if (!confirm(`Are you sure you want to remove ${displayName} from your team?\n\nThey will no longer be permitted to sign in or clock in.`)) {
-      return;
-    }
+    const confirmed = await showConfirmDialog({
+      title: 'Remove Team Member?',
+      message: `Are you sure you want to remove ${displayName} from your team?\n\nThey will no longer be permitted to sign in or clock in.`,
+      confirmText: 'Remove Member',
+      cancelText: 'Cancel',
+      type: 'rose'
+    });
+    if (!confirmed) return;
 
     try {
       showLoading('Removing Staff Member', `Revoking access for ${targetEmail}...`);
@@ -2146,8 +2175,14 @@
       return;
     }
 
-    const confirmOut = confirm(`Clock out now, ${activeShift.name}?\nYour end time and current location will be recorded in the Google Sheet.`);
-    if (!confirmOut) return;
+    const confirmed = await showConfirmDialog({
+      title: 'Clock Out Now?',
+      message: `Ready to finish your shift, ${activeShift.name}?\n\nYour end time and total hours worked will be recorded to your Google Sheet.`,
+      confirmText: 'Yes, Clock Out',
+      cancelText: 'Keep Working',
+      type: 'amber'
+    });
+    if (!confirmed) return;
 
     const rawTarget = session.attendanceScriptUrl || settings.scriptUrl || '';
     const isSheetApi = isGoogleSpreadsheetTarget(rawTarget);
@@ -2155,8 +2190,20 @@
     const targetScriptUrl = !isSheetApi && isGoogleAppsScriptUrl(rawTarget) ? rawTarget : null;
 
     try {
-      // 1. Capture exact GPS Geolocation at clock-out moment
-      const location = await getDeviceLocation();
+      // 1. Capture exact GPS Geolocation at clock-out moment (resilient 8s attempt with shift coords fallback)
+      let location;
+      try {
+        location = await getDeviceLocation(8000);
+      } catch (locErr) {
+        console.warn('Clock-out GPS acquisition warning, using fallback shift coordinates:', locErr);
+        location = {
+          latitude: parseFloat(activeShift.latitude) || 0,
+          longitude: parseFloat(activeShift.longitude) || 0,
+          accuracy: activeShift.accuracy ? Number(activeShift.accuracy) : 999,
+          timestamp: Date.now(),
+          isFallback: true
+        };
+      }
 
       const now = getNow();
       const clockOutTimeStr = formatDateTime(now);
@@ -2234,10 +2281,16 @@
   }
 
   // --- MANUAL SIGN OUT ---
-  function triggerLogout() {
+  async function triggerLogout() {
     if (activeShift && activeShift.status === 'Clocked In') {
-      const confirmLogout = confirm('You currently have an active shift in progress. Signing out will not clock you out. Are you sure you want to sign out?');
-      if (!confirmLogout) return;
+      const confirmed = await showConfirmDialog({
+        title: 'Active Shift in Progress',
+        message: 'You currently have an active shift in progress.\n\nSigning out will NOT clock you out. Are you sure you want to sign out?',
+        confirmText: 'Sign Out Anyway',
+        cancelText: 'Stay Signed In',
+        type: 'rose'
+      });
+      if (!confirmed) return;
     }
     clearUserSession(false);
     refreshScreenState();
@@ -2396,6 +2449,83 @@
 
   function hideLoading() {
     if (el.loadingOverlay) el.loadingOverlay.classList.add('hidden');
+  }
+
+  function showConfirmDialog({
+    title = 'Confirm',
+    message = 'Are you sure you want to proceed?',
+    confirmText = 'Confirm',
+    cancelText = 'Cancel',
+    type = 'amber'
+  } = {}) {
+    return new Promise((resolve) => {
+      if (!el.confirmModal) {
+        return resolve(window.confirm(message));
+      }
+
+      if (el.confirmTitle) el.confirmTitle.textContent = title;
+      if (el.confirmMessage) el.confirmMessage.textContent = message;
+
+      if (el.btnConfirmOk) {
+        el.btnConfirmOk.textContent = confirmText;
+        if (type === 'rose') {
+          el.btnConfirmOk.className = 'flex-1 py-3 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-semibold text-xs sm:text-sm shadow-md transition-colors btn-press touch-target';
+          if (el.confirmIconContainer) {
+            el.confirmIconContainer.className = 'w-14 h-14 mx-auto rounded-full bg-rose-100 text-rose-600 flex items-center justify-center';
+            el.confirmIconContainer.innerHTML = '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
+          }
+        } else if (type === 'emerald') {
+          el.btnConfirmOk.className = 'flex-1 py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm shadow-md transition-colors btn-press touch-target';
+          if (el.confirmIconContainer) {
+            el.confirmIconContainer.className = 'w-14 h-14 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center';
+            el.confirmIconContainer.innerHTML = '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+          }
+        } else {
+          el.btnConfirmOk.className = 'flex-1 py-3 px-4 rounded-2xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-semibold text-xs sm:text-sm shadow-md transition-colors btn-press touch-target';
+          if (el.confirmIconContainer) {
+            el.confirmIconContainer.className = 'w-14 h-14 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center';
+            el.confirmIconContainer.innerHTML = '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+          }
+        }
+      }
+
+      if (el.btnConfirmCancel) el.btnConfirmCancel.textContent = cancelText;
+
+      let settled = false;
+      const cleanup = () => {
+        if (settled) return;
+        settled = true;
+        el.confirmModal.classList.add('hidden');
+        el.btnConfirmOk?.removeEventListener('click', onOk);
+        el.btnConfirmCancel?.removeEventListener('click', onCancel);
+        el.confirmModal?.removeEventListener('click', onBackdrop);
+      };
+
+      const onOk = () => {
+        triggerHaptic();
+        cleanup();
+        resolve(true);
+      };
+
+      const onCancel = () => {
+        triggerHaptic();
+        cleanup();
+        resolve(false);
+      };
+
+      const onBackdrop = (e) => {
+        if (e.target === el.confirmModal) {
+          triggerHaptic();
+          cleanup();
+          resolve(false);
+        }
+      };
+
+      el.btnConfirmOk?.addEventListener('click', onOk);
+      el.btnConfirmCancel?.addEventListener('click', onCancel);
+      el.confirmModal.addEventListener('click', onBackdrop);
+      el.confirmModal.classList.remove('hidden');
+    });
   }
 
   function formatDateTime(date) {
@@ -3116,8 +3246,15 @@
       setActiveMobileTab('shift');
     });
     if (el.btnClearHistory) {
-      el.btnClearHistory.addEventListener('click', () => {
-        if (confirm('Clear all local shift records? This does not delete rows from your Google Sheet.')) {
+      el.btnClearHistory.addEventListener('click', async () => {
+        const confirmed = await showConfirmDialog({
+          title: 'Clear Local History?',
+          message: 'Clear all local shift records from this device?\n\nThis will not delete any rows from your Google Sheet.',
+          confirmText: 'Clear Records',
+          cancelText: 'Keep Records',
+          type: 'rose'
+        });
+        if (confirmed) {
           localStorage.removeItem(STORAGE_KEYS.HISTORY);
           renderHistoryModal();
         }
@@ -3152,6 +3289,13 @@
     };
     if (el.btnCloseSettings) el.btnCloseSettings.addEventListener('click', closeSettings);
     if (el.btnCancelSettings) el.btnCancelSettings.addEventListener('click', closeSettings);
+    if (el.btnSettingsLogout) {
+      el.btnSettingsLogout.addEventListener('click', () => {
+        triggerHaptic();
+        closeSettings();
+        triggerLogout();
+      });
+    }
 
     if (el.btnSaveSettings) {
       el.btnSaveSettings.addEventListener('click', () => {
