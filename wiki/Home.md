@@ -14,6 +14,7 @@ It runs **100% client-side** on **GitHub Pages**, backed by **Google Identity Se
    - [High-Level Architecture](#high-level-architecture)
    - [Client-Side Smoothing & Jitter Queue (`PunchQueueManager`)](#client-side-smoothing--jitter-queue)
    - [Server-Side Apps Script In-Memory Caching (`CacheService`)](#server-side-apps-script-in-memory-caching)
+   - [Modular Frontend Architecture & Build System (`js/`)](#modular-frontend-architecture--build-system-js)
    - [Decoupled Buffer & Micro-Batching Service (`buffer-service/`)](#decoupled-buffer--micro-batching-service)
    - [Dual-Sheet Isolation Model](#dual-sheet-isolation-model)
    - [Tamper-Proof Server Time Synchronization](#tamper-proof-server-time-synchronization)
@@ -54,13 +55,21 @@ It runs **100% client-side** on **GitHub Pages**, backed by **Google Identity Se
 8. [Native Mobile Apps Guide](#8-native-mobile-apps-guide)
    - [iOS Native App (Swift / WKWebView)](#ios-native-app)
    - [Android Native App (Kotlin / WebView)](#android-native-app)
+   - [In-App Confirm Dialogs & Safe Area Engineering](#in-app-confirm-dialogs--safe-area-engineering)
    - [App Icons, Splash Screens & Design Treatments](#app-icons--splash-screens)
    - [Zero-Rebuild Auto-Update Architecture](#zero-rebuild-auto-update-architecture)
 9. [Spreadsheet Schemas Reference](#9-spreadsheet-schemas-reference)
    - [Central Directory: `Tenants` Tab (15 Columns)](#1-central-directory-tenants-tab)
    - [Central Directory: `Users` Tab (7 Columns)](#2-central-directory-users-tab)
    - [Merchant Attendance Sheet: `Attendance` Tab (11 Columns)](#3-merchant-attendance-sheet-attendance-tab)
-10. [Troubleshooting & FAQs](#10-troubleshooting--faqs)
+10. [Automated End-to-End Testing & BDD Framework](#10-automated-end-to-end-testing--bdd-framework)
+   - [BDD Framework Architecture (Python + Playwright + Behave)](#bdd-framework-architecture-python--playwright--behave)
+   - [Zero-Dependency Network Route Mocking](#zero-dependency-network-route-mocking)
+   - [Page Object Model (`ClockPage`)](#page-object-model-clockpage)
+   - [Ephemeral Test Server & Lifecycle Hooks](#ephemeral-test-server--lifecycle-hooks)
+   - [Gherkin Feature Specifications](#gherkin-feature-specifications)
+   - [Running BDD Tests with Behave](#running-bdd-tests-with-behave)
+11. [Troubleshooting & FAQs](#11-troubleshooting--faqs)
 
 ---
 
@@ -162,19 +171,54 @@ Implemented in [`app.js`](file:///Users/venkata/workspace/PersonalBranding/CrewC
 
 ---
 
-### Server-Side Apps Script In-Memory Caching
+### Server-Side Apps Script In-Memory Caching (`CacheService`)
 
-Implemented in [`google-apps-script-tenancy.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/google-apps-script-tenancy.js):
+Implemented in [`GScript/google-apps-script-tenancy.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/GScript/google-apps-script-tenancy.js):
 
-1. **`CacheService.getScriptCache()`**:
-   * Utilizes Google's native high-speed in-memory cache with a 15-minute default TTL (`CACHE_TTL_SECONDS = 900`).
+1. **`CacheService.getScriptCache()` High-Speed Lookups**:
+   * Utilizes Google Apps Script's native in-memory distributed cache (`CACHE_TTL_SECONDS = 900`, 15 minutes).
    * User authentication lookups (`user:${email}`) and tenant profiles (`tenant:${tenantId}`) are resolved in **<50ms**, completely bypassing the need to scan hundreds of rows in the Google Sheet on every page load.
 2. **Dynamic Subscription Recomputation**:
    * Cached tenant records dynamically re-evaluate subscription and free trial validity against the current server clock (`new Date()`).
    * Prevents stale-access bugs where an expired subscription would continue to be served from cache.
-3. **Instant Offboarding Invalidation**:
-   * When an admin removes an employee via `remove_employee`, `removeCached("user:" + email)` executes synchronously.
-   * The terminated employee is **immediately barred** from logging in or punching, with zero cache lag.
+3. **Comprehensive Invalidation Lifecycle**:
+   To prevent stale data when administrators or staff make changes, cache keys are invalidated synchronously on all mutating actions:
+
+   | Trigger Action | Cache Key Evicted | Purpose |
+   | :--- | :--- | :--- |
+   | **Staff Offboarding** (`remove_employee`) | `user:${email}` | Terminates access instantly (0ms lag); employee is barred immediately. |
+   | **Staff Invitation** (`invite_employee`) | `user:${inviteEmail}` | Clears negative/unregistered cache so newly invited user logs in immediately. |
+   | **Subscription Payment** (`record_payment`) | `tenant:${tenantId}` | Immediately activates paid tier and unlocks paused clock-ins without waiting for 15-min TTL. |
+   | **Workspace Profile Edit** (`update_tenant`) | `tenant:${tenantId}` | Instantly reflects updated business name, logo URL, or time zone. |
+   | **Workspace Signup** (`signup`) | `user:${email}`, `tenant:${tenantId}` | Clears onboarding state and initializes fresh tenant records. |
+
+4. **Runtime Fallback & Graceful Degradation**:
+   * `getCacheStore()` wraps cache acquisition in a `try...catch` block. If `CacheService` is temporarily unavailable or throttled in Google Cloud, the system seamlessly falls back to direct Google Sheet lookups with zero user downtime or 500 errors.
+
+---
+
+### Modular Frontend Architecture & Build System (`js/`)
+
+To enhance maintainability, prevent regressions, and streamline pair-programming, the monolithic `app.js` (3,617 lines) is decomposed into 14 domain-driven ES modules located in [`js/`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/):
+
+| Module | Responsibility |
+| :--- | :--- |
+| [`js/constants.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/constants.js) | LocalStorage keys, Google Sheet column headers, SMB industry categories, subscription tiers |
+| [`js/state.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/state.js) | Central reactive store (`settings`, `currentUser`, `activeShift`, `tokenClient`, `serverOffset`) |
+| [`js/dom.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/dom.js) | DOM element cache (`el`), custom in-app confirm dialogs, loaders, toast notifications |
+| [`js/utils.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/utils.js) | Platform detectors (`isNativeMobileApp`), haptic feedback, date/time formatters, sheet URL extractors |
+| [`js/geo.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/geo.js) | HTML5 Geolocation wrapper, timeout management, accuracy radius calculations |
+| [`js/auth.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/auth.js) | Google Identity Services (GIS OAuth 2.0), persistent 7-day session management, RBAC enforcement |
+| [`js/sheets.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/sheets.js) | Google Sheets REST API v4, Apps Script proxy fallback, time synchronization, tenancy resolution |
+| [`js/queue.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/queue.js) | `PunchQueueManager`: offline localStorage punch queue, randomized jitter (500–2,500ms), HTTP 429 exponential backoff |
+| [`js/history.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/history.js) | Shift log storage, local shift records, modal table rendering with clickable Google Maps links |
+| [`js/team.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/team.js) | Team roster directory management, email invitation submission, staff member removal |
+| [`js/onboarding.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/onboarding.js) | First-time merchant registration, SMB business category selector, sheet configuration |
+| [`js/billing.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/billing.js) | Dual-platform pricing calculations (Web vs Mobile +15%), annual/monthly toggles, sandbox payment simulator |
+| [`js/clock.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/clock.js) | Live clock ticker, shift duration counter, GPS-verified clock-in and clock-out triggers |
+| [`js/main.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/main.js) | App initialization, navigation view switcher, active tab management, global event bindings |
+
+**Build Concatenator**: [`scripts/build.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/scripts/build.js) (`npm run build`) validates and bundles the individual modules in dependency order into production [`app.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/app.js).
 
 ---
 
@@ -627,6 +671,21 @@ SheetPunch includes production-ready wrappers for iOS and Android.
   * Custom User-Agent preventing OAuth 403 blocks.
   * Bidirectional JavaScript & `AndroidBridge` authentication.
 
+### In-App Confirm Dialogs & Safe Area Engineering
+
+Mobile web wrappers face unique browser environment constraints on iOS (`WKWebView`) and Android (`WebView`):
+
+1. **Custom In-App Confirmation Modal (`showConfirmDialog`)**:
+   * Standard browser `window.confirm()` dialogs are blocking and frequently suppressed or fail silently inside WebKit/WKWebView unless native `WKUIDelegate` hooks (`runJavaScriptConfirmPanelWithMessage`) are implemented.
+   * CrewClock replaces all native `confirm()` calls with a high-fidelity, non-blocking asynchronous modal ([`js/dom.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/dom.js)).
+   * Returns a clean `Promise<boolean>`, providing bulletproof Clock-Out and Logout confirmations across all mobile browsers and native wrappers.
+2. **Safe Area Insets & Viewport Protection**:
+   * Notch and Dynamic Island iPhone devices (iPhone X through 16 Pro) feature a bottom home indicator bar that can obscure bottom action buttons.
+   * Modals (such as Credit Card Checkout and Clock-Out Confirmation) feature `pb-safe` (`padding-bottom: env(safe-area-inset-bottom, 1.5rem)`) and responsive maximum heights (`max-h-[85vh]`) with internal scrollable bodies.
+   * Guarantees all action buttons ("Complete Payment", "Confirm Clock Out", "Cancel") remain fully visible and clickable without being clipped.
+
+---
+
 ### App Icons, Splash Screens & Design Treatments
 
 | Asset Type | iOS Specification | Android Specification | Web Specification |
@@ -698,7 +757,150 @@ Managed automatically by `google-apps-script-tenancy.js` and `google-apps-script
 
 ---
 
-## 10. Troubleshooting & FAQs
+## 10. Automated End-to-End Testing & BDD Framework
+
+SheetPunch features an end-to-end **Behavior-Driven Development (BDD)** test automation suite located in [`test/`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/test/). The testing framework is built with **Python**, **Playwright**, and **Behave** (native Python Cucumber runner).
+
+---
+
+### BDD Framework Architecture (Python + Playwright + Behave)
+
+BDD bridges product requirements and technical verification by expressing acceptance criteria in human-readable Gherkin syntax (`Given`, `When`, `Then`, `And`).
+
+```
+test/
+├── README.md                      # Test suite documentation & quick start
+├── requirements.txt               # Dependencies: behave>=1.2.6, playwright>=1.42.0
+├── mocks/
+│   ├── __init__.py
+│   └── apps_script_mock.py        # Playwright network interceptor for Apps Script & Sheets APIs
+├── pages/
+│   ├── __init__.py
+│   └── clock_page.py              # Page Object Model (POM) encapsulating DOM selectors & actions
+└── features/
+    ├── environment.py             # Behave lifecycle hooks (server boot, browser init, mock routing)
+    ├── clock.feature              # BDD: Clock In, live shift timer, GPS capture, Clock Out confirmation
+    ├── team.feature               # BDD: RBAC access, directory roster loading, staff invitations
+    ├── billing.feature            # BDD: Tiered pricing, annual discount toggle, sandbox checkout
+    └── steps/
+        ├── __init__.py
+        ├── common_steps.py        # Shared auth steps (Admin & Employee sign-in injection)
+        ├── clock_steps.py         # Step mappings for clock.feature
+        ├── team_steps.py          # Step mappings for team.feature
+        └── billing_steps.py       # Step mappings for billing.feature
+```
+
+---
+
+### Zero-Dependency Network Route Mocking
+
+To ensure fast, resilient, and non-destructive automated testing, all external calls to **Google Apps Script Web Apps** (`script.google.com/**`) and **Google Sheets REST API** (`sheets.googleapis.com/**`) are intercepted at the browser network layer via Playwright's `page.route()`.
+
+Implemented in [`test/mocks/apps_script_mock.py`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/test/mocks/apps_script_mock.py):
+
+* **Zero External Google Dependencies**: Tests run 100% offline without hitting live Google servers, quotas, or cloud services.
+* **Deterministic Responses**: Provides instantaneous, realistic mock responses for:
+  * `serverTimeIso` & `timeZone`: Authoritative Google Cloud server time synchronization.
+  * `check_user`: Tenant and user authentication lookup.
+  * `signup`: Merchant workspace provisioning and 14-day trial initialization.
+  * `log_shift`: Clock-in and clock-out punch ingestion with dual GPS coordinates.
+  * `get_team`: Team directory retrieval with admin/employee roles.
+  * `invite_employee`: Automated invitation dispatch simulation.
+  * `remove_employee`: Real-time staff offboarding and cache invalidation.
+  * `record_payment`: Subscription activation and receipt generation.
+* **Zero Production Data Pollution**: Test runs never alter or pollute production spreadsheets or tenant registries.
+
+---
+
+### Page Object Model (`ClockPage`)
+
+Implemented in [`test/pages/clock_page.py`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/test/pages/clock_page.py):
+
+The Page Object Model cleanly decouples test assertions from underlying HTML DOM structures and CSS class names:
+
+* **High-Level Business Actions**: Exposes methods such as `clock_in()`, `clock_out()`, `open_team()`, `invite_member(email, name)`, `open_billing()`, `select_billing_cycle("yearly")`, and `complete_sandbox_payment()`.
+* **Headless Geolocation Emulation**: Chromium runs with pre-granted permissions for coordinates `37.7749°, -122.4194°` (San Francisco, CA) to verify hardware GPS capture and Google Maps link generation.
+* **Deterministic Session Injection (`inject_session`)**: Injects valid authenticated Admin or Employee session objects directly into `localStorage`, bypassing third-party Google OAuth popups and eliminating CI login flakiness.
+
+---
+
+### Ephemeral Test Server & Lifecycle Hooks
+
+Implemented in [`test/features/environment.py`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/test/features/environment.py):
+
+* **`before_all`**: Automatically boots a lightweight Python `http.server` in a background daemon thread bound to an ephemeral port (`127.0.0.1:0`), serving web assets (`index.html`, `js/`, `style.css`). Launches Playwright headless Chromium.
+* **`before_scenario`**: Creates a fresh isolated browser context, configures geolocation permissions, registers the `AppsScriptMock` route interceptor, and initializes the `ClockPage`.
+* **`after_scenario`**: Gracefully closes the browser context and page, resetting state for the next scenario.
+* **`after_all`**: Shuts down Playwright and terminates the local HTTP server.
+
+---
+
+### Gherkin Feature Specifications
+
+The test suite covers all critical business workflows across 3 comprehensive feature specifications:
+
+#### 1. Attendance Clock In & Out (`test/features/clock.feature`)
+* **Clock-In**: Employee clicks Clock In &rarr; verified transition to Active Shift screen &rarr; live counter ticks &rarr; GPS coordinates displayed.
+* **Clock-Out**: Employee clicks Clock Out &rarr; confirmation dialog appears &rarr; user confirms &rarr; farewell modal renders total shift duration and timestamps.
+
+#### 2. Team Management & Role-Based Access Control (`test/features/team.feature`)
+* **Roster Inspection**: Business Administrator opens Team modal &rarr; mocked directory loads &rarr; active employees displayed with roles and statuses.
+* **Staff Invitations**: Administrator submits invitation for new employee &rarr; mocked directory responds &rarr; success badge confirms invitation dispatched.
+
+#### 3. Subscription & Billing Management (`test/features/billing.feature`)
+* **Plan & Pricing Tiers**: Administrator opens Billing &rarr; verifies Starter Crew, Growth Crew, and Pro Crew tiers &rarr; toggles between Monthly and Annual billing &rarr; checks discounted annual pricing display.
+* **Sandbox Payment Processing**: Administrator selects payment &rarr; completes sandbox credit card payment &rarr; active subscription receipt is rendered.
+
+---
+
+### Running BDD Tests with Behave
+
+All tests are executed natively through Python's `behave` runner without using npm:
+
+#### 1. Setup Virtual Environment
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r test/requirements.txt
+.venv/bin/playwright install chromium
+```
+
+#### 2. Run Entire Test Suite
+```bash
+.venv/bin/behave test/features
+```
+*(Or simply `behave test/features` if your virtual environment is active)*
+
+#### 3. Run Specific Feature
+```bash
+.venv/bin/behave test/features/clock.feature
+.venv/bin/behave test/features/team.feature
+.venv/bin/behave test/features/billing.feature
+```
+
+#### Sample Test Suite Run Output
+```text
+USING RUNNER: behave.runner:Runner
+Feature: Attendance Clock In and Out # test/features/clock.feature:1
+  Scenario: Staff member clocks in and sees active shift timer ... PASSED
+  Scenario: Staff member clocks out with confirmation ... PASSED
+
+Feature: Team Management & Role-Based Access Control # test/features/team.feature:1
+  Scenario: Admin views team roster from mocked directory ... PASSED
+  Scenario: Admin invites a new staff member ... PASSED
+
+Feature: Subscription & Billing Management # test/features/billing.feature:1
+  Scenario: Admin toggles billing cycle and views updated prices ... PASSED
+  Scenario: Admin tests sandbox payment and receives activation receipt ... PASSED
+
+3 features passed, 0 failed, 0 skipped
+6 scenarios passed, 0 failed, 0 skipped
+27 steps passed, 0 failed, 0 skipped
+Took 0min 9.856s
+```
+
+---
+
+## 11. Troubleshooting & FAQs
 
 ### Q: Does SheetPunch support Google Workspace (custom domain emails)?
 **A**: **Yes, completely.** Google Workspace accounts (`name@company.com`) authenticate identically to standard Google accounts. The directory matches user records using case-insensitive email comparison without domain restrictions.

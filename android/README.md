@@ -103,7 +103,7 @@ android/
 ## 💻 Opening the Project in Android Studio
 
 1. Launch **Android Studio**.
-2. Select **Open** and choose the `iGrill/android` directory.
+2. Select **Open** and choose the `android` directory.
 3. Wait for Gradle Sync to finish.
 4. When ready, select an emulator or connected physical device from the device dropdown and click **Run (▶️)** or press `Shift + F10`.
 

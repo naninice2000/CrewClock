@@ -23,19 +23,23 @@ A unified mobile attendance and employee time clock system with **tamper-proof G
 * **[`android/`](android/)**: The native Android application (Gradle project).
   * Built with Kotlin, Android Jetpack, and `WebView`.
   * Features automatic User-Agent sanitization for Google Sign-In (`403 disallowed_useragent` bypass), GPS geolocation bridging, pull-to-refresh, and offline support.
+* **[`js/`](js/)**: Modular JavaScript application architecture broken into 14 domain modules (auth, clock, geo, sheets, queue, team, billing, dom, state, etc.) bundled into production `app.js` via `node scripts/build.js`.
+* **[`GScript/`](GScript/)**: Backend Google Apps Script deployments (`google-apps-script-tenancy.js` with CacheService in-memory acceleration, `google-apps-script-payments.js`, and `google-apps-script.js`).
+* **[`test/`](test/)**: Automated End-to-End Behavior-Driven Development (BDD) testing suite powered by **Python**, **Playwright**, and **Behave** with 100% offline Google Apps Script mocking.
 * **[`buffer-service/`](buffer-service/)**: Optional high-throughput decoupled microservice (Node.js/Express) for burst smoothing.
-* **[`iGrill/index.html`](iGrill/index.html)**: Backward-compatibility redirect stub forwarding legacy `/iGrill/` links to the root application.
 
 ---
 
 ## 🏛️ Multi-Tenant & RBAC Architecture
 
-The platform utilizes Google Sheets for complete isolation between tenant directory management and individual restaurant attendance logs:
+The platform utilizes Google Sheets for complete isolation between tenant directory management and individual restaurant attendance logs, accelerated by Google Apps Script **`CacheService`** for sub-50ms in-memory authentication and dynamic trial/subscription evaluation:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │              CENTRAL MULTI-TENANT DIRECTORY (Google Sheet)              │
-│                  Managed by: google-apps-script-tenancy.js              │
+│            Managed by: GScript/google-apps-script-tenancy.js            │
+│               • CacheService In-Memory Cache (Sub-50ms)                 │
+│               • Instant Cache Invalidation on Member/Plan Changes       │
 │                                                                         │
 │   [Tenants Sheet]                               [Users Sheet]           │
 │   • Tenant ID                                   • User Email (Google)   │
@@ -174,11 +178,82 @@ Each shift is recorded as a single row with full dual-location auditing:
   Generates APK at: `android/app/build/outputs/apk/debug/app-debug.apk`
 * See [`android/README.md`](android/README.md) for install and ADB sideloading instructions.
 
+### 📱 In-App Mobile Optimizations
+* **Custom Confirm Dialog (`showConfirmDialog`)**: Bypasses browser-native `window.confirm()` which is blocked or suppressed in iOS `WKWebView` and Android `WebView`, ensuring reliable Clock-Out and Logout confirmations.
+* **Safe Area Inset Protection**: Integrated `env(safe-area-inset-bottom)` and modal max-height viewport constraints ensure bottom checkout and confirmation buttons remain fully visible on Dynamic Island / notched iPhones.
+
 ---
 
-## 💻 Local Development & Testing
+## 💻 Local Development & Build
 
+### 1. Build Frontend Bundle
+```bash
+npm run build
+```
+Concatenates and bundles modular JavaScript files from [`js/`](js/) into production [`app.js`](app.js).
+
+### 2. Local Preview Server
 ```bash
 python3 -m http.server 8000
 ```
 Open `http://localhost:8000` in your web browser.
+
+---
+
+## 🧪 Automated BDD Testing (Python + Playwright + Behave)
+
+CrewClock includes a comprehensive Behavior-Driven Development (BDD) test automation suite located in [`test/`](test/).
+
+### Architecture & Key Capabilities
+* **Pure Python BDD (`behave`)**: Gherkin `.feature` specifications executed directly via Python's native Cucumber runner.
+* **Zero External Google Dependencies**: All Google Apps Script (`script.google.com/**`) and Google Sheets (`sheets.googleapis.com/**`) network calls are 100% intercepted and mocked via Playwright's `page.route()`. Tests run completely offline with zero quota consumption or production sheet pollution.
+* **Page Object Model (POM)**: High-level UI abstraction layer in [`test/pages/clock_page.py`](test/pages/clock_page.py).
+* **GPS Emulation & Session Injection**: Headless Chromium simulates hardware GPS coordinates (`37.7749°, -122.4194°`) and injects deterministic sessions to bypass third-party OAuth popups.
+* **Ephemeral Local Web Server**: Automatically launches a background Python HTTP server on an open ephemeral port (`127.0.0.1:0`) in [`test/features/environment.py`](test/features/environment.py) and tears it down after test completion.
+
+### Test Environment Setup
+```bash
+# 1. Create and activate Python virtual environment
+python3 -m venv .venv
+
+# 2. Install test dependencies (behave, playwright)
+.venv/bin/pip install -r test/requirements.txt
+
+# 3. Install Playwright browser binaries
+.venv/bin/playwright install chromium
+```
+
+### Running Tests (Native Python Behave)
+Run the entire BDD test suite:
+```bash
+.venv/bin/behave test/features
+```
+*(Or simply `behave test/features` when your `.venv` is activated)*
+
+Run individual features:
+```bash
+.venv/bin/behave test/features/clock.feature    # Clock-in, shift duration timer, clock-out
+.venv/bin/behave test/features/team.feature     # Team roster view, employee invitation
+.venv/bin/behave test/features/billing.feature  # Plan pricing, monthly/annual toggles, sandbox payment
+```
+
+### Test Directory Layout
+```
+test/
+├── README.md                      # Test suite documentation & quick start
+├── requirements.txt               # Dependencies: behave>=1.2.6, playwright>=1.42.0
+├── mocks/
+│   └── apps_script_mock.py        # Network route interceptor for Apps Script & Sheets APIs
+├── pages/
+│   └── clock_page.py              # Page Object Model (POM) locators & user actions
+└── features/
+    ├── environment.py             # Server boot, browser init, and mock routing hooks
+    ├── clock.feature              # Clock In, active shift timer, GPS capture, Clock Out
+    ├── team.feature               # RBAC access, directory roster loading, staff invitations
+    ├── billing.feature            # Tiered pricing, annual discount toggle, sandbox checkout
+    └── steps/
+        ├── common_steps.py        # Shared auth steps (Admin & Employee sign-in injection)
+        ├── clock_steps.py         # Step mappings for clock.feature
+        ├── team_steps.py          # Step mappings for team.feature
+        └── billing_steps.py       # Step mappings for billing.feature
+```
