@@ -128,7 +128,7 @@
           <span id="header-role-pill" class="hidden xl:inline-block"></span>
           <span id="header-plan-pill" class="hidden xl:inline-block"></span>
         </div>
-        <button id="btn-logout-trigger" title="Sign Out" class="text-warmgray-400 hover:text-rose-600 p-1 sm:p-1.5 rounded-lg hover:bg-rose-50 transition-colors flex-shrink-0 flex items-center justify-center min-w-[28px] min-h-[28px]" aria-label="Sign Out">
+        <button id="btn-logout-trigger" title="Sign Out" class="text-warmgray-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors flex-shrink-0 flex items-center justify-center min-w-[34px] min-h-[34px] touch-target btn-press" aria-label="Sign Out">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
@@ -408,7 +408,7 @@
   <!-- ============================================== -->
   <!-- MODAL: LOCATION ACQUISITION / SPINNER OVERLAY  -->
   <!-- ============================================== -->
-  <div id="loading-overlay" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+  <div id="loading-overlay" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
     <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl">
       <div class="relative w-16 h-16 mx-auto flex items-center justify-center">
         <div class="absolute inset-0 rounded-full bg-emerald-500 pulse-radar"></div>
@@ -427,11 +427,35 @@
   </div>
 
   <!-- ============================================== -->
+  <!-- MODAL: GENERAL PURPOSE CONFIRMATION DIALOG     -->
+  <!-- ============================================== -->
+  <div id="confirm-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
+    <div class="glass-card rounded-3xl p-6 sm:p-7 max-w-sm w-full text-center space-y-4 shadow-2xl animate-fade-in pb-7">
+      <div id="confirm-icon-container" class="w-14 h-14 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div>
+        <h3 id="confirm-title" class="text-lg font-bold text-warmgray-900">Confirm Action</h3>
+        <p id="confirm-message" class="text-xs sm:text-sm text-warmgray-600 mt-1.5 leading-relaxed whitespace-pre-line">Are you sure you want to proceed?</p>
+      </div>
+      <div class="flex items-center gap-3 pt-2">
+        <button id="btn-confirm-cancel" type="button" class="flex-1 py-3 px-4 rounded-2xl bg-warmgray-100 hover:bg-warmgray-200 active:bg-warmgray-300 text-warmgray-700 font-semibold text-xs sm:text-sm transition-colors btn-press touch-target">
+          Cancel
+        </button>
+        <button id="btn-confirm-ok" type="button" class="flex-1 py-3 px-4 rounded-2xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-semibold text-xs sm:text-sm shadow-md transition-colors btn-press touch-target">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
   <!-- MODAL: CLOCK-OUT CONFIRMATION & FAREWELL       -->
   <!-- ============================================== -->
-  <div id="farewell-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl animate-slide-up sm:animate-fade-in pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-      <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-2 sm:hidden flex-shrink-0"></div>
+  <div id="farewell-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
+    <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl animate-fade-in pb-7">
       <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -454,7 +478,7 @@
   <!-- MODAL: SHIFT HISTORY / LOG INSPECTOR           -->
   <!-- ============================================== -->
   <div id="history-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-6">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
@@ -495,7 +519,7 @@
   <!-- MODAL: SETTINGS & CONFIGURATION               -->
   <!-- ============================================== -->
   <div id="settings-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-6">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
@@ -595,13 +619,21 @@
         </div>
       </div>
 
-      <div class="pt-3 border-t border-warmgray-200 flex items-center justify-end gap-2">
-        <button id="btn-cancel-settings" class="px-4 py-2.5 rounded-xl text-warmgray-600 hover:bg-warmgray-100 text-xs font-semibold touch-target">
-          Cancel
+      <div class="pt-3 border-t border-warmgray-200 flex items-center justify-between gap-2">
+        <button id="btn-settings-logout" type="button" class="px-3.5 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 text-xs font-semibold touch-target btn-press flex items-center gap-1.5" title="Sign Out">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>Sign Out</span>
         </button>
-        <button id="btn-save-settings" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-semibold shadow-md btn-press touch-target">
-          Save Settings
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="btn-cancel-settings" type="button" class="px-4 py-2.5 rounded-xl text-warmgray-600 hover:bg-warmgray-100 text-xs font-semibold touch-target">
+            Cancel
+          </button>
+          <button id="btn-save-settings" type="button" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-semibold shadow-md btn-press touch-target">
+            Save Settings
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -610,7 +642,7 @@
   <!-- MODAL: BUSINESS OWNER ONBOARDING               -->
   <!-- ============================================== -->
   <div id="onboarding-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-6">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
@@ -713,7 +745,7 @@
   <!-- MODAL: TEAM MANAGEMENT (ADMIN ONLY)            -->
   <!-- ============================================== -->
   <div id="team-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-6">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
@@ -772,7 +804,7 @@
   <!-- MODAL: BILLING & SUBSCRIPTION (WEB APP ONLY)   -->
   <!-- ============================================== -->
   <div id="billing-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl flex flex-col max-h-[94dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl flex flex-col max-h-[94dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-7">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       
       <!-- Modal Header -->
@@ -1059,7 +1091,7 @@
   <!-- ============================================== -->
   <!-- MODAL: TRIAL EXPIRED LOCK NOTICE               -->
   <!-- ============================================== -->
-  <div id="trial-expired-modal" class="fixed inset-0 bg-warmgray-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+  <div id="trial-expired-modal" class="fixed inset-0 bg-warmgray-900/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
     <div class="glass-card rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
       <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-3xl shadow-inner">
         ⏳

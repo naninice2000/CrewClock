@@ -150,6 +150,58 @@ struct WebViewContainer: UIViewRepresentable {
             }
         }
         
+        // MARK: - WKUIDelegate JavaScript Dialog Support (Alerts & Confirms)
+        func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
+            let alertController = UIAlertController(title: "SheetPunch", message: message, preferredStyle: .alert)
+            alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
+                completionHandler()
+            }))
+            presentAlert(alertController, fallback: { completionHandler() })
+        }
+        
+        func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
+            let alertController = UIAlertController(title: "SheetPunch", message: message, preferredStyle: .alert)
+            alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { _ in
+                completionHandler(false)
+            }))
+            alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
+                completionHandler(true)
+            }))
+            presentAlert(alertController, fallback: { completionHandler(false) })
+        }
+        
+        func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (String?) -> Void) {
+            let alertController = UIAlertController(title: "SheetPunch", message: prompt, preferredStyle: .alert)
+            alertController.addTextField { textField in
+                textField.text = defaultText
+            }
+            alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { _ in
+                completionHandler(nil)
+            }))
+            alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
+                let input = alertController.textFields?.first?.text
+                completionHandler(input)
+            }))
+            presentAlert(alertController, fallback: { completionHandler(nil) })
+        }
+        
+        private func presentAlert(_ alertController: UIAlertController, fallback: @escaping () -> Void) {
+            DispatchQueue.main.async {
+                guard let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                      let window = windowScene.windows.first(where: { $0.isKeyWindow }) ?? windowScene.windows.first,
+                      let rootVC = window.rootViewController else {
+                    fallback()
+                    return
+                }
+                
+                var topVC = rootVC
+                while let presented = topVC.presentedViewController {
+                    topVC = presented
+                }
+                topVC.present(alertController, animated: true, completion: nil)
+            }
+        }
+        
         // MARK: - WKNavigationDelegate
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
             if webView != popupWebView {
