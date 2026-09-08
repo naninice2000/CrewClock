@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Business Onboarding (Signup Flow)
+ * SheetPunch - Business Onboarding (Signup Flow)
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -152,4 +153,4 @@ window.CrewClock = window.CrewClock || {};
   window.closeOnboardingModal = closeOnboardingModal;
   window.submitOnboarding = submitOnboarding;
 
-})(window.CrewClock);
+})(window.SheetPunch);

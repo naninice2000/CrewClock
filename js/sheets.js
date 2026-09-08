@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Google Sheets API, Central Tenancy & Server Time Sync
+ * SheetPunch - Google Sheets API, Central Tenancy & Server Time Sync
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -433,4 +434,4 @@ window.CrewClock = window.CrewClock || {};
   window.postToGoogleAppsScript = postToGoogleAppsScript;
   window.updateSyncBadgeUI = updateSyncBadgeUI;
 
-})(window.CrewClock);
+})(window.SheetPunch);

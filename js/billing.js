@@ -1,9 +1,10 @@
 /**
- * SheetPunch / CrewClock - Subscription & Billing
+ * SheetPunch - Subscription & Billing
  * Dual-Platform: Web direct pricing vs Mobile App Store +15% fee,
  * plan selection, card validation, sandbox simulator suite, trial expiry lock.
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -535,4 +536,4 @@ window.CrewClock = window.CrewClock || {};
   window.showTrialExpiredModal = showTrialExpiredModal;
   window.closeTrialExpiredModal = closeTrialExpiredModal;
 
-})(window.CrewClock);
+})(window.SheetPunch);

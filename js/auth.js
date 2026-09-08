@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Authentication & Session Management
+ * SheetPunch - Authentication & Session Management
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -592,4 +593,4 @@ window.CrewClock = window.CrewClock || {};
   window.triggerLogin = triggerLogin;
   window.triggerLogout = triggerLogout;
 
-})(window.CrewClock);
+})(window.SheetPunch);

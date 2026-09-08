@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Geolocation Capture
+ * SheetPunch - Geolocation Capture
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -99,4 +100,4 @@ window.CrewClock = window.CrewClock || {};
   window.checkLocationCapability = checkLocationCapability;
   window.getDeviceLocation = getDeviceLocation;
 
-})(window.CrewClock);
+})(window.SheetPunch);

@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Team Management (Admin RBAC)
+ * SheetPunch - Team Management (Admin RBAC)
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -223,4 +224,4 @@ window.CrewClock = window.CrewClock || {};
   window.inviteTeamMember = inviteTeamMember;
   window.removeTeamMember = removeTeamMember;
 
-})(window.CrewClock);
+})(window.SheetPunch);

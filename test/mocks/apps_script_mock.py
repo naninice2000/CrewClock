@@ -1,5 +1,5 @@
 """
-Google Apps Script & Google API Network Mock for CrewClock Playwright Tests.
+Google Apps Script & Google API Network Mock for SheetPunch Playwright Tests.
 Intercepts all outgoing HTTP calls to script.google.com, sheets.googleapis.com,
 and googleapis.com to ensure 100% offline, deterministic, and safe testing.
 """

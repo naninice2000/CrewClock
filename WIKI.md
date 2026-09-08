@@ -70,6 +70,13 @@ It runs **100% client-side** on **GitHub Pages**, backed by **Google Identity Se
    - [Gherkin Feature Specifications](#gherkin-feature-specifications)
    - [Running BDD Tests with Behave](#running-bdd-tests-with-behave)
 11. [Troubleshooting & FAQs](#11-troubleshooting--faqs)
+12. [Scalability Analysis & Enterprise Growth Bottlenecks (5,000+ Tenants Roadmap)](#12-scalability-analysis--enterprise-growth-bottlenecks-5000-tenants-roadmap)
+   - [Architectural Scale Thresholds Summary](#architectural-scale-thresholds-summary)
+   - [1. Google OAuth 2.0 User Limits ("Testing" vs. "Production")](#1-google-oauth-20-user-limits-testing-vs-production)
+   - [2. Google Apps Script 100 KB Total `CacheService` Ceiling](#2-google-apps-script-100-kb-total-cacheservice-ceiling)
+   - [3. Google Apps Script 30-Concurrent-Execution Wall & Daily Quotas](#3-google-apps-script-30-concurrent-execution-wall--daily-quotas)
+   - [4. The Buffer Service Evolution: Direct Sheets API v4](#4-the-buffer-service-evolution-from-apps-script-proxy-to-direct-sheets-api-v4)
+   - [Migration Roadmap: Phased Implementation Guide](#migration-roadmap-phased-implementation-guide)
 
 ---
 
@@ -677,7 +684,7 @@ Mobile web wrappers face unique browser environment constraints on iOS (`WKWebVi
 
 1. **Custom In-App Confirmation Modal (`showConfirmDialog`)**:
    * Standard browser `window.confirm()` dialogs are blocking and frequently suppressed or fail silently inside WebKit/WKWebView unless native `WKUIDelegate` hooks (`runJavaScriptConfirmPanelWithMessage`) are implemented.
-   * CrewClock replaces all native `confirm()` calls with a high-fidelity, non-blocking asynchronous modal ([`js/dom.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/dom.js)).
+   * SheetPunch replaces all native `confirm()` calls with a high-fidelity, non-blocking asynchronous modal ([`js/dom.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/dom.js)).
    * Returns a clean `Promise<boolean>`, providing bulletproof Clock-Out and Logout confirmations across all mobile browsers and native wrappers.
 2. **Safe Area Insets & Viewport Protection**:
    * Notch and Dynamic Island iPhone devices (iPhone X through 16 Pro) feature a bottom home indicator bar that can obscure bottom action buttons.
@@ -919,6 +926,133 @@ Took 0min 9.856s
 
 ### Q: Can employees edit or tamper with their hours in the Google Sheet?
 **A**: **No.** The Google Sheet is private to the business owner and shared only with the platform service email. Employees have 0% access to the underlying file, guaranteeing tamper-proof audit trails.
+
+---
+
+## 12. Scalability Analysis & Enterprise Growth Bottlenecks (5,000+ Tenants Roadmap)
+
+This section provides a rigorous technical breakdown of the platform's architectural limits as SheetPunch scales from initial pilots (10–100 tenants) to mid-market and enterprise scale (**1,000–5,000+ business tenants and 50,000+ active daily workers**).
+
+Use this reference to anticipate platform ceilings, understand Google Cloud / Workspace quotas, and implement phased architectural migrations before hitting production bottlenecks.
+
+---
+
+### Architectural Scale Thresholds Summary
+
+| Scale Phase | Active Tenants | Active Punch Users | Primary System Bottleneck | Required Engineering Action |
+| :--- | :--- | :--- | :--- | :--- |
+| **Phase 1: Pilot & Launch** | 1 – 100 | 10 – 1,000 | **Google OAuth "Testing" State** (100-user whitelist limit). | Switch OAuth Consent Screen to **"In Production"** in Google Cloud Console. |
+| **Phase 2: Growth** | 100 – 500 | 1,000 – 7,500 | **Google Apps Script `CacheService` 100 KB ceiling** & directory read latency. | Deploy `buffer-service/` (Cloud Run) to micro-batch punches and shield Apps Script. |
+| **Phase 3: Mid-Market** | 500 – 2,000 | 7,500 – 25,000 | **Apps Script 30-concurrent-execution limit** during 8:00–9:00 AM shift start spikes. | Upgrade `buffer-service/` to **Direct Google Sheets API v4** via Service Account. |
+| **Phase 4: Enterprise** | 2,000 – 5,000+ | 25,000 – 50,000+ | **Google Sheets API quota** (300 req/min/project) & Central Directory sheet locks. | Migrate Central Directory from Google Sheets to **Cloud SQL (PostgreSQL) / Redis**; keep tenant punch sheets in Google Drive. |
+
+---
+
+### Deep Dive: The 4 Critical Platform Bottlenecks
+
+#### 1. Google OAuth 2.0 User Limits ("Testing" vs. "Production")
+
+* **The Bottleneck**:
+  When a Google Cloud OAuth 2.0 Client ID is created, Google defaults the OAuth Consent Screen to **"Testing"** status. In Testing status:
+  * Only specific Google accounts explicitly whitelisted in the Google Cloud Console (up to **100 test users**) can log in.
+  * Any unlisted business admin or employee attempting to log in receives an `access_denied` error (Error 403: `access_denied` - This app has not been verified yet).
+* **The Scaling Solution**:
+  * **Scope Verification Exemption**: SheetPunch intentionally requests only standard, non-sensitive Google scopes:
+    - `https://www.googleapis.com/auth/userinfo.email`
+    - `https://www.googleapis.com/auth/userinfo.profile`
+    - `openid`
+  * Because SheetPunch does **not** request sensitive scopes (like `drive.readonly` or full Drive access), Google does **NOT** require an expensive Cloud App Security Assessment (CASA Tier 2/3 audit) or a security demonstration video.
+  * **Action Required**: In Google Cloud Console &rarr; *APIs & Services* &rarr; *OAuth consent screen*, click **"Publish App"**. The app immediately switches to "In Production", allowing any Google account globally to authenticate without user limits.
+
+---
+
+#### 2. Google Apps Script 100 KB Total `CacheService` Ceiling
+
+* **The Bottleneck**:
+  `GScript/google-apps-script-tenancy.js` uses `CacheService.getScriptCache()` to cache:
+  - User records: `user:${email}` (~180 bytes JSON)
+  - Tenant records: `tenant:${tenantId}` (~260 bytes JSON)
+  Google Apps Script enforces a strict quota: **100 KB maximum TOTAL cache size across all keys in the script project**.
+  - At **50–100 tenants** (~1,000 users), total cache usage is ~180 KB. Keys begin to silently evict.
+  - At **5,000 tenants** (~50,000 users), data volume exceeds **10 MB**, rendering the 100 KB script cache completely ineffective.
+* **The Failure Mode**:
+  When cache keys are evicted, every authentication and shift punch falls back to scanning the central directory spreadsheet:
+  ```javascript
+  var rows = usersSheet.getRange(2, 1, lastRow - 1, 7).getValues();
+  ```
+  Executing `getValues()` across 5,000 rows in Google Sheets takes **3 to 6 seconds per call**. Under concurrent morning shift traffic, document-level read locks cause request timeouts (`Exceeded maximum execution time`).
+* **The Scaling Solution**:
+  1. **Short-Term (Growth Phase)**: Store only compressed IDs in `CacheService` or pass signed user claims in the client session token.
+  2. **Long-Term (Enterprise Phase)**: Move the central "Tenants & Users" directory lookup off Google Sheets into an in-memory Redis cache or a lightweight managed database (Cloud SQL / Supabase). The tenant's *attendance records* still write to their private Google Sheet to maintain 100% data sovereignty.
+
+---
+
+#### 3. Google Apps Script 30-Concurrent-Execution Wall & Daily Quotas
+
+* **The Bottleneck**:
+  Google Apps Script Web Apps have a hard, unalterable limit of **30 simultaneous script executions** across a single deployment globally.
+  * If 200 workers across 20 restaurants tap "Clock In" simultaneously at 8:00 AM, Google Apps Script immediately rejects requests beyond the 30th concurrent execution with:
+    `Service Spreadsheets failed while accessing document` or `HTTP 429: Too Many Simultaneous Executions`.
+  * **Daily Execution Quota**: Google Workspace accounts have a limit of **6 hours of total execution time per day** (90 min/day on free Gmail accounts). 50,000 punches at an average of 1.2s per Apps Script execution equals **16.6 hours of CPU runtime per day**—exceeding Google's daily quota by 2.7x.
+* **The Scaling Solution**:
+  * **Client-Side Jitter (`js/queue.js`)**: Staggers outgoing requests across 500ms–2,500ms to avoid micro-burst concurrency spikes (already implemented in `PunchQueueManager`).
+  * **Decoupled Buffer Microservice (`buffer-service/`)**: Ingests punches in <10ms and micro-batches them into single requests (`batch_log_shifts`), reducing 50,000 individual executions into ~500 batch writes.
+
+---
+
+#### 4. The Buffer Service Evolution: From Apps Script Proxy to Direct Sheets API v4
+
+* **Current Limitation in `buffer-service/index.js`**:
+  The current buffer service acts as an HTTP shock absorber, but its background flush worker still forwards batches to Google Apps Script:
+  ```javascript
+  fetch(TENANCY_SCRIPT_URL, { action: 'batch_log_shifts', shifts: batch })
+  ```
+  While this reduces concurrency, Google Apps Script still has to open each merchant's spreadsheet (`SpreadsheetApp.openById(sheetId)`) and execute Apps Script triggers.
+* **Enterprise Scaling Upgrade (Direct Google Sheets API v4)**:
+  To completely decouple from Google Apps Script execution limits, `buffer-service/` should be upgraded with the official `@googleapis/sheets` Node.js library using a **Google Cloud Service Account**:
+  ```javascript
+  const { google } = require('googleapis');
+  const sheets = google.sheets({ version: 'v4', auth: serviceAccountAuth });
+
+  // Direct append bypasses Apps Script entirely
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: sheetId,
+    range: 'Attendance!A:K',
+    valueInputOption: 'USER_ENTERED',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: { values: [batchRowValues] }
+  });
+  ```
+  * **Key Advantages of Direct API**:
+    - **Zero Concurrency Limits**: No 30-execution cap.
+    - **300 Requests/Minute per Project**: Google Sheets API quota allows 300 writes per minute per project (and can be increased via Google Cloud quota increase requests).
+    - **Sub-150ms Write Latency**: Direct Google Cloud infrastructure writes are 10x faster than Apps Script `SpreadsheetApp`.
+    - **Zero Apps Script Daily Runtime Quota**: API calls do not consume Apps Script execution time.
+
+---
+
+### Migration Roadmap: Phased Implementation Guide
+
+```
+[Phase 1: Now (0–100 Tenants)]
+  └─ OAuth Console: Switch to "In Production" (No CASA audit required for email/profile)
+  └─ Rely on CacheService (15 min TTL) + Client Jitter Queue (500–2500ms)
+
+[Phase 2: Growth (100–500 Tenants)]
+  └─ Deploy buffer-service to Google Cloud Run ($0/mo on free tier)
+  └─ Enable bufferEndpointUrl in config.js
+  └─ Use batch_log_shifts in Apps Script to group writes
+
+[Phase 3: Mid-Market (500–2,000 Tenants)]
+  └─ Add @googleapis/sheets to buffer-service
+  └─ Service Account direct writes to merchant sheets (bypassing Apps Script)
+  └─ Cache merchant sheet IDs in Redis / Cloud Run memory
+
+[Phase 4: Enterprise (2,000–5,000+ Tenants)]
+  └─ Central Directory moved to Cloud SQL / PostgreSQL (for sub-10ms user authentication)
+  └─ Keep merchant attendance 100% in private Google Sheets (Data Sovereignty preserved)
+  └─ Multi-project Google Cloud service account pooling (if exceeding 300 req/min)
+```
 
 ---
 *Maintained by the SheetPunch Core Team. Built for modern, agile teams.*
