@@ -151,7 +151,7 @@ It runs **100% client-side** on **GitHub Pages**, backed by **Google Identity Se
 
 ### Client-Side Smoothing & Jitter Queue
 
-Implemented in [`app.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/app.js) (`PunchQueueManager`):
+Implemented in [`js/queue.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/queue.js) (`PunchQueueManager`):
 
 1. **Instant Optimistic UI Feedback (0ms Worker Blocking)**:
    * When an employee taps **Clock In** or **Clock Out**, the local timestamp is captured immediately (`now()`).
@@ -218,7 +218,7 @@ To enhance maintainability, prevent regressions, and streamline pair-programming
 | [`js/clock.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/clock.js) | Live clock ticker, shift duration counter, GPS-verified clock-in and clock-out triggers |
 | [`js/main.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/main.js) | App initialization, navigation view switcher, active tab management, global event bindings |
 
-**Build Concatenator**: [`scripts/build.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/scripts/build.js) (`npm run build`) validates and bundles the individual modules in dependency order into production [`app.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/app.js).
+**Native Browser Modular Loading**: The web application executes directly from these 14 clean modules, loaded in dependency order by [`index.html`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/index.html) with zero build step required.
 
 ---
 
