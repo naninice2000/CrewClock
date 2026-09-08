@@ -60,7 +60,14 @@ It runs **100% client-side** on **GitHub Pages**, backed by **Google Identity Se
    - [Central Directory: `Tenants` Tab (15 Columns)](#1-central-directory-tenants-tab)
    - [Central Directory: `Users` Tab (7 Columns)](#2-central-directory-users-tab)
    - [Merchant Attendance Sheet: `Attendance` Tab (11 Columns)](#3-merchant-attendance-sheet-attendance-tab)
-10. [Troubleshooting & FAQs](#10-troubleshooting--faqs)
+10. [Automated End-to-End Testing & BDD Framework](#10-automated-end-to-end-testing--bdd-framework)
+   - [BDD Framework Architecture (Python + Playwright + Behave)](#bdd-framework-architecture-python--playwright--behave)
+   - [Zero-Dependency Network Route Mocking](#zero-dependency-network-route-mocking)
+   - [Page Object Model (`ClockPage`)](#page-object-model-clockpage)
+   - [Ephemeral Test Server & Lifecycle Hooks](#ephemeral-test-server--lifecycle-hooks)
+   - [Gherkin Feature Specifications](#gherkin-feature-specifications)
+   - [Running BDD Tests with Behave](#running-bdd-tests-with-behave)
+11. [Troubleshooting & FAQs](#11-troubleshooting--faqs)
 
 ---
 
@@ -698,7 +705,150 @@ Managed automatically by `google-apps-script-tenancy.js` and `google-apps-script
 
 ---
 
-## 10. Troubleshooting & FAQs
+## 10. Automated End-to-End Testing & BDD Framework
+
+SheetPunch features an end-to-end **Behavior-Driven Development (BDD)** test automation suite located in [`test/`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/test/). The testing framework is built with **Python**, **Playwright**, and **Behave** (native Python Cucumber runner).
+
+---
+
+### BDD Framework Architecture (Python + Playwright + Behave)
+
+BDD bridges product requirements and technical verification by expressing acceptance criteria in human-readable Gherkin syntax (`Given`, `When`, `Then`, `And`).
+
+```
+test/
+├── README.md                      # Test suite documentation & quick start
+├── requirements.txt               # Dependencies: behave>=1.2.6, playwright>=1.42.0
+├── mocks/
+│   ├── __init__.py
+│   └── apps_script_mock.py        # Playwright network interceptor for Apps Script & Sheets APIs
+├── pages/
+│   ├── __init__.py
+│   └── clock_page.py              # Page Object Model (POM) encapsulating DOM selectors & actions
+└── features/
+    ├── environment.py             # Behave lifecycle hooks (server boot, browser init, mock routing)
+    ├── clock.feature              # BDD: Clock In, live shift timer, GPS capture, Clock Out confirmation
+    ├── team.feature               # BDD: RBAC access, directory roster loading, staff invitations
+    ├── billing.feature            # BDD: Tiered pricing, annual discount toggle, sandbox checkout
+    └── steps/
+        ├── __init__.py
+        ├── common_steps.py        # Shared auth steps (Admin & Employee sign-in injection)
+        ├── clock_steps.py         # Step mappings for clock.feature
+        ├── team_steps.py          # Step mappings for team.feature
+        └── billing_steps.py       # Step mappings for billing.feature
+```
+
+---
+
+### Zero-Dependency Network Route Mocking
+
+To ensure fast, resilient, and non-destructive automated testing, all external calls to **Google Apps Script Web Apps** (`script.google.com/**`) and **Google Sheets REST API** (`sheets.googleapis.com/**`) are intercepted at the browser network layer via Playwright's `page.route()`.
+
+Implemented in [`test/mocks/apps_script_mock.py`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/test/mocks/apps_script_mock.py):
+
+* **Zero External Google Dependencies**: Tests run 100% offline without hitting live Google servers, quotas, or cloud services.
+* **Deterministic Responses**: Provides instantaneous, realistic mock responses for:
+  * `serverTimeIso` & `timeZone`: Authoritative Google Cloud server time synchronization.
+  * `check_user`: Tenant and user authentication lookup.
+  * `signup`: Merchant workspace provisioning and 14-day trial initialization.
+  * `log_shift`: Clock-in and clock-out punch ingestion with dual GPS coordinates.
+  * `get_team`: Team directory retrieval with admin/employee roles.
+  * `invite_employee`: Automated invitation dispatch simulation.
+  * `remove_employee`: Real-time staff offboarding and cache invalidation.
+  * `record_payment`: Subscription activation and receipt generation.
+* **Zero Production Data Pollution**: Test runs never alter or pollute production spreadsheets or tenant registries.
+
+---
+
+### Page Object Model (`ClockPage`)
+
+Implemented in [`test/pages/clock_page.py`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/test/pages/clock_page.py):
+
+The Page Object Model cleanly decouples test assertions from underlying HTML DOM structures and CSS class names:
+
+* **High-Level Business Actions**: Exposes methods such as `clock_in()`, `clock_out()`, `open_team()`, `invite_member(email, name)`, `open_billing()`, `select_billing_cycle("yearly")`, and `complete_sandbox_payment()`.
+* **Headless Geolocation Emulation**: Chromium runs with pre-granted permissions for coordinates `37.7749°, -122.4194°` (San Francisco, CA) to verify hardware GPS capture and Google Maps link generation.
+* **Deterministic Session Injection (`inject_session`)**: Injects valid authenticated Admin or Employee session objects directly into `localStorage`, bypassing third-party Google OAuth popups and eliminating CI login flakiness.
+
+---
+
+### Ephemeral Test Server & Lifecycle Hooks
+
+Implemented in [`test/features/environment.py`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/test/features/environment.py):
+
+* **`before_all`**: Automatically boots a lightweight Python `http.server` in a background daemon thread bound to an ephemeral port (`127.0.0.1:0`), serving web assets (`index.html`, `js/`, `style.css`). Launches Playwright headless Chromium.
+* **`before_scenario`**: Creates a fresh isolated browser context, configures geolocation permissions, registers the `AppsScriptMock` route interceptor, and initializes the `ClockPage`.
+* **`after_scenario`**: Gracefully closes the browser context and page, resetting state for the next scenario.
+* **`after_all`**: Shuts down Playwright and terminates the local HTTP server.
+
+---
+
+### Gherkin Feature Specifications
+
+The test suite covers all critical business workflows across 3 comprehensive feature specifications:
+
+#### 1. Attendance Clock In & Out (`test/features/clock.feature`)
+* **Clock-In**: Employee clicks Clock In &rarr; verified transition to Active Shift screen &rarr; live counter ticks &rarr; GPS coordinates displayed.
+* **Clock-Out**: Employee clicks Clock Out &rarr; confirmation dialog appears &rarr; user confirms &rarr; farewell modal renders total shift duration and timestamps.
+
+#### 2. Team Management & Role-Based Access Control (`test/features/team.feature`)
+* **Roster Inspection**: Business Administrator opens Team modal &rarr; mocked directory loads &rarr; active employees displayed with roles and statuses.
+* **Staff Invitations**: Administrator submits invitation for new employee &rarr; mocked directory responds &rarr; success badge confirms invitation dispatched.
+
+#### 3. Subscription & Billing Management (`test/features/billing.feature`)
+* **Plan & Pricing Tiers**: Administrator opens Billing &rarr; verifies Starter Crew, Growth Crew, and Pro Crew tiers &rarr; toggles between Monthly and Annual billing &rarr; checks discounted annual pricing display.
+* **Sandbox Payment Processing**: Administrator selects payment &rarr; completes sandbox credit card payment &rarr; active subscription receipt is rendered.
+
+---
+
+### Running BDD Tests with Behave
+
+All tests are executed natively through Python's `behave` runner without using npm:
+
+#### 1. Setup Virtual Environment
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r test/requirements.txt
+.venv/bin/playwright install chromium
+```
+
+#### 2. Run Entire Test Suite
+```bash
+.venv/bin/behave test/features
+```
+*(Or simply `behave test/features` if your virtual environment is active)*
+
+#### 3. Run Specific Feature
+```bash
+.venv/bin/behave test/features/clock.feature
+.venv/bin/behave test/features/team.feature
+.venv/bin/behave test/features/billing.feature
+```
+
+#### Sample Test Suite Run Output
+```text
+USING RUNNER: behave.runner:Runner
+Feature: Attendance Clock In and Out # test/features/clock.feature:1
+  Scenario: Staff member clocks in and sees active shift timer ... PASSED
+  Scenario: Staff member clocks out with confirmation ... PASSED
+
+Feature: Team Management & Role-Based Access Control # test/features/team.feature:1
+  Scenario: Admin views team roster from mocked directory ... PASSED
+  Scenario: Admin invites a new staff member ... PASSED
+
+Feature: Subscription & Billing Management # test/features/billing.feature:1
+  Scenario: Admin toggles billing cycle and views updated prices ... PASSED
+  Scenario: Admin tests sandbox payment and receives activation receipt ... PASSED
+
+3 features passed, 0 failed, 0 skipped
+6 scenarios passed, 0 failed, 0 skipped
+27 steps passed, 0 failed, 0 skipped
+Took 0min 9.856s
+```
+
+---
+
+## 11. Troubleshooting & FAQs
 
 ### Q: Does SheetPunch support Google Workspace (custom domain emails)?
 **A**: **Yes, completely.** Google Workspace accounts (`name@company.com`) authenticate identically to standard Google accounts. The directory matches user records using case-insensitive email comparison without domain restrictions.
