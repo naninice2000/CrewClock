@@ -219,11 +219,53 @@ header {
   main {
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0.5rem)) !important;
   }
+
+  /* Sheet modals scroll padding above mobile dock */
+  #billing-modal .glass-card,
+  #settings-modal .glass-card,
+  #team-modal .glass-card,
+  #history-modal .glass-card,
+  #onboarding-modal .glass-card {
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 1rem)) !important;
+  }
 }
 
 /* In native mobile app container, always add bottom padding for mobile dock */
 body.is-native-app main {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0.5rem)) !important;
+}
+
+body.is-native-app #billing-modal .glass-card,
+body.is-native-app #settings-modal .glass-card,
+body.is-native-app #team-modal .glass-card,
+body.is-native-app #history-modal .glass-card,
+body.is-native-app #onboarding-modal .glass-card {
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 1rem)) !important;
+}
+
+/* System and action dialogs (Farewell, Confirm, Loading, Trial Expired):
+   Elevate z-index above the mobile dock and center cleanly on all viewports */
+#farewell-modal,
+#confirm-modal,
+#loading-overlay,
+#trial-expired-modal {
+  z-index: 100 !important;
+}
+
+#farewell-modal,
+#confirm-modal {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+}
+
+#farewell-modal .glass-card,
+#confirm-modal .glass-card {
+  border-radius: 1.5rem !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 1.75rem !important;
+  max-width: 24rem !important;
+  width: 100% !important;
 }
 
 /* Native mobile app always shows bottom dock and hides top nav */
