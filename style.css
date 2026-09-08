@@ -220,13 +220,13 @@ header {
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0.5rem)) !important;
   }
 
-  /* Sheet modals scroll padding above mobile dock */
+  /* Sheet modals scroll padding above safe area */
   #billing-modal .glass-card,
   #settings-modal .glass-card,
   #team-modal .glass-card,
   #history-modal .glass-card,
   #onboarding-modal .glass-card {
-    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 1rem)) !important;
+    padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem)) !important;
   }
 }
 
@@ -240,11 +240,33 @@ body.is-native-app #settings-modal .glass-card,
 body.is-native-app #team-modal .glass-card,
 body.is-native-app #history-modal .glass-card,
 body.is-native-app #onboarding-modal .glass-card {
-  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 1rem)) !important;
+  padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem)) !important;
+}
+
+/* Hide mobile bottom dock whenever ANY modal sheet or dialog is open */
+body:has(#billing-modal:not(.hidden)) #mobile-bottom-nav,
+body:has(#settings-modal:not(.hidden)) #mobile-bottom-nav,
+body:has(#team-modal:not(.hidden)) #mobile-bottom-nav,
+body:has(#history-modal:not(.hidden)) #mobile-bottom-nav,
+body:has(#farewell-modal:not(.hidden)) #mobile-bottom-nav,
+body:has(#confirm-modal:not(.hidden)) #mobile-bottom-nav,
+body:has(#trial-expired-modal:not(.hidden)) #mobile-bottom-nav,
+body:has(#onboarding-modal:not(.hidden)) #mobile-bottom-nav {
+  display: none !important;
+}
+
+/* Sheet modals:
+   Elevate z-index above the mobile dock and provide proper backdrop layering */
+#billing-modal,
+#settings-modal,
+#team-modal,
+#history-modal,
+#onboarding-modal {
+  z-index: 70 !important;
 }
 
 /* System and action dialogs (Farewell, Confirm, Loading, Trial Expired):
-   Elevate z-index above the mobile dock and center cleanly on all viewports */
+   Elevate z-index above all sheets and dock, and center cleanly on all viewports */
 #farewell-modal,
 #confirm-modal,
 #loading-overlay,
@@ -252,8 +274,9 @@ body.is-native-app #onboarding-modal .glass-card {
   z-index: 100 !important;
 }
 
-#farewell-modal,
-#confirm-modal {
+#farewell-modal:not(.hidden),
+#confirm-modal:not(.hidden) {
+  display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 1rem !important;
@@ -262,7 +285,9 @@ body.is-native-app #onboarding-modal .glass-card {
 #farewell-modal .glass-card,
 #confirm-modal .glass-card {
   border-radius: 1.5rem !important;
-  margin-bottom: 0 !important;
+  margin: auto !important;
+  max-height: calc(100dvh - 2rem) !important;
+  overflow-y: auto !important;
   padding-bottom: 1.75rem !important;
   max-width: 24rem !important;
   width: 100% !important;
