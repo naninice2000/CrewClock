@@ -8,6 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Staff Clock-In" />
   <meta name="theme-color" content="#f59e0b" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Staff Time Clock - Small & Medium Business Employee Attendance</title>
   <meta name="description" content="Quick mobile clock-in and clock-out for employees with Google Sign-In, GPS location verification, and Google Sheet sync for small and medium businesses." />
   
@@ -47,7 +50,7 @@
   </script>
 
   <!-- Google Fonts & Custom Styles -->
-  <link rel="stylesheet" href="style.css?v=20260906_9" />
+  <link rel="stylesheet" href="style.css?v=20260908_1" />
 
   <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -430,7 +433,7 @@
   <!-- MODAL: GENERAL PURPOSE CONFIRMATION DIALOG     -->
   <!-- ============================================== -->
   <div id="confirm-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
-    <div class="glass-card rounded-3xl p-6 sm:p-7 max-w-sm w-full text-center space-y-4 shadow-2xl animate-fade-in pb-7">
+    <div class="glass-card rounded-3xl p-6 sm:p-7 max-w-sm w-full text-center space-y-4 shadow-2xl animate-fade-in my-auto max-h-[90dvh] overflow-y-auto pb-7">
       <div id="confirm-icon-container" class="w-14 h-14 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -455,7 +458,7 @@
   <!-- MODAL: CLOCK-OUT CONFIRMATION & FAREWELL       -->
   <!-- ============================================== -->
   <div id="farewell-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
-    <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl animate-fade-in pb-7">
+    <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl animate-fade-in my-auto max-h-[90dvh] overflow-y-auto pb-7">
       <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -477,8 +480,8 @@
   <!-- ============================================== -->
   <!-- MODAL: SHIFT HISTORY / LOG INSPECTOR           -->
   <!-- ============================================== -->
-  <div id="history-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-6">
+  <div id="history-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[max(1.5rem,env(safe-area-inset-bottom,1.5rem))] sm:pb-6">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
@@ -518,8 +521,8 @@
   <!-- ============================================== -->
   <!-- MODAL: SETTINGS & CONFIGURATION               -->
   <!-- ============================================== -->
-  <div id="settings-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-6">
+  <div id="settings-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.5rem,env(safe-area-inset-bottom,1.5rem))] sm:pb-6">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
@@ -635,14 +638,15 @@
           </button>
         </div>
       </div>
+      <div class="h-6 sm:h-2 w-full flex-shrink-0" aria-hidden="true"></div>
     </div>
   </div>
 
   <!-- ============================================== -->
   <!-- MODAL: BUSINESS OWNER ONBOARDING               -->
   <!-- ============================================== -->
-  <div id="onboarding-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-6">
+  <div id="onboarding-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(1.5rem,env(safe-area-inset-bottom,1.5rem))] sm:pb-6">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
@@ -744,8 +748,8 @@
   <!-- ============================================== -->
   <!-- MODAL: TEAM MANAGEMENT (ADMIN ONLY)            -->
   <!-- ============================================== -->
-  <div id="team-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-6">
+  <div id="team-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85vh] animate-slide-up sm:animate-fade-in pb-[max(1.5rem,env(safe-area-inset-bottom,1.5rem))] sm:pb-6">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
         <div class="flex items-center gap-2">
@@ -766,23 +770,29 @@
         </button>
       </div>
 
-      <!-- Invite New Employee Form -->
-      <div class="py-3.5 border-b border-warmgray-200 bg-amber-50/60 -mx-5 sm:-mx-6 px-5 sm:px-6 space-y-2.5">
-        <p class="text-xs font-bold text-amber-900">Invite Employee (Google Account / Workspace)</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-          <input id="input-invite-email" type="email" placeholder="staff@company.com or staff@gmail.com" class="px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
-          <input id="input-invite-name" type="text" placeholder="Employee Full Name" class="px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white" />
+      <!-- Add New Member Form -->
+      <form id="form-add-team-member" class="py-3 border-b border-warmgray-200 space-y-2.5">
+        <div>
+          <label class="block font-semibold text-warmgray-800 mb-1 text-xs">Staff Name</label>
+          <input id="input-team-name" type="text" placeholder="e.g. Maria Gonzalez" required class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-xs" />
         </div>
-        <div class="flex items-center justify-between">
-          <p id="invite-status-msg" class="text-[11px] text-warmgray-600 truncate"></p>
-          <button id="btn-send-invite" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs shadow-xs btn-press flex items-center gap-1.5 flex-shrink-0 touch-target">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span>Send Invitation</span>
+        <div>
+          <label class="block font-semibold text-warmgray-800 mb-1 text-xs">Staff Google / Workspace Email</label>
+          <input id="input-team-email" type="email" placeholder="maria@mybusiness.com" required class="w-full px-3 py-2 rounded-xl border border-warmgray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-xs" />
+        </div>
+        <div class="flex items-center justify-between pt-1">
+          <div class="flex items-center gap-2">
+            <label class="font-semibold text-warmgray-800 text-xs">Role:</label>
+            <select id="select-team-role" class="px-2.5 py-1.5 rounded-lg border border-warmgray-300 bg-white text-xs focus:ring-amber-500 focus:border-amber-500">
+              <option value="employee">Staff (Clock-In Only)</option>
+              <option value="admin">Administrator (Full Access)</option>
+            </select>
+          </div>
+          <button id="btn-submit-add-team" type="submit" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-semibold text-xs shadow-sm btn-press touch-target">
+            + Add Member
           </button>
         </div>
-      </div>
+      </form>
 
       <!-- Team Members Roster List -->
       <div class="flex-1 overflow-y-auto py-3 space-y-2 modal-scroll" id="team-list-container">
@@ -803,8 +813,8 @@
   <!-- ============================================== -->
   <!-- MODAL: BILLING & SUBSCRIPTION (WEB APP ONLY)   -->
   <!-- ============================================== -->
-  <div id="billing-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl flex flex-col max-h-[94dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[calc(6.5rem+env(safe-area-inset-bottom,1rem))] sm:pb-7">
+  <div id="billing-modal" class="fixed inset-0 bg-warmgray-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="glass-card rounded-t-3xl sm:rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl flex flex-col max-h-[94dvh] sm:max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in pb-[max(2rem,env(safe-area-inset-bottom,2rem))] sm:pb-7">
       <div class="w-12 h-1.5 bg-warmgray-300 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0"></div>
       
       <!-- Modal Header -->
@@ -1049,6 +1059,8 @@
             <span id="btn-submit-payment-text">Pay $9.99 & Activate Starter Crew (Monthly)</span>
             <span id="btn-submit-payment-spinner" class="hidden animate-spin">⏳</span>
           </button>
+          <!-- WebKit scroll clearance spacer -->
+          <div class="h-10 sm:h-4 w-full flex-shrink-0" aria-hidden="true"></div>
         </form>
       </div>
 
@@ -1084,6 +1096,8 @@
         <button id="btn-finish-billing" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md btn-press touch-target">
           Done & Return to Dashboard
         </button>
+        <!-- WebKit scroll clearance spacer -->
+        <div class="h-10 sm:h-4 w-full flex-shrink-0" aria-hidden="true"></div>
       </div>
     </div>
   </div>
@@ -1172,7 +1186,7 @@
   </nav>
 
   <!-- Configuration & Application Logic -->
-  <script src="config.js?v=20260905_1"></script>
-  <script src="app.js?v=20260906_10"></script>
+  <script src="config.js?v=20260908_1"></script>
+  <script src="app.js?v=20260908_1"></script>
 </body>
 </html>

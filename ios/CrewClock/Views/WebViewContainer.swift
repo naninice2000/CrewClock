@@ -52,8 +52,8 @@ struct WebViewContainer: UIViewRepresentable {
         context.coordinator.setupObservers(for: webView)
         viewModel.webView = webView
         
-        // Always load latest code from GitHub Pages
-        let request = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 30)
+        // Always load latest code from GitHub Pages, bypassing local disk cache
+        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
         webView.load(request)
         
         return webView
@@ -62,7 +62,7 @@ struct WebViewContainer: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: Context) {
         if viewModel.shouldReload {
             viewModel.shouldReload = false
-            uiView.reload()
+            uiView.reloadFromOrigin()
         }
     }
     
@@ -98,7 +98,7 @@ struct WebViewContainer: UIViewRepresentable {
         }
         
         @objc func handleRefresh(_ sender: UIRefreshControl) {
-            viewModel.webView?.reload()
+            viewModel.webView?.reloadFromOrigin()
         }
         
         // MARK: - WKUIDelegate Popup / Window.open Handling (Google Sign-In Support)
