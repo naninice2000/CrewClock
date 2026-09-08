@@ -1,5 +1,5 @@
 """
-Page Object Model (POM) for CrewClock Web Application.
+Page Object Model (POM) for SheetPunch Web Application.
 Provides high-level interactions and element locators for test automation.
 """
 
@@ -8,7 +8,7 @@ from playwright.sync_api import Page, expect
 
 
 class ClockPage:
-    """Page Object wrapping CrewClock UI interactions and DOM elements."""
+    """Page Object wrapping SheetPunch UI interactions and DOM elements."""
 
     def __init__(self, page: Page, base_url: str):
         self.page = page
@@ -79,7 +79,7 @@ class ClockPage:
         self.btn_close_history = page.locator("#btn-close-history")
 
     def goto_home(self):
-        """Navigate to the CrewClock homepage."""
+        """Navigate to the SheetPunch homepage."""
         self.page.goto(self.base_url)
         self.page.wait_for_load_state("domcontentloaded")
 

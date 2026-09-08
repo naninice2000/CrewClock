@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Utility Helpers
+ * SheetPunch - Utility Helpers
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -251,4 +252,4 @@ window.CrewClock = window.CrewClock || {};
   window.extractSpreadsheetId = extractSpreadsheetId;
   window.isGoogleAppsScriptUrl = isGoogleAppsScriptUrl;
 
-})(window.CrewClock);
+})(window.SheetPunch);

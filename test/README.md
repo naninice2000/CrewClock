@@ -1,6 +1,6 @@
-# CrewClock - Python + Playwright BDD Test Automation (Behave)
+# SheetPunch - Python + Playwright BDD Test Automation (Behave)
 
-End-to-End Behavior-Driven Development (BDD) test automation for the CrewClock web application using **Python**, **Playwright**, and **Behave** (native Python Cucumber BDD runner).
+End-to-End Behavior-Driven Development (BDD) test automation for the SheetPunch web application using **Python**, **Playwright**, and **Behave** (native Python Cucumber BDD runner).
 
 ---
 

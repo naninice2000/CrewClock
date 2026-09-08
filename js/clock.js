@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Live Clock, Shift Timer, Clock-In & Clock-Out Flows
+ * SheetPunch - Live Clock, Shift Timer, Clock-In & Clock-Out Flows
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -334,4 +335,4 @@ window.CrewClock = window.CrewClock || {};
   window.triggerClockIn = triggerClockIn;
   window.triggerClockOut = triggerClockOut;
 
-})(window.CrewClock);
+})(window.SheetPunch);

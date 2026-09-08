@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Shift History Management
+ * SheetPunch - Shift History Management
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -154,4 +155,4 @@ window.CrewClock = window.CrewClock || {};
   window.closeHistoryModal = closeHistoryModal;
   window.clearShiftHistory = clearShiftHistory;
 
-})(window.CrewClock);
+})(window.SheetPunch);

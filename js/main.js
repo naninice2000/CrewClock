@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Application Bootstrap & Main Controller
+ * SheetPunch - Application Bootstrap & Main Controller
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -870,4 +871,4 @@ window.CrewClock = window.CrewClock || {};
   window.populateActiveShiftScreen = populateActiveShiftScreen;
   window.init = init;
 
-})(window.CrewClock);
+})(window.SheetPunch);

@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Application State Management
+ * SheetPunch - Application State Management
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -101,4 +102,4 @@ window.CrewClock = window.CrewClock || {};
   // Export state to namespace
   exports.state = state;
 
-})(window.CrewClock);
+})(window.SheetPunch);

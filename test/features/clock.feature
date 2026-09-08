@@ -4,7 +4,7 @@ Feature: Attendance Clock In and Out
   So that my hours and location are reliably logged to Google Sheets
 
   Scenario: Staff member clocks in and sees active shift timer
-    Given an employee is signed in to CrewClock
+    Given an employee is signed in to SheetPunch
     When the employee clicks Clock In
     Then the active shift screen is displayed
     And the live shift timer starts ticking

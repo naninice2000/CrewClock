@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - DOM Elements & UI Dialogs
+ * SheetPunch - DOM Elements & UI Dialogs
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -527,4 +528,4 @@ window.CrewClock = window.CrewClock || {};
   window.showToast = showToast;
   window.showConfirmDialog = showConfirmDialog;
 
-})(window.CrewClock);
+})(window.SheetPunch);

@@ -1,8 +1,9 @@
 /**
- * SheetPunch / CrewClock - Offline Punch Queue Manager
+ * SheetPunch - Offline Punch Queue Manager
  * Provides Optimistic UI, background delivery with randomized jitter & exponential backoff.
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -238,4 +239,4 @@ window.CrewClock = window.CrewClock || {};
   exports.PunchQueueManager = PunchQueueManager;
   window.PunchQueueManager = PunchQueueManager;
 
-})(window.CrewClock);
+})(window.SheetPunch);

@@ -1,7 +1,8 @@
 /**
- * SheetPunch / CrewClock - Application Constants
+ * SheetPunch - Application Constants
  */
-window.CrewClock = window.CrewClock || {};
+window.SheetPunch = window.SheetPunch || window.CrewClock || {};
+window.CrewClock = window.SheetPunch;
 
 (function (exports) {
   'use strict';
@@ -194,4 +195,4 @@ window.CrewClock = window.CrewClock || {};
   window.BUSINESS_TYPES = BUSINESS_TYPES;
   window.PRICING_PLANS = PRICING_PLANS;
 
-})(window.CrewClock);
+})(window.SheetPunch);
