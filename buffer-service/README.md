@@ -102,6 +102,6 @@ curl -X POST http://localhost:8080/api/v1/punch \
 
 ## Client Fallback Guarantee
 
-If `bufferEndpointUrl` is empty or the microservice is unreachable, the SheetPunch client app (`app.js`) automatically falls back to:
+If `bufferEndpointUrl` is empty or the microservice is unreachable, the SheetPunch client app ([`js/queue.js`](../js/queue.js)) automatically falls back to:
 1. Direct customer Apps Script webhook (Choice B), OR
 2. Central Tenancy Script `log_shift` (Choice A).

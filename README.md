@@ -12,10 +12,11 @@ A unified mobile attendance and employee time clock system with **tamper-proof G
 
 ## 📁 Repository Overview
 
-* **[`index.html`](index.html), [`app.js`](app.js), [`style.css`](style.css)**: The hosted web application (HTML5, Tailwind CSS, Google Identity Services, Google Apps Script).
+* **[`index.html`](index.html), [`js/`](js/), [`style.css`](style.css)**: The hosted web application (HTML5, Tailwind CSS, Google Identity Services, Google Apps Script).
   * Auto-logs attendance, timestamps, GPS coordinates, and Google Maps pins directly to your **Google Sheet**.
   * Calculates shift duration directly on Google's cloud servers in your restaurant's time zone.
   * Instant Sandbox/Test Simulator for testing payment success, card declines, and subscription renewal failures.
+* **[`js/`](js/)**: Modular JavaScript application architecture broken into 14 clean, domain-specific modules (auth, clock, geo, sheets, queue, team, billing, dom, state, etc.) loaded directly by `index.html`.
 * **[`ios/`](ios/)**: The native iOS application (`CrewClock.xcodeproj`).
   * Built with Swift, SwiftUI, and WebKit (`WKWebView`).
   * Wraps the live hosted web app so **any changes pushed to GitHub Pages are instantly reflected without needing App Store updates**.
@@ -23,7 +24,6 @@ A unified mobile attendance and employee time clock system with **tamper-proof G
 * **[`android/`](android/)**: The native Android application (Gradle project).
   * Built with Kotlin, Android Jetpack, and `WebView`.
   * Features automatic User-Agent sanitization for Google Sign-In (`403 disallowed_useragent` bypass), GPS geolocation bridging, pull-to-refresh, and offline support.
-* **[`js/`](js/)**: Modular JavaScript application architecture broken into 14 domain modules (auth, clock, geo, sheets, queue, team, billing, dom, state, etc.) bundled into production `app.js` via `node scripts/build.js`.
 * **[`GScript/`](GScript/)**: Backend Google Apps Script deployments (`google-apps-script-tenancy.js` with CacheService in-memory acceleration, `google-apps-script-payments.js`, and `google-apps-script.js`).
 * **[`test/`](test/)**: Automated End-to-End Behavior-Driven Development (BDD) testing suite powered by **Python**, **Playwright**, and **Behave** with 100% offline Google Apps Script mocking.
 * **[`buffer-service/`](buffer-service/)**: Optional high-throughput decoupled microservice (Node.js/Express) for burst smoothing.
@@ -184,19 +184,13 @@ Each shift is recorded as a single row with full dual-location auditing:
 
 ---
 
-## 💻 Local Development & Build
+## 💻 Local Development
 
-### 1. Build Frontend Bundle
-```bash
-npm run build
-```
-Concatenates and bundles modular JavaScript files from [`js/`](js/) into production [`app.js`](app.js).
-
-### 2. Local Preview Server
+Run a lightweight local HTTP server to test the modular web application:
 ```bash
 python3 -m http.server 8000
 ```
-Open `http://localhost:8000` in your web browser.
+Open `http://localhost:8000` in your web browser. All modules in [`js/`](js/) are loaded directly by [`index.html`](index.html) with zero build step required.
 
 ---
 
