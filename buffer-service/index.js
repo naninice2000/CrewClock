@@ -158,6 +158,7 @@ function validateTenantSubscription(tenantId) {
 // Initialize Cache and set recurring 6-hour refresh
 refreshTenantSubscriptions();
 const cacheSyncTimer = setInterval(refreshTenantSubscriptions, CACHE_TTL_MS);
+if (cacheSyncTimer.unref) cacheSyncTimer.unref();
 
 // ============================================================
 // 3. HEALTH & METRICS ENDPOINT
@@ -530,6 +531,7 @@ async function flushBuffer() {
 
 // Flush timer (every 3 seconds)
 const flushTimer = setInterval(flushBuffer, FLUSH_INTERVAL_MS);
+if (flushTimer.unref) flushTimer.unref();
 
 // Graceful Termination
 const shutdown = async () => {

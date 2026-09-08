@@ -1,30 +1,67 @@
 # SheetPunch Decoupled Buffer & Micro-Batching Service
 
-This microservice implements the **Decoupled Buffer / Queue** SaaS architecture for SheetPunch.
+This microservice implements the **High-Throughput Decoupled Ingestion & Micro-Batching** SaaS architecture for SheetPunch.
+
+It bypasses Google Apps Script runtime quotas and concurrency walls by using **Direct Google Sheets REST API v4** writes via Google Cloud Service Accounts, coupled with a **6-Hour Slow-Changing Subscription Cache** and **Real-Time Payment Webhook Invalidation**.
 
 ```
 [Mobile App / Web App]
         │
         ▼ (Instant HTTP POST /api/v1/punch in <10ms)
-[Buffer Microservice (Cloud Function / Cloud Run)]
-        │
-        ▼ (In-memory / Cloud Tasks Buffer — Groups by Merchant Sheet)
-[Micro-Batch Writer Engine (Every 5–10 seconds)]
-        │
-        ▼ (1 Batched Call per Company via action: batch_log_shifts)
-[Customer Google Sheets / Central Apps Script]
+┌────────────────────────────────────────────────────────────────────────┐
+│ buffer-service (Google Cloud Run)                                      │
+├────────────────────────────────────────────────────────────────────────┤
+│ 1. Instant In-Memory Validation (0.001ms):                             │
+│    • Is Tenant Active? (Date.now() < tenant.expiresAt)                 │
+│    • Validated against 6-Hour In-Memory Subscription Cache             │
+│ 2. Immediate HTTP 202 Accepted response to worker phone                │
+│ 3. Push to In-Memory Ring Buffer                                       │
+│ 4. Micro-Batch Flusher (Every 3 seconds):                              │
+│    • Groups punches by Merchant Spreadsheet ID                         │
+│    • Clock-Ins  ──► Direct values.append (Multi-Row in 1 call)         │
+│    • Clock-Outs ──► Direct values.batchUpdate (Multi-Range in 1 call)  │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │
+                    Direct Google Sheets REST API v4
+                    (Via Cloud Service Account - NO Apps Script)
+                                   │
+                                   ▼
+             [ Merchant's Private Google Sheet: Attendance Tab ]
+                    (100% Data Sovereignty, Tamper-Proof)
 ```
 
 ---
 
-## Capabilities
+## Core Capabilities
 
 1. **<10ms Response Time (`202 Accepted`):**
-   Employees' phones are never blocked by Google Sheets API latency. The punch is accepted into memory immediately.
-2. **Micro-Batching (90% Quota Reduction):**
-   If 20 workers punch in at 8:00 AM at the same business, this service collects those 20 punches and flushes them in **one single batch call** to `batch_log_shifts`, consuming 1 Google API write instead of 20.
-3. **Automatic Dead-Letter Retries:**
-   Any failed writes are retried up to 5 times before alerting.
+   Employees' phones are never blocked by Google Sheets API latency. The punch is accepted into memory immediately and confirmed optimistically on the client device.
+2. **Direct Google Sheets API v4 (Zero Apps Script Concurrency Cap):**
+   Punches write directly to merchant sheets over Google Cloud's high-speed API, eliminating Google Apps Script's 30-concurrent-execution ceiling and 6-hour daily execution quotas.
+3. **6-Hour Slow-Changing Subscription Cache (99.9% Read Quota Optimization):**
+   Because subscriptions change slowly, tenant records and expiration dates are cached in memory for 6 hours (configurable via `CACHE_TTL_HOURS`), reducing Central Directory reads from 288/day to **just 4 reads per day**.
+4. **Real-Time Webhook Invalidation (Sub-Second Payment Renewals):**
+   When a merchant pays, the payment gateway hits `POST /api/v1/payments/webhook`. The paying merchant's cache entry is extended instantly in memory (<1ms), so staff can clock in immediately without waiting for the next scheduled 6-hour sync.
+5. **Micro-Batching (90% Quota Reduction):**
+   Groups punches every 3 seconds by merchant sheet:
+   - **Clock-Ins**: Aggregated into multi-row `values.append` calls.
+   - **Clock-Outs**: Aggregated into multi-range `values.batchUpdate` calls.
+6. **Automatic Exponential Backoff & Dead-Letter Handling:**
+   Transient Google HTTP 429 / 503 errors are automatically re-queued and retried up to 5 times with exponential backoff.
+
+---
+
+## Environment Variables
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `PORT` | HTTP listening port | `8080` |
+| `CENTRAL_DIRECTORY_SHEET_ID` | Spreadsheet ID of Central Multi-Tenant Directory | `""` |
+| `CACHE_TTL_HOURS` | Duration to cache tenant subscription data in RAM | `6` |
+| `FLUSH_INTERVAL_MS` | Milliseconds between micro-batch flush cycles | `3000` |
+| `MAX_BATCH_SIZE` | Maximum punches to process in a single flush cycle | `100` |
+| `TENANCY_SCRIPT_URL` | Legacy Apps Script proxy URL (used for hybrid fallback) | `""` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON key file (optional on Cloud Run) | Built-in ADC |
 
 ---
 
@@ -36,57 +73,45 @@ npm install
 node index.js
 ```
 
-The service will start on port `8080`.
+The service starts on port `8080`.
 
-Test health check:
+### Health & Metrics Check
 ```bash
 curl http://localhost:8080/health
 ```
 
-Test punch ingestion:
+### Test Punch Ingestion
 ```bash
 curl -X POST http://localhost:8080/api/v1/punch \
   -H "Content-Type: application/json" \
   -d '{
     "type": "clockin",
     "email": "employee@example.com",
-    "tenantId": "TENANT_123",
+    "tenantId": "t_demo",
     "name": "Sarah Connor",
     "latitude": "37.7749",
     "longitude": "-122.4194",
     "accuracy": "10",
-    "timestamp": "Sep 06, 2026 08:00:00 AM"
+    "timestamp": "Sep 08, 2026 08:00:00 AM"
+  }'
+```
+
+### Test Instant Payment Webhook
+```bash
+curl -X POST http://localhost:8080/api/v1/payments/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tenantId": "t_demo",
+    "status": "captured",
+    "durationDays": 30
   }'
 ```
 
 ---
 
-## Deployment Options
+## Deployment to Google Cloud Run (Recommended)
 
-### Option A: Firebase Cloud Functions (100% Free Tier)
-
-1. Initialize Firebase Functions in this directory:
-   ```bash
-   npm install -g firebase-tools
-   firebase login
-   firebase init functions
-   ```
-2. Export the Express app in `functions/index.js`:
-   ```javascript
-   const functions = require('firebase-functions');
-   const { app } = require('./buffer-service/index');
-   exports.api = functions.https.onRequest(app);
-   ```
-3. Deploy:
-   ```bash
-   firebase deploy --only functions
-   ```
-4. Copy the resulting URL into `config.js`:
-   ```javascript
-   bufferEndpointUrl: "https://us-central1-YOUR_PROJECT.cloudfunctions.net/api"
-   ```
-
-### Option B: Google Cloud Run (Containerized)
+Google Cloud Run provides **2,000,000 free requests per month** ($0/month on free tier) and automatically provisions Google Cloud Service Account credentials (Application Default Credentials).
 
 1. Build & Deploy directly from source:
    ```bash
@@ -94,14 +119,18 @@ curl -X POST http://localhost:8080/api/v1/punch \
      --source . \
      --region us-central1 \
      --allow-unauthenticated \
-     --set-env-vars TENANCY_SCRIPT_URL="https://script.google.com/macros/s/.../exec"
+     --set-env-vars CENTRAL_DIRECTORY_SHEET_ID="<YOUR_CENTRAL_SHEET_ID>",CACHE_TTL_HOURS="6"
    ```
-2. Copy the Cloud Run service URL into `config.js`.
+2. Grant the Cloud Run Service Account (`<project-number>-compute@developer.gserviceaccount.com`) access to merchant sheets, or use a dedicated Service Account.
+3. Copy the resulting Cloud Run URL (e.g. `https://sheetpunch-buffer-xyz-uc.a.run.app`) into [`config.js`](../config.js):
+   ```javascript
+   bufferEndpointUrl: "https://sheetpunch-buffer-xyz-uc.a.run.app"
+   ```
 
 ---
 
 ## Client Fallback Guarantee
 
-If `bufferEndpointUrl` is empty or the microservice is unreachable, the SheetPunch client app ([`js/queue.js`](../js/queue.js)) automatically falls back to:
+If `bufferEndpointUrl` is empty or the microservice is temporarily unreachable, the SheetPunch client app ([`js/queue.js`](../js/queue.js)) automatically falls back to:
 1. Direct customer Apps Script webhook (Choice B), OR
 2. Central Tenancy Script `log_shift` (Choice A).

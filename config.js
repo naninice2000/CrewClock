@@ -31,7 +31,7 @@ const APP_CONFIG = {
   // When provided, punches are buffered and micro-batched; if empty, defaults to direct Apps Script
   bufferEndpointUrl: "",
 
-  // Dedicated Payments & Billing Google Apps Script URL (Q PaymentZ Integration)
+  // Dedicated Payments & Billing Google Apps Script URL (Payment Gateway Integration)
   // Deploy google-apps-script-payments.js to your "Payments Ledger" Google Sheet and paste URL here:
   paymentsScriptUrl: ""
 };
