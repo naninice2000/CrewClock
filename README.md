@@ -24,20 +24,22 @@ A unified mobile attendance and employee time clock system with **tamper-proof G
   * Built with Kotlin, Android Jetpack, and `WebView`.
   * Features automatic User-Agent sanitization for Google Sign-In (`403 disallowed_useragent` bypass), GPS geolocation bridging, pull-to-refresh, and offline support.
 * **[`js/`](js/)**: Modular JavaScript application architecture broken into 14 domain modules (auth, clock, geo, sheets, queue, team, billing, dom, state, etc.) bundled into production `app.js` via `node scripts/build.js`.
+* **[`GScript/`](GScript/)**: Backend Google Apps Script deployments (`google-apps-script-tenancy.js` with CacheService in-memory acceleration, `google-apps-script-payments.js`, and `google-apps-script.js`).
 * **[`test/`](test/)**: Automated End-to-End Behavior-Driven Development (BDD) testing suite powered by **Python**, **Playwright**, and **Behave** with 100% offline Google Apps Script mocking.
 * **[`buffer-service/`](buffer-service/)**: Optional high-throughput decoupled microservice (Node.js/Express) for burst smoothing.
-* **[`iGrill/index.html`](iGrill/index.html)**: Backward-compatibility redirect stub forwarding legacy `/iGrill/` links to the root application.
 
 ---
 
 ## 🏛️ Multi-Tenant & RBAC Architecture
 
-The platform utilizes Google Sheets for complete isolation between tenant directory management and individual restaurant attendance logs:
+The platform utilizes Google Sheets for complete isolation between tenant directory management and individual restaurant attendance logs, accelerated by Google Apps Script **`CacheService`** for sub-50ms in-memory authentication and dynamic trial/subscription evaluation:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │              CENTRAL MULTI-TENANT DIRECTORY (Google Sheet)              │
-│                  Managed by: google-apps-script-tenancy.js              │
+│            Managed by: GScript/google-apps-script-tenancy.js            │
+│               • CacheService In-Memory Cache (Sub-50ms)                 │
+│               • Instant Cache Invalidation on Member/Plan Changes       │
 │                                                                         │
 │   [Tenants Sheet]                               [Users Sheet]           │
 │   • Tenant ID                                   • User Email (Google)   │
@@ -175,6 +177,10 @@ Each shift is recorded as a single row with full dual-location auditing:
   ```
   Generates APK at: `android/app/build/outputs/apk/debug/app-debug.apk`
 * See [`android/README.md`](android/README.md) for install and ADB sideloading instructions.
+
+### 📱 In-App Mobile Optimizations
+* **Custom Confirm Dialog (`showConfirmDialog`)**: Bypasses browser-native `window.confirm()` which is blocked or suppressed in iOS `WKWebView` and Android `WebView`, ensuring reliable Clock-Out and Logout confirmations.
+* **Safe Area Inset Protection**: Integrated `env(safe-area-inset-bottom)` and modal max-height viewport constraints ensure bottom checkout and confirmation buttons remain fully visible on Dynamic Island / notched iPhones.
 
 ---
 
