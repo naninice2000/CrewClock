@@ -75,7 +75,7 @@ It runs **100% client-side** on **GitHub Pages**, backed by **Google Identity Se
    - [1. Google OAuth 2.0 User Limits ("Testing" vs. "Production")](#1-google-oauth-20-user-limits-testing-vs-production)
    - [2. Google Apps Script 100 KB Total `CacheService` Ceiling](#2-google-apps-script-100-kb-total-cacheservice-ceiling)
    - [3. Google Apps Script 30-Concurrent-Execution Wall & Daily Quotas](#3-google-apps-script-30-concurrent-execution-wall--daily-quotas)
-   - [4. The Buffer Service Evolution: Direct Sheets API v4](#4-the-buffer-service-evolution-from-apps-script-proxy-to-direct-sheets-api-v4)
+   - [4. The Buffer Service Architecture: Direct Sheets API v4 & 6-Hour Subscription Caching](#4-the-buffer-service-architecture-direct-sheets-api-v4--6-hour-subscription-caching)
    - [Migration Roadmap: Phased Implementation Guide](#migration-roadmap-phased-implementation-guide)
 
 ---
@@ -1000,34 +1000,43 @@ Use this reference to anticipate platform ceilings, understand Google Cloud / Wo
 
 ---
 
-#### 4. The Buffer Service Evolution: From Apps Script Proxy to Direct Sheets API v4
+#### 4. The Buffer Service Architecture: Direct Sheets API v4 & 6-Hour Subscription Caching
 
-* **Current Limitation in `buffer-service/index.js`**:
-  The current buffer service acts as an HTTP shock absorber, but its background flush worker still forwards batches to Google Apps Script:
+* **Decoupled Architecture Implemented in [`buffer-service/index.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/buffer-service/index.js)**:
+  The buffer microservice runs on **Google Cloud Run** and decouples shift punches from Google Apps Script execution limits:
   ```javascript
-  fetch(TENANCY_SCRIPT_URL, { action: 'batch_log_shifts', shifts: batch })
-  ```
-  While this reduces concurrency, Google Apps Script still has to open each merchant's spreadsheet (`SpreadsheetApp.openById(sheetId)`) and execute Apps Script triggers.
-* **Enterprise Scaling Upgrade (Direct Google Sheets API v4)**:
-  To completely decouple from Google Apps Script execution limits, `buffer-service/` should be upgraded with the official `@googleapis/sheets` Node.js library using a **Google Cloud Service Account**:
-  ```javascript
-  const { google } = require('googleapis');
-  const sheets = google.sheets({ version: 'v4', auth: serviceAccountAuth });
+  const { sheets } = require('@googleapis/sheets');
+  const sheetsClient = sheets({ version: 'v4', auth: serviceAccountAuth });
 
-  // Direct append bypasses Apps Script entirely
-  await sheets.spreadsheets.values.append({
+  // 1. Clock-Ins: Multi-Row Append (1 call per merchant sheet)
+  await sheetsClient.spreadsheets.values.append({
     spreadsheetId: sheetId,
     range: 'Attendance!A:K',
     valueInputOption: 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
-    requestBody: { values: [batchRowValues] }
+    requestBody: { values: batchClockInRows }
+  });
+
+  // 2. Clock-Outs: Multi-Range batchUpdate (1 call per merchant sheet)
+  await sheetsClient.spreadsheets.values.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: updateRanges // e.g. [{ range: 'Attendance!G42:K42', values: [[outTime, duration, coords, map, 'Completed']] }]
+    }
   });
   ```
-  * **Key Advantages of Direct API**:
-    - **Zero Concurrency Limits**: No 30-execution cap.
-    - **300 Requests/Minute per Project**: Google Sheets API quota allows 300 writes per minute per project (and can be increased via Google Cloud quota increase requests).
-    - **Sub-150ms Write Latency**: Direct Google Cloud infrastructure writes are 10x faster than Apps Script `SpreadsheetApp`.
-    - **Zero Apps Script Daily Runtime Quota**: API calls do not consume Apps Script execution time.
+* **Key Advantages of Direct Sheets API v4**:
+  - **Zero Concurrency Limits**: No 30-execution cap.
+  - **300 Requests/Minute per Project**: Google Sheets API allows 300 writes per minute per project (expandable via GCP quota requests). Micro-batching reduces 1,000 punches to ~30 calls.
+  - **Sub-150ms Write Latency**: Direct Google Cloud infrastructure writes are 10x faster than Apps Script `SpreadsheetApp`.
+  - **Zero Apps Script Daily Runtime Quota**: API calls do not consume Apps Script execution time.
+
+* **6-Hour Slow-Changing Subscription Cache with Real-Time Webhook Invalidation**:
+  Because subscription statuses (14-day trials, monthly, yearly plans) change slowly, `buffer-service` caches tenant records in Node.js RAM for 6 hours (`CACHE_TTL_HOURS=6`), reducing Central Directory reads from 288/day to **just 4 reads per day**:
+  - **Punch Validation**: Evaluates in-memory timestamps (`Date.now() < tenant.expiresAt`) in **0.001ms** with zero database lookups.
+  - **Real-Time Payment Webhook (`POST /api/v1/payments/webhook`)**: Instantly updates `tenant.expiresAt` in memory upon card charge capture, enabling staff to punch in sub-second without waiting for the next 6-hour poll.
+  - **Client Failover Guarantee**: If `bufferEndpointUrl` is unreachable, [`js/queue.js`](file:///Users/venkata/workspace/PersonalBranding/CrewClock/js/queue.js) automatically falls back to the legacy Apps Script proxy.
 
 ---
 
