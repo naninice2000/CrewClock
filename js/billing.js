@@ -101,12 +101,16 @@ window.CrewClock = window.SheetPunch;
       const rates = getPlanRates(t, isMobile);
       const capT = t.charAt(0).toUpperCase() + t.slice(1);
       const priceEl = el[`planPrice${capT}`];
+      const origPriceEl = el[`planOriginal${capT}`];
       const periodEl = el[`planPeriod${capT}`];
       const subtextEl = el[`planSubtext${capT}`];
       const cardEl = el[`planCard${capT}`];
       const checkEl = el[`planCheck${capT}`];
 
       if (priceEl) priceEl.textContent = isYearly ? rates.yearlyPriceFormatted : rates.monthlyPriceFormatted;
+      if (origPriceEl) {
+        origPriceEl.textContent = isYearly ? (rates.originalYearlyPriceFormatted || '$190') : (rates.originalMonthlyPriceFormatted || '$19');
+      }
       if (periodEl) periodEl.textContent = isYearly ? rates.yearlyPeriod : rates.monthlyPeriod;
       if (subtextEl) subtextEl.textContent = isYearly ? rates.yearlySubtext : rates.monthlySubtext;
 
