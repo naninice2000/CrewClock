@@ -314,11 +314,11 @@ Test results verify:
 
 # Google Cloud Quota Management: Monitoring & Requesting Free Quota Increases
 
-When scaling SheetPunch to mid-market and enterprise volumes (**1,000–5,000+ business tenants and 50,000+ active daily workers**), understanding and monitoring the **Google Sheets API Write Quota** is essential for maintaining sub-second write speeds.
+When scaling SheetPunch to mid-market and enterprise volumes (**1,000–5,000+ business tenants and 50,000+ active daily workers**), understanding, monitoring, and expanding the **Google Sheets API Write Quota** is essential for maintaining sub-second write speeds.
 
 ---
 
-### 1. The Quota Architecture at 50,000 Users
+### 1. The Quota Architecture at Scale
 
 1. **The Default Quota**:
    Google Cloud assigns an out-of-the-box default limit of **300 write requests per minute per project** for the Google Sheets API.
@@ -335,28 +335,52 @@ When scaling SheetPunch to mid-market and enterprise volumes (**1,000–5,000+ b
 
 ### 2. Step-by-Step: How to Request a Free Quota Increase (300 ➔ 3,000 Writes/Min)
 
-Google Cloud provides free quota increases for legitimate production applications with a billing profile on file. Google does **not** charge any fees for Sheets API calls or quota increases.
+Google Cloud provides quota increases **100% free of charge** for legitimate production applications with a billing profile on file. Google does **not** charge any fees for Sheets API calls or quota increases.
+
+#### Phase Quota Roadmap:
+* **Stage 1 (0 – 500 Tenants / 5,000 Users)**: Default **300 writes/min** is sufficient with `buffer-service` micro-batching.
+* **Stage 2 (500 – 5,000 Tenants / 50,000 Users)**: Request increase from 300 to **3,000 writes/min**.
+* **Stage 3 (5,000 – 15,000+ Tenants / 100,000+ Users)**: Request increase to **10,000 writes/min** or activate Multi-Project Pooling.
+
+#### Step-by-Step Google Cloud Console Walkthrough:
 
 1. **Navigate to Google Cloud Quotas**:
-   - Go to [Google Cloud Console Quotas](https://console.cloud.google.com/iam-admin/quotas).
-   - Ensure your SheetPunch project is selected in the top project dropdown.
+   - Open your browser and navigate to:  
+     [https://console.cloud.google.com/iam-admin/quotas](https://console.cloud.google.com/iam-admin/quotas)
+   - Ensure your SheetPunch project is selected in the top project dropdown (e.g. `employeeattendenceapp-507606`).
+
 2. **Filter for Google Sheets API**:
-   - In the filter search bar, type: `Google Sheets API`.
-   - Look for the metric: **"Write requests"** (Service: *Google Sheets API*, Metric name: `sheets.googleapis.com/write_requests`).
-3. **Select and Edit Quota**:
-   - Check the checkbox next to **"Write requests per minute per project"** (Current limit: `300`).
+   - Click in the **Filter** search bar at the top of the table.
+   - Type or select: `Service: Google Sheets API`.
+   - Add a second filter: `Metric: sheets.googleapis.com/write_requests`.
+
+3. **Select and Edit the Quota**:
+   - Locate the row: **"Write requests per minute per project"** (Default limit: `300`).
+   - Check the checkbox on the left side of this row.
    - Click the blue **"Edit Quotas"** button in the top action bar.
-4. **Submit Increase Request**:
-   - **New Quota Value**: Enter `3000` (or `5000`).
-   - **Request Description / Justification**:
+
+4. **Fill in the Quota Increase Form**:
+   - **New Quota Value**: Enter `3000` (or `5000` for enterprise growth).
+   - **Request Description / Business Justification**:  
+     Copy and paste this production-ready justification:
      ```text
-     SheetPunch is a multi-tenant employee time-tracking and attendance SaaS platform. 
-     The platform logs tamper-proof shift punches directly into individual merchants' private Google Sheets. 
-     During peak morning shift start windows (7:55 AM – 8:05 AM), concurrent writes across 1,000+ separate merchant spreadsheets require up to 3,000 write requests per minute to prevent buffering delays.
+     Application: SheetPunch (Multi-Tenant Workforce Attendance & Time Tracking SaaS)
+     Architecture: B2B Multi-Tenant Platform utilizing Google Sheets as private, tenant-sovereign databases.
+     Reason for Request: 
+     SheetPunch logs GPS-verified, tamper-proof shift punches directly into individual merchants' private Google Sheets. 
+     During peak morning shift start windows (7:55 AM – 8:05 AM), concurrent punches across 1,000+ separate merchant spreadsheets create short-duration write bursts exceeding 300 requests per minute.
+     Because each tenant maintains an isolated spreadsheet file for data privacy and sovereignty, writes across different tenants cannot be consolidated into a single spreadsheet ID.
+     Increasing the write quota to 3,000 requests/minute eliminates temporary in-memory queue delays and ensures sub-second attendance logging for business tenants.
+     Security & Compliance: 
+     - Authentication: Google Cloud Service Account with restricted spreadsheet scopes.
+     - Rate Smoothing: Client-side jitter queue (500–2,500ms) and server-side micro-batching (3-second flush cycles) are already implemented.
+     - Zero Abuse: No public write access; all writes are authenticated against registered merchant rosters.
      ```
-   - Click **Next** and **Submit Request**.
-5. **Approval Timeframe**:
-   - For accounts with a valid billing profile in good standing, quota increases up to 3,000 req/min are typically auto-approved or approved within **24 to 48 hours**.
+   - Click **Next**, enter your contact details, and click **Submit Request**.
+
+5. **Approval Timeframe & What Happens While Waiting**:
+   - **Approval Speed**: For Google Cloud accounts with an active billing profile in good standing, quota increases up to 3,000 writes/min are typically approved within **24 to 48 hours** (and are often approved automatically).
+   - **Zero Risk While Waiting**: Even if you submit the request during live traffic, `buffer-service` automatically handles the 300/min ceiling by queuing excess punches in memory and retrying with exponential backoff. Zero punches are lost or rejected.
 
 ---
 
@@ -379,14 +403,117 @@ Set up automated alerts so your engineering team receives an email/SMS notificat
 
 ---
 
-### 4. Scaling Beyond 3,000 Writes/Minute (Multi-Project Pooling)
+# Enterprise Architecture: Scaling Beyond 3,000 Writes/Minute (10,000+ Tenants Roadmap)
 
-If SheetPunch reaches enterprise scale (**10,000+ tenants and 100,000+ daily workers**) exceeding 3,000 writes/minute:
+When SheetPunch scales to enterprise scale (**10,000+ business tenants and 100,000+ active daily workers**), a single Google Cloud project's 3,000 writes/minute quota will eventually be surpassed during an 8:00 AM shift change.
 
-* **Project Pooling Architecture**:
-  Because quotas are enforced **per Google Cloud Project**, you can create a pool of 3 to 5 Google Cloud Projects (`sheetpunch-pool-1`, `sheetpunch-pool-2`, `sheetpunch-pool-3`), each with its own Service Account.
-* `buffer-service` rotates write dispatches across the Service Account pool:
-  ```text
-  5 GCP Projects × 3,000 writes/min = 15,000 writes per minute (100% Free Tier)
-  ```
-* This gives the platform virtually unlimited write throughput while preserving 100% data sovereignty in merchants' private Google Sheets.
+Here is the comprehensive, production-grade architectural plan to scale SheetPunch to **15,000 to 50,000+ writes per minute** with zero database bottlenecks and 100% data sovereignty.
+
+---
+
+### Strategy A: Service Account Multi-Project Pooling (The "Worker Farm" Pattern)
+
+Because Google Cloud enforces write quotas **per Google Cloud Project**, you can multiply your throughput infinitely by establishing a pool of Google Cloud Projects:
+
+```
+                               ┌──────────────────────────────────────────────┐
+                               │       buffer-service (Cloud Run Router)      │
+                               └──────────────────────┬───────────────────────┘
+                                                      │
+                       Consistent Hashing: projectIndex = crc32(tenantId) % 5
+                                                      │
+             ┌─────────────────┬──────────────────────┼──────────────────────┬─────────────────┐
+             │                 │                      │                      │                 │
+             ▼                 ▼                      ▼                      ▼                 ▼
+     ┌───────────────┐ ┌───────────────┐      ┌───────────────┐      ┌───────────────┐ ┌───────────────┐
+     │  GCP Pool 01  │ │  GCP Pool 02  │      │  GCP Pool 03  │      │  GCP Pool 04  │ │  GCP Pool 05  │
+     │ 3,000 req/min │ │ 3,000 req/min │      │ 3,000 req/min │      │ 3,000 req/min │ │ 3,000 req/min │
+     │ Service Acct 1│ │ Service Acct 2│      │ Service Acct 3│      │ Service Acct 4│ │ Service Acct 5│
+     └───────┬───────┘ └───────┬───────┘      └───────┬───────┘      └───────┬───────┘ └───────┬───────┘
+             │                 │                      │                      │                 │
+             └─────────────────┴──────────────────────┼──────────────────────┴─────────────────┘
+                                                      │
+                                                      ▼
+                                   [ 15,000 Writes / Minute Throughput ]
+                                        (100% Free Google Tier)
+```
+
+#### How the Multi-Project Pool Operates:
+1. **Create 5 Google Cloud Projects**:
+   - `sheetpunch-pool-01`, `sheetpunch-pool-02`, `sheetpunch-pool-03`, `sheetpunch-pool-04`, `sheetpunch-pool-05`.
+   - Each project has Google Sheets API enabled and its quota raised to 3,000 writes/min.
+2. **Deterministic Consistent Hashing**:
+   `buffer-service` assigns each merchant tenant to a project pool using deterministic hashing:
+   ```javascript
+   const poolIndex = Math.abs(crc32(tenantId)) % serviceAccountPool.length;
+   const assignedClient = serviceAccountPool[poolIndex];
+   ```
+   * **Why Consistent Hashing?** All punches for "Joe's Pizza" always route through the exact same Service Account, avoiding connection thrashing and ensuring perfectly sequential row appends.
+3. **The Throughput Math**:
+   $$\text{5 GCP Projects} \times 3{,}000\text{ writes/min} = \mathbf{15{,}000\text{ writes per minute}}$$
+   $$\text{10 GCP Projects} \times 3{,}000\text{ writes/min} = \mathbf{30{,}000\text{ writes per minute}}$$
+
+---
+
+### Strategy B: Google Group-Based Sheet Sharing (1-Click Merchant Setup)
+
+A common question is:  
+*“If we have 5 different Service Accounts in a pool, does the merchant have to share their Google Sheet with 5 different emails?”*
+
+**NO! We use Google Workspace Group Sharing:**
+
+1. **Create a Central Google Group**:
+   - Create a Google Group in your organization:  
+     `service-writers@sheetpunch.com` (or a standard `@googlegroups.com` group).
+2. **Add All Service Accounts to the Group**:
+   - Add `sheetpunch-buffer-sa@sheetpunch-pool-01.iam.gserviceaccount.com`
+   - Add `sheetpunch-buffer-sa@sheetpunch-pool-02.iam.gserviceaccount.com`
+   - Add `sheetpunch-buffer-sa@sheetpunch-pool-03.iam.gserviceaccount.com`
+   - Add `sheetpunch-buffer-sa@sheetpunch-pool-04.iam.gserviceaccount.com`
+   - Add `sheetpunch-buffer-sa@sheetpunch-pool-05.iam.gserviceaccount.com`
+3. **The Merchant Onboarding Experience**:
+   - The merchant opens their Google Sheet, clicks **Share**, and adds **ONE email address**:  
+     `service-writers@sheetpunch.com` as **Editor**.
+   - Google Drive automatically inherits permissions for **every Service Account in the group**!
+   - **Result**: Merchant onboarding remains simple (1 email to share with), while backend throughput scales to 15,000+ writes/minute!
+
+---
+
+### Strategy C: Enterprise "Bring Your Own GCP" (BYO-GCP) for Franchises
+
+For high-volume enterprise franchise customers (e.g. a restaurant chain with 100 to 500 locations):
+* Provide an **Enterprise Cloud Settings** panel in their SheetPunch Business Dashboard.
+* The franchise IT administrator provides their own Google Cloud Service Account JSON key or OAuth Client ID.
+* All attendance punches for that franchise write using **their own dedicated Google Cloud Project quota**.
+* **Benefits**:
+  - The franchise receives an isolated 3,000 writes/minute quota pool.
+  - Zero quota impact on the shared SheetPunch public pool.
+  - 100% enterprise data isolation and compliance.
+
+---
+
+### Strategy D: Leaky-Bucket Rate Limiter & Sharded Flushers
+
+Inside `buffer-service`, we implement a **Leaky-Bucket Token Throttle** per Service Account:
+```javascript
+// Rate Limiter: Max 45 requests per second per Service Account project (2,700/min)
+const rateLimiter = new TokenBucket({
+  bucketSize: 45,
+  tokensPerInterval: 45,
+  interval: "second"
+});
+```
+* **How it protects the system**:
+  If a sudden surge of 5,000 punches arrives in 10 seconds, the rate limiter feeds the API at a steady 45 writes/second per project.
+  Google’s servers never encounter an HTTP 429 quota breach, and the entire queue flushes smoothly with zero errors.
+
+---
+
+### Enterprise Scale Milestone Matrix
+
+| Scale Tier | Business Tenants | Daily Punch Users | Quota Required | Architecture Required | Estimated Cloud Cost |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Tier 1: Launch & Pilot** | 1 – 100 | 10 – 1,000 | < 100 writes/min | Google Apps Script Proxy fallback or default Cloud Run | **$0.00 / month** |
+| **Tier 2: Growth** | 100 – 500 | 1,000 – 7,500 | ~300 writes/min | Single Cloud Run + Direct Sheets API v4 (Default Quota) | **$0.00 / month** (Free Tier) |
+| **Tier 3: Mid-Market** | 500 – 5,000 | 7,500 – 50,000 | ~3,000 writes/min | Single Cloud Run + Free Quota Increase (to 3,000 req/min) | **$0.00 / month** (Free Tier) |
+| **Tier 4: Enterprise** | 5,000 – 20,000+ | 50,000 – 200,000+ | 15,000+ writes/min | Multi-Project Pooling (5 GCP Projects) + Google Group Sharing | **$0.00 – $5.00 / month** |

@@ -25,8 +25,7 @@ A unified mobile attendance and employee time clock system with **tamper-proof G
   * Built with Kotlin, Android Jetpack, and `WebView`.
   * Features automatic User-Agent sanitization for Google Sign-In (`403 disallowed_useragent` bypass), GPS geolocation bridging, pull-to-refresh, and offline support.
 * **[`GScript/`](GScript/)**: Backend Google Apps Script deployments (`google-apps-script-tenancy.js` with CacheService in-memory acceleration, `google-apps-script-payments.js`, and `google-apps-script.js`).
-* **[`test/`](test/)**: Automated End-to-End Behavior-Driven Development (BDD) testing suite powered by **Python**, **Playwright**, and **Behave** with 100% offline Google Apps Script mocking.
-* **[`buffer-service/`](buffer-service/)**: Optional high-throughput decoupled microservice (Node.js/Express) for burst smoothing.
+* **[`buffer-service/`](buffer-service/)**: High-throughput decoupled ingestion & micro-batching service (Google Cloud Run + Sheets API v4) capable of handling 3,000 to 15,000+ writes/min with sub-10ms response times. See the complete [Buffer Service Guide & Scaling Blueprint](buffer-service/README.md).
 
 ---
 
@@ -70,7 +69,7 @@ The platform utilizes Google Sheets for complete isolation between tenant direct
    - Click **"Sign Up Your Business with Google"** with an instant 14-day free trial.
    - Name their business workspace, logo URL, and provide their Attendance Sheet Script URL.
    - Access to **Team Management** (👥): Invite employees by Google / Google Workspace email and remove staff.
-   - Access to **Billing & Subscription** (💳): Manage Starter, Growth, or Pro Crew monthly/yearly plans with Q PaymentZ integration.
+   - Access to **Billing & Subscription** (💳): Manage Starter, Growth, or Pro Crew monthly/yearly plans with secure Card & Webhook payment gateway integration.
    - Access to **App Configuration** (⚙️): Update branding and sheet settings.
 2. **Employees (Staff Members)**:
    - Click **"Sign In with Google"**.
@@ -133,7 +132,7 @@ Each shift is recorded as a single row with full dual-location auditing:
 3. Deploy as **Web app** (`Execute as: Me`, `Who has access: Anyone`).
 4. Copy the Web app URL and paste into `config.js` as `tenancyScriptUrl`.
 
-### 2. Dedicated Payments Engine (Q PaymentZ)
+### 2. Dedicated Payments Engine (Credit Card & Webhooks)
 1. Open [sheets.new](https://sheets.new) and name it: **`SheetPunch - Payments & Billing Ledger`**.
 2. Click **Extensions > Apps Script**, paste [`GScript/google-apps-script-payments.js`](GScript/google-apps-script-payments.js).
 3. In **Project Settings > Script Properties**, set:
